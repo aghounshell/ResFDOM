@@ -7,21 +7,69 @@
 pacman::p_load(tidyverse,ggplot2,ggpubr)
 
 # Load in data: EEMs 'results' files
-data <- read_csv("C:/Users/ahoun/Dropbox/ResFDOM/ResFDOM/Data/ResultsFiles_ResEEMs2019.csv")
+data <- read_csv("C:/Users/ahoun/OneDrive/Desktop/ResFDOM/Data/20200210_ResultsFiles_ResEEMs2019.csv")
 data$Date <- as.POSIXct(strptime(data$Date, "%m/%d/%Y", tz = "EST"))
+fcr <- data %>% filter(Reservoir == "FCR")
+fcr_epi <- fcr %>% filter(Depth == 0.1)
+fcr_meta <- fcr %>% filter(Depth == 5.0)
+fcr_hypo <- fcr %>% filter(Depth == 9.0)
 
 # Just start plotting?
-ggplot(data,aes(x=Date,y=HIX,group=Depth,color=Depth))+
+ggplot(fcr,aes(x=Date,y=HIX,group=Depth,color=Depth))+
   geom_point()+
   geom_line()+
   theme_classic()
 
-ggplot(data,aes(x=Date,y=BIX,group=Depth,color=Depth))+
+ggplot(fcr,aes(x=Date,y=BIX,group=Depth,color=Depth))+
   geom_point()+
   geom_line()+
   theme_classic()
 
-date_char <- data
+ggplot()+
+  geom_point(data=fcr_epi,mapping=aes(x=Date,y=HIX),color="#F5793A",size=2)+
+  geom_line(data=fcr_epi,mapping=aes(x=Date,y=HIX),color="#F5793A",size=1)+
+  geom_point(data=fcr_meta,mapping=aes(x=Date,y=HIX),color="#A95AA1",size=2)+
+  geom_line(data=fcr_meta,mapping=aes(x=Date,y=HIX),color="#A95AA1",size=1)+
+  geom_point(data=fcr_hypo,mapping=aes(x=Date,y=HIX),color="#85C0F9",size=2)+
+  geom_line(data=fcr_hypo,mapping=aes(x=Date,y=HIX),color="#85C0F9",size=1)+
+  geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-07-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-08-05"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-08-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-09-02"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
+  theme_classic(base_size=15)
+
+ggplot()+
+  geom_point(data=fcr_epi,mapping=aes(x=Date,y=BIX),color="blue")+
+  geom_line(data=fcr_epi,mapping=aes(x=Date,y=BIX),color="blue")+
+  geom_point(data=fcr_meta,mapping=aes(x=Date,y=BIX),color="orange")+
+  geom_line(data=fcr_meta,mapping=aes(x=Date,y=BIX),color="orange")+
+  geom_point(data=fcr_hypo,mapping=aes(x=Date,y=BIX),color="green")+
+  geom_line(data=fcr_hypo,mapping=aes(x=Date,y=BIX),color="green")+
+  theme_classic()
+
+ggplot()+
+  geom_point(data=fcr_epi,mapping=aes(x=Date,y=T),color="blue")+
+  geom_line(data=fcr_epi,mapping=aes(x=Date,y=T),color="blue")+
+  geom_point(data=fcr_meta,mapping=aes(x=Date,y=T),color="orange")+
+  geom_line(data=fcr_meta,mapping=aes(x=Date,y=T),color="orange")+
+  geom_point(data=fcr_hypo,mapping=aes(x=Date,y=T),color="green")+
+  geom_line(data=fcr_hypo,mapping=aes(x=Date,y=T),color="green")+
+  theme_classic()
+
+ggplot()+
+  geom_point(data=fcr_epi,mapping=aes(x=Date,y=A),color="blue")+
+  geom_line(data=fcr_epi,mapping=aes(x=Date,y=A),color="blue")+
+  geom_point(data=fcr_meta,mapping=aes(x=Date,y=A),color="orange")+
+  geom_line(data=fcr_meta,mapping=aes(x=Date,y=A),color="orange")+
+  geom_point(data=fcr_hypo,mapping=aes(x=Date,y=A),color="green")+
+  geom_line(data=fcr_hypo,mapping=aes(x=Date,y=A),color="green")+
+  theme_classic()
+
+date_char <- fcr
 date_char$Date <- as.character(date_char$Date)
 
 ggplot(date_char,aes(x=HIX,y=Depth,group=Date,color=Date))+
