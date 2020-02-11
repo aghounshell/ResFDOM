@@ -40,16 +40,28 @@ ggplot()+
   geom_vline(xintercept = as.POSIXct("2019-08-19"), color="black",linetype="dashed")+ # Oxygen off
   geom_vline(xintercept = as.POSIXct("2019-09-02"), color="black")+ # Oxygen on
   geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
+  geom_hline(yintercept = 6, color="grey")+
+  ylim(0,10)+
+  geom_text(x=as.POSIXct("2019-10-01"),y=9.5,label="Epi",color="#F5793A")+
   theme_classic(base_size=15)
 
 ggplot()+
-  geom_point(data=fcr_epi,mapping=aes(x=Date,y=BIX),color="blue")+
-  geom_line(data=fcr_epi,mapping=aes(x=Date,y=BIX),color="blue")+
-  geom_point(data=fcr_meta,mapping=aes(x=Date,y=BIX),color="orange")+
-  geom_line(data=fcr_meta,mapping=aes(x=Date,y=BIX),color="orange")+
-  geom_point(data=fcr_hypo,mapping=aes(x=Date,y=BIX),color="green")+
-  geom_line(data=fcr_hypo,mapping=aes(x=Date,y=BIX),color="green")+
-  theme_classic()
+  geom_point(data=fcr_epi,mapping=aes(x=Date,y=BIX),color="#F5793A",size=2)+
+  geom_line(data=fcr_epi,mapping=aes(x=Date,y=BIX),color="#F5793A",size=1)+
+  geom_point(data=fcr_meta,mapping=aes(x=Date,y=BIX),color="#A95AA1",size=2)+
+  geom_line(data=fcr_meta,mapping=aes(x=Date,y=BIX),color="#A95AA1",size=1)+
+  geom_point(data=fcr_hypo,mapping=aes(x=Date,y=BIX),color="#85C0F9",size=2)+
+  geom_line(data=fcr_hypo,mapping=aes(x=Date,y=BIX),color="#85C0F9",size=1)+
+  geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-07-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-08-05"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-08-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-09-02"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
+  ylim(0,0.9)+
+  theme_classic(base_size=15)
 
 ggplot()+
   geom_point(data=fcr_epi,mapping=aes(x=Date,y=T),color="blue")+
