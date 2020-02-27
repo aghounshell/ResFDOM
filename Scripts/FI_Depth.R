@@ -7,12 +7,14 @@
 pacman::p_load(tidyverse,ggplot2,ggpubr)
 
 # Load in data: EEMs 'results' files
-data <- read_csv("C:/Users/ahoun/OneDrive/Desktop/ResFDOM/Data/20200210_ResultsFiles_ResEEMs2019.csv")
+data <- read_csv("C:/Users/ahoun/OneDrive/Desktop/ResFDOM/Data/20200224_ResultsFiles_ResEEMs2019.csv")
 data$Date <- as.POSIXct(strptime(data$Date, "%m/%d/%Y", tz = "EST"))
 fcr <- data %>% filter(Reservoir == "FCR")
-fcr_epi <- fcr %>% filter(Depth == 0.1)
+fcr_epi <- fcr %>% filter(Station == 50 & Depth == 0.1)
 fcr_meta <- fcr %>% filter(Depth == 5.0)
 fcr_hypo <- fcr %>% filter(Depth == 9.0)
+fcr_inf <- fcr %>% filter(Station == 'INF')
+fcr_wet <- fcr %>% filter(Station == 'WET')
 
 # Just start plotting?
 ggplot(fcr,aes(x=Date,y=HIX,group=Depth,color=Depth))+
@@ -26,12 +28,14 @@ ggplot(fcr,aes(x=Date,y=BIX,group=Depth,color=Depth))+
   theme_classic()
 
 ggplot()+
-  geom_point(data=fcr_epi,mapping=aes(x=Date,y=HIX),color="#F5793A",size=2)+
-  geom_line(data=fcr_epi,mapping=aes(x=Date,y=HIX),color="#F5793A",size=1)+
-  geom_point(data=fcr_meta,mapping=aes(x=Date,y=HIX),color="#A95AA1",size=2)+
-  geom_line(data=fcr_meta,mapping=aes(x=Date,y=HIX),color="#A95AA1",size=1)+
-  geom_point(data=fcr_hypo,mapping=aes(x=Date,y=HIX),color="#85C0F9",size=2)+
-  geom_line(data=fcr_hypo,mapping=aes(x=Date,y=HIX),color="#85C0F9",size=1)+
+  geom_point(data=fcr_epi,mapping=aes(x=Date,y=HIX,color='Epi'),size=2)+
+  geom_line(data=fcr_epi,mapping=aes(x=Date,y=HIX,color='Epi'),size=1)+
+  geom_point(data=fcr_meta,mapping=aes(x=Date,y=HIX,color='Meta'),size=2)+
+  geom_line(data=fcr_meta,mapping=aes(x=Date,y=HIX,color='Meta'),size=1)+
+  geom_point(data=fcr_hypo,mapping=aes(x=Date,y=HIX,color='Hypo'),size=2)+
+  geom_line(data=fcr_hypo,mapping=aes(x=Date,y=HIX,color='Hypo'),size=1)+
+  geom_point(data=fcr_inf,mapping=aes(x=Date,y=HIX,color='Inf'),size=3)+
+  geom_point(data=fcr_wet,mapping=aes(x=Date,y=HIX,color='Wet'),size=3)+
   geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
   geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
   geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
@@ -42,16 +46,18 @@ ggplot()+
   geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
   geom_hline(yintercept = 6, color="grey")+
   ylim(0,10)+
-  geom_text(x=as.POSIXct("2019-10-01"),y=9.5,label="Epi",color="#F5793A")+
+  scale_color_manual(breaks=c('Epi','Meta','Hypo','Inf','Wet'),values=c("#F5793A","#A95AA1","#85C0F9","#003366","#006400"))+
   theme_classic(base_size=15)
 
 ggplot()+
-  geom_point(data=fcr_epi,mapping=aes(x=Date,y=BIX),color="#F5793A",size=2)+
-  geom_line(data=fcr_epi,mapping=aes(x=Date,y=BIX),color="#F5793A",size=1)+
-  geom_point(data=fcr_meta,mapping=aes(x=Date,y=BIX),color="#A95AA1",size=2)+
-  geom_line(data=fcr_meta,mapping=aes(x=Date,y=BIX),color="#A95AA1",size=1)+
-  geom_point(data=fcr_hypo,mapping=aes(x=Date,y=BIX),color="#85C0F9",size=2)+
-  geom_line(data=fcr_hypo,mapping=aes(x=Date,y=BIX),color="#85C0F9",size=1)+
+  geom_point(data=fcr_epi,mapping=aes(x=Date,y=BIX,color='Epi'),size=2)+
+  geom_line(data=fcr_epi,mapping=aes(x=Date,y=BIX,color='Epi'),size=1)+
+  geom_point(data=fcr_meta,mapping=aes(x=Date,y=BIX,color='Meta'),size=2)+
+  geom_line(data=fcr_meta,mapping=aes(x=Date,y=BIX,color='Meta'),size=1)+
+  geom_point(data=fcr_hypo,mapping=aes(x=Date,y=BIX,color='Hypo'),size=2)+
+  geom_line(data=fcr_hypo,mapping=aes(x=Date,y=BIX,color='Hypo'),size=1)+
+  geom_point(data=fcr_inf,mapping=aes(x=Date,y=BIX,color='Inf'),size=3)+
+  geom_point(data=fcr_wet,mapping=aes(x=Date,y=BIX,color='Wet'),size=3)+
   geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
   geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
   geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
@@ -61,6 +67,112 @@ ggplot()+
   geom_vline(xintercept = as.POSIXct("2019-09-02"), color="black")+ # Oxygen on
   geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
   ylim(0,0.9)+
+  scale_color_manual(breaks=c('Epi','Meta','Hypo','Inf','Wet'),values=c("#F5793A","#A95AA1","#85C0F9","#003366","#006400"))+
+  theme_classic(base_size=15)
+
+ggplot()+
+  geom_point(data=fcr_epi,mapping=aes(x=Date,y=`A/T`,color='Epi'),size=2)+
+  geom_line(data=fcr_epi,mapping=aes(x=Date,y=`A/T`,color='Epi'),size=1)+
+  geom_point(data=fcr_meta,mapping=aes(x=Date,y=`A/T`,color='Meta'),size=2)+
+  geom_line(data=fcr_meta,mapping=aes(x=Date,y=`A/T`,color='Meta'),size=1)+
+  geom_point(data=fcr_hypo,mapping=aes(x=Date,y=`A/T`,color='Hypo'),size=2)+
+  geom_line(data=fcr_hypo,mapping=aes(x=Date,y=`A/T`,color='Hypo'),size=1)+
+  geom_point(data=fcr_inf,mapping=aes(x=Date,y=`A/T`,color='Inf'),size=3)+
+  geom_point(data=fcr_wet,mapping=aes(x=Date,y=`A/T`,color='Wet'),size=3)+
+  geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-07-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-08-05"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-08-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-09-02"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
+  #ylim(0,0.9)+
+  scale_color_manual(breaks=c('Epi','Meta','Hypo','Inf','Wet'),values=c("#F5793A","#A95AA1","#85C0F9","#003366","#006400"))+
+  theme_classic(base_size=15)
+
+ggplot()+
+  geom_point(data=fcr_epi,mapping=aes(x=Date,y=M,color='Epi'),size=2)+
+  geom_line(data=fcr_epi,mapping=aes(x=Date,y=M,color='Epi'),size=1)+
+  geom_point(data=fcr_meta,mapping=aes(x=Date,y=M,color='Meta'),size=2)+
+  geom_line(data=fcr_meta,mapping=aes(x=Date,y=M,color='Meta'),size=1)+
+  geom_point(data=fcr_hypo,mapping=aes(x=Date,y=M,color='Hypo'),size=2)+
+  geom_line(data=fcr_hypo,mapping=aes(x=Date,y=M,color='Hypo'),size=1)+
+  geom_point(data=fcr_inf,mapping=aes(x=Date,y=M,color='Inf'),size=3)+
+  geom_point(data=fcr_wet,mapping=aes(x=Date,y=M,color='Wet'),size=3)+
+  geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-07-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-08-05"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-08-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-09-02"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
+  #ylim(0,2)+
+  scale_color_manual(breaks=c('Epi','Meta','Hypo','Inf','Wet'),values=c("#F5793A","#A95AA1","#85C0F9","#003366","#006400"))+
+  theme_classic(base_size=15)
+
+ggplot()+
+  geom_point(data=fcr_epi,mapping=aes(x=Date,y=`T/M`,color='Epi'),size=2)+
+  geom_line(data=fcr_epi,mapping=aes(x=Date,y=`T/M`,color='Epi'),size=1)+
+  geom_point(data=fcr_meta,mapping=aes(x=Date,y=`T/M`,color='Meta'),size=2)+
+  geom_line(data=fcr_meta,mapping=aes(x=Date,y=`T/M`,color='Meta'),size=1)+
+  geom_point(data=fcr_hypo,mapping=aes(x=Date,y=`T/M`,color='Hypo'),size=2)+
+  geom_line(data=fcr_hypo,mapping=aes(x=Date,y=`T/M`,color='Hypo'),size=1)+
+  geom_point(data=fcr_inf,mapping=aes(x=Date,y=`T/M`,color='Inf'),size=3)+
+  geom_point(data=fcr_wet,mapping=aes(x=Date,y=`T/M`,color='Wet'),size=3)+
+  geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-07-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-08-05"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-08-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-09-02"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
+  #ylim(0,0.9)+
+  scale_color_manual(breaks=c('Epi','Meta','Hypo','Inf','Wet'),values=c("#F5793A","#A95AA1","#85C0F9","#003366","#006400"))+
+  theme_classic(base_size=15)
+
+ggplot()+
+  geom_point(data=fcr_epi,mapping=aes(x=Date,y=M/T,color='Epi'),size=2)+
+  geom_line(data=fcr_epi,mapping=aes(x=Date,y=M/T,color='Epi'),size=1)+
+  geom_point(data=fcr_meta,mapping=aes(x=Date,y=M/T,color='Meta'),size=2)+
+  geom_line(data=fcr_meta,mapping=aes(x=Date,y=M/T,color='Meta'),size=1)+
+  geom_point(data=fcr_hypo,mapping=aes(x=Date,y=M/T,color='Hypo'),size=2)+
+  geom_line(data=fcr_hypo,mapping=aes(x=Date,y=M/T,color='Hypo'),size=1)+
+  geom_point(data=fcr_inf,mapping=aes(x=Date,y=M/T,color='Inf'),size=3)+
+  geom_point(data=fcr_wet,mapping=aes(x=Date,y=M/T,color='Wet'),size=3)+
+  geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-07-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-08-05"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-08-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-09-02"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
+  #ylim(0,0.9)+
+  scale_color_manual(breaks=c('Epi','Meta','Hypo','Inf','Wet'),values=c("#F5793A","#A95AA1","#85C0F9","#003366","#006400"))+
+  theme_classic(base_size=15)
+
+ggplot()+
+  geom_point(data=fcr_epi,mapping=aes(x=Date,y=T,color='Epi'),size=2)+
+  geom_line(data=fcr_epi,mapping=aes(x=Date,y=T,color='Epi'),size=1)+
+  geom_point(data=fcr_meta,mapping=aes(x=Date,y=T,color='Meta'),size=2)+
+  geom_line(data=fcr_meta,mapping=aes(x=Date,y=T,color='Meta'),size=1)+
+  geom_point(data=fcr_hypo,mapping=aes(x=Date,y=T,color='Hypo'),size=2)+
+  geom_line(data=fcr_hypo,mapping=aes(x=Date,y=T,color='Hypo'),size=1)+
+  geom_point(data=fcr_inf,mapping=aes(x=Date,y=T,color='Inf'),size=3)+
+  geom_point(data=fcr_wet,mapping=aes(x=Date,y=T,color='Wet'),size=3)+
+  geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-07-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-08-05"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-08-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-09-02"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
+  #ylim(0,0.9)+
+  scale_color_manual(breaks=c('Epi','Meta','Hypo','Inf','Wet'),values=c("#F5793A","#A95AA1","#85C0F9","#003366","#006400"))+
   theme_classic(base_size=15)
 
 ggplot()+
@@ -80,6 +192,8 @@ ggplot()+
   geom_point(data=fcr_hypo,mapping=aes(x=Date,y=A),color="green")+
   geom_line(data=fcr_hypo,mapping=aes(x=Date,y=A),color="green")+
   theme_classic()
+
+
 
 date_char <- fcr
 date_char$Date <- as.character(date_char$Date)
