@@ -3,29 +3,90 @@
 
 ## Rfile saved as: FI_Depth
 
+## Updated with more data
+## A Hounshell, 08 Aug 2020
+
 # Load libraries
 pacman::p_load(tidyverse,ggplot2,ggpubr)
 
 # Load in data: EEMs 'results' files
-data <- read_csv("C:/Users/ahoun/OneDrive/Desktop/ResFDOM/Data/20200224_ResultsFiles_ResEEMs2019.csv")
+data <- read_csv("C:/Users/ahoun/OneDrive/Desktop/ResFDOM/Data/20200804_ResultsFiles_ResEEMs2019.csv")
 data$Date <- as.POSIXct(strptime(data$Date, "%m/%d/%Y", tz = "EST"))
+data$HIX <- as.numeric(data$HIX)
+data$BIX <- as.numeric(data$BIX)
 fcr <- data %>% filter(Reservoir == "FCR")
-fcr_epi <- fcr %>% filter(Station == 50 & Depth == 0.1)
-fcr_meta <- fcr %>% filter(Depth == 5.0)
-fcr_hypo <- fcr %>% filter(Depth == 9.0)
-fcr_inf <- fcr %>% filter(Station == 'INF')
-fcr_wet <- fcr %>% filter(Station == 'WET')
+fcr_epi <- fcr %>% filter(Station == 50 & Depth == 0.1) %>% group_by(Date) %>% 
+  summarise_all(funs(mean))
+fcr_epi_sd <- fcr %>% filter(Station == 50 & Depth == 0.1) %>% group_by(Date) %>% 
+  summarise_all(funs(sd))
 
-# Just start plotting?
-ggplot(fcr,aes(x=Date,y=HIX,group=Depth,color=Depth))+
+# Plot
+ggplot(fcr_epi,mapping=aes(x=Date,y=HIX))+
   geom_point()+
   geom_line()+
+  geom_errorbar(fcr_epi_sd,mapping=aes(ymin=fcr_epi$HIX-HIX,ymax=fcr_epi$HIX+HIX))+
   theme_classic()
 
-ggplot(fcr,aes(x=Date,y=BIX,group=Depth,color=Depth))+
+fcr_meta <- fcr %>% filter(Depth == 5.0) %>% group_by(Date) %>% summarise_all(funs(mean))
+fcr_meta_sd <- fcr %>% filter(Depth == 5.0) %>% group_by(Date) %>% summarise_all(funs(sd))
+
+ggplot(fcr_meta,mapping=aes(x=Date,y=HIX))+
   geom_point()+
   geom_line()+
+  geom_errorbar(fcr_meta_sd,mapping=aes(ymin=fcr_meta$HIX-HIX,ymax=fcr_meta$HIX+HIX))+
   theme_classic()
+
+fcr_hypo <- fcr %>% filter(Depth == 9.0) %>% group_by(Date) %>% summarise_all(funs(mean))
+fcr_hypo_sd <- fcr %>% filter(Depth == 9.0) %>% group_by(Date) %>% summarise_all(funs(sd))
+
+ggplot(fcr_hypo,mapping=aes(x=Date,y=HIX))+
+  geom_point()+
+  geom_line()+
+  geom_errorbar(fcr_hypo_sd,mapping=aes(ymin=fcr_hypo$HIX-HIX,ymax=fcr_hypo$HIX+HIX))+
+  theme_classic()
+
+# Plot all
+ggplot()+
+  geom_point(fcr_epi,mapping=aes(x=Date,y=HIX,color="Epi"))+
+  geom_line(fcr_epi,mapping=aes(x=Date,y=HIX,color="Epi"))+
+  geom_errorbar(fcr_epi_sd,mapping=aes(x=Date,y=fcr_epi$HIX,ymin=fcr_epi$HIX-HIX,ymax=fcr_epi$HIX+HIX,color="Epi"))+
+  geom_point(fcr_meta,mapping=aes(x=Date,y=HIX,color="Meta"))+
+  geom_line(fcr_meta,mapping=aes(x=Date,y=HIX,color="Meta"))+
+  geom_errorbar(fcr_meta_sd,mapping=aes(x=Date,y=fcr_meta$HIX,ymin=fcr_meta$HIX-HIX,ymax=fcr_meta$HIX+HIX,color="Meta"))+
+  geom_point(fcr_hypo,mapping=aes(x=Date,y=HIX,color="Hypo"))+
+  geom_line(fcr_hypo,mapping=aes(x=Date,y=HIX,color="Hypo"))+
+  geom_errorbar(fcr_hypo_sd,mapping=aes(x=Date,y=fcr_hypo$HIX,ymin=fcr_hypo$HIX-HIX,ymax=fcr_hypo$HIX+HIX,color="Hypo"))+
+  theme_classic()
+
+ggplot()+
+  geom_point(fcr_epi,mapping=aes(x=Date,y=BIX,color="Epi"))+
+  geom_line(fcr_epi,mapping=aes(x=Date,y=BIX,color="Epi"))+
+  geom_errorbar(fcr_epi_sd,mapping=aes(x=Date,y=fcr_epi$BIX,ymin=fcr_epi$BIX-BIX,ymax=fcr_epi$BIX+BIX,color="Epi"))+
+  geom_point(fcr_meta,mapping=aes(x=Date,y=BIX,color="Meta"))+
+  geom_line(fcr_meta,mapping=aes(x=Date,y=BIX,color="Meta"))+
+  geom_errorbar(fcr_meta_sd,mapping=aes(x=Date,y=fcr_meta$BIX,ymin=fcr_meta$BIX-BIX,ymax=fcr_meta$BIX+BIX,color="Meta"))+
+  geom_point(fcr_hypo,mapping=aes(x=Date,y=BIX,color="Hypo"))+
+  geom_line(fcr_hypo,mapping=aes(x=Date,y=BIX,color="Hypo"))+
+  geom_errorbar(fcr_hypo_sd,mapping=aes(x=Date,y=fcr_hypo$BIX,ymin=fcr_hypo$BIX-BIX,ymax=fcr_hypo$BIX+BIX,color="Hypo"))+
+  theme_classic()
+
+fcr_inf <- fcr %>% filter(Station == 100)
+fcr_wet <- fcr %>% filter(Station == 200)
+
+# Plot
+ggplot()+
+  geom_point(fcr_inf,mapping=aes(x=Date,y=HIX,color="Inf"))+
+  geom_line(fcr_inf,mapping=aes(x=Date,y=HIX,color="Inf"))+
+  geom_point(fcr_wet,mapping=aes(x=Date,y=HIX,color="Wet"))+
+  geom_line(fcr_wet,mapping=aes(x=Date,y=HIX,color="Wet"))+
+  theme_classic(base_size=15)
+
+ggplot()+
+  geom_point(fcr_inf,mapping=aes(x=Date,y=BIX,color="Inf"))+
+  geom_line(fcr_inf,mapping=aes(x=Date,y=BIX,color="Inf"))+
+  geom_point(fcr_wet,mapping=aes(x=Date,y=BIX,color="Wet"))+
+  geom_line(fcr_wet,mapping=aes(x=Date,y=BIX,color="Wet"))+
+  theme_classic(base_size=15)
 
 ggplot()+
   geom_point(data=fcr_epi,mapping=aes(x=Date,y=HIX,color='Epi'),size=2)+
@@ -69,6 +130,60 @@ ggplot()+
   ylim(0,0.9)+
   scale_color_manual(breaks=c('Epi','Meta','Hypo','Inf','Wet'),values=c("#F5793A","#A95AA1","#85C0F9","#003366","#006400"))+
   theme_classic(base_size=15)
+
+# Let's look at RC day data...
+fcr_surf <- fcr %>% filter(Depth==0.1)
+bvr_surf <- data %>% filter(Reservoir == "BVR")
+
+# Sepearate FCR by inflows and reservoir
+fcr_inflows <- fcr_surf %>% filter(Station == 99 | Station == 100 | Station == 101 | Station == 102 | Station == 200)
+fcr_res <- fcr_surf %>% filter(Station == 20 | Station == 30 | Station == 45 | Station == 50 | Station == 1)
+
+# Plot FCR
+ggplot(fcr_surf,mapping=aes(x=Date,y=HIX,color=as.factor(Station)))+
+  geom_point()+
+  geom_line()+
+  theme_classic(base_size=15)
+
+ggplot(fcr_surf,mapping=aes(x=Date,y=BIX,color=as.factor(Station)))+
+  geom_point()+
+  geom_line()+
+  theme_classic(base_size=15)
+
+ggplot(fcr_inflows,mapping=aes(x=Date,y=HIX,color=as.factor(Station)))+
+  geom_point()+
+  geom_line()+
+  theme_classic(base_size=15)
+
+ggplot(fcr_inflows,mapping=aes(x=Date,y=BIX,color=as.factor(Station)))+
+  geom_point()+
+  geom_line()+
+  theme_classic(base_size=15)
+
+ggplot(fcr_res,mapping=aes(x=Date,y=HIX,color=as.factor(Station)))+
+  geom_point()+
+  geom_line()+
+  theme_classic(base_size=15)
+
+ggplot(fcr_res,mapping=aes(x=Date,y=BIX,color=as.factor(Station)))+
+  geom_point()+
+  geom_line()+
+  theme_classic(base_size=15)
+
+# Plot BVR
+ggplot(bvr_surf,mapping=aes(x=Date,y=HIX,color=as.factor(Station)))+
+  geom_point()+
+  geom_line()+
+  theme_classic(base_size=15)
+
+ggplot(bvr_surf,mapping=aes(x=Date,y=BIX,color=as.factor(Station)))+
+  geom_point()+
+  geom_line()+
+  theme_classic(base_size=15)
+
+
+###############################################
+
 
 ggplot()+
   geom_point(data=fcr_epi,mapping=aes(x=Date,y=`A/T`,color='Epi'),size=2)+
