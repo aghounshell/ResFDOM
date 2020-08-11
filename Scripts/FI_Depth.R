@@ -10,7 +10,7 @@
 pacman::p_load(tidyverse,ggplot2,ggpubr)
 
 # Load in data: EEMs 'results' files
-data <- read_csv("C:/Users/ahoun/OneDrive/Desktop/ResFDOM/Data/20200804_ResultsFiles_ResEEMs2019.csv")
+data <- read_csv("C:/Users/ahoun/OneDrive/Desktop/ResFDOM/Data/20200808_ResultsFiles_ResEEMs2019.csv")
 data$Date <- as.POSIXct(strptime(data$Date, "%m/%d/%Y", tz = "EST"))
 data$HIX <- as.numeric(data$HIX)
 data$BIX <- as.numeric(data$BIX)
@@ -96,7 +96,9 @@ ggplot()+
   geom_point(data=fcr_hypo,mapping=aes(x=Date,y=HIX,color='Hypo'),size=2)+
   geom_line(data=fcr_hypo,mapping=aes(x=Date,y=HIX,color='Hypo'),size=1)+
   geom_point(data=fcr_inf,mapping=aes(x=Date,y=HIX,color='Inf'),size=3)+
+  geom_line(data=fcr_inf,mapping=aes(x=Date,y=HIX,color='Inf'),size=1)+
   geom_point(data=fcr_wet,mapping=aes(x=Date,y=HIX,color='Wet'),size=3)+
+  geom_line(data=fcr_wet,mapping=aes(x=Date,y=HIX,color='Wet'),size=1)+
   geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
   geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
   geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
@@ -107,7 +109,7 @@ ggplot()+
   geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
   geom_hline(yintercept = 6, color="grey")+
   ylim(0,10)+
-  scale_color_manual(breaks=c('Epi','Meta','Hypo','Inf','Wet'),values=c("#F5793A","#A95AA1","#85C0F9","#003366","#006400"))+
+  scale_color_manual(breaks=c('Epi','Meta','Hypo','Inf','Wet'),values=c("#7FC6A4","#7EBDC2","#393E41","#F0B670","#FE5F55"))+
   theme_classic(base_size=15)
 
 ggplot()+
@@ -118,7 +120,9 @@ ggplot()+
   geom_point(data=fcr_hypo,mapping=aes(x=Date,y=BIX,color='Hypo'),size=2)+
   geom_line(data=fcr_hypo,mapping=aes(x=Date,y=BIX,color='Hypo'),size=1)+
   geom_point(data=fcr_inf,mapping=aes(x=Date,y=BIX,color='Inf'),size=3)+
+  geom_line(data=fcr_inf,mapping=aes(x=Date,y=BIX,color='Inf'),size=1)+
   geom_point(data=fcr_wet,mapping=aes(x=Date,y=BIX,color='Wet'),size=3)+
+  geom_line(data=fcr_wet,mapping=aes(x=Date,y=BIX,color='Wet'),size=1)+
   geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
   geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
   geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
@@ -128,8 +132,7 @@ ggplot()+
   geom_vline(xintercept = as.POSIXct("2019-09-02"), color="black")+ # Oxygen on
   geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
   ylim(0,0.9)+
-  scale_color_manual(breaks=c('Epi','Meta','Hypo','Inf','Wet'),values=c("#F5793A","#A95AA1","#85C0F9","#003366","#006400"))+
-  theme_classic(base_size=15)
+  scale_color_manual(breaks=c('Epi','Meta','Hypo','Inf','Wet'),values=c("#7FC6A4","#7EBDC2","#393E41","#F0B670","#FE5F55"))+  theme_classic(base_size=15)
 
 # Let's look at RC day data...
 fcr_surf <- fcr %>% filter(Depth==0.1)
