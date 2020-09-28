@@ -10,7 +10,7 @@
 pacman::p_load(tidyverse,ggplot2,ggpubr)
 
 # Load in data: EEMs 'results' files
-data <- read_csv("C:/Users/ahoun/OneDrive/Desktop/ResFDOM/Data/20200808_ResultsFiles_ResEEMs2019.csv")
+data <- read_csv("C:/Users/ahoun/OneDrive/Desktop/ResFDOM/Data/20200928_ResultsFiles_ResEEMs2019.csv")
 data$Date <- as.POSIXct(strptime(data$Date, "%m/%d/%Y", tz = "EST"))
 data$HIX <- as.numeric(data$HIX)
 data$BIX <- as.numeric(data$BIX)
@@ -91,10 +91,13 @@ ggplot()+
 ggplot()+
   geom_point(data=fcr_epi,mapping=aes(x=Date,y=HIX,color='Epi'),size=2)+
   geom_line(data=fcr_epi,mapping=aes(x=Date,y=HIX,color='Epi'),size=1)+
+  geom_errorbar(fcr_epi_sd,mapping=aes(x=Date,y=fcr_epi$HIX,ymin=fcr_epi$HIX-HIX,ymax=fcr_epi$HIX+HIX,color="Epi"))+
   geom_point(data=fcr_meta,mapping=aes(x=Date,y=HIX,color='Meta'),size=2)+
   geom_line(data=fcr_meta,mapping=aes(x=Date,y=HIX,color='Meta'),size=1)+
+  geom_errorbar(fcr_meta_sd,mapping=aes(x=Date,y=fcr_meta$HIX,ymin=fcr_meta$HIX-HIX,ymax=fcr_meta$HIX+HIX,color="Meta"))+
   geom_point(data=fcr_hypo,mapping=aes(x=Date,y=HIX,color='Hypo'),size=2)+
   geom_line(data=fcr_hypo,mapping=aes(x=Date,y=HIX,color='Hypo'),size=1)+
+  geom_errorbar(fcr_hypo_sd,mapping=aes(x=Date,y=fcr_hypo$HIX,ymin=fcr_hypo$HIX-HIX,ymax=fcr_hypo$HIX+HIX,color="Hypo"))+
   geom_point(data=fcr_inf,mapping=aes(x=Date,y=HIX,color='Inf'),size=3)+
   geom_line(data=fcr_inf,mapping=aes(x=Date,y=HIX,color='Inf'),size=1)+
   geom_point(data=fcr_wet,mapping=aes(x=Date,y=HIX,color='Wet'),size=3)+
@@ -109,16 +112,20 @@ ggplot()+
   geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
   geom_hline(yintercept = 6, color="grey")+
   ylim(0,10)+
+  xlim(as.POSIXct("2019-04-28"),as.POSIXct("2019-11-09"))+
   scale_color_manual(breaks=c('Epi','Meta','Hypo','Inf','Wet'),values=c("#7FC6A4","#7EBDC2","#393E41","#F0B670","#FE5F55"))+
   theme_classic(base_size=15)
 
 ggplot()+
   geom_point(data=fcr_epi,mapping=aes(x=Date,y=BIX,color='Epi'),size=2)+
   geom_line(data=fcr_epi,mapping=aes(x=Date,y=BIX,color='Epi'),size=1)+
+  geom_errorbar(fcr_epi_sd,mapping=aes(x=Date,y=fcr_epi$BIX,ymin=fcr_epi$BIX-BIX,ymax=fcr_epi$BIX+BIX,color="Epi"))+
   geom_point(data=fcr_meta,mapping=aes(x=Date,y=BIX,color='Meta'),size=2)+
   geom_line(data=fcr_meta,mapping=aes(x=Date,y=BIX,color='Meta'),size=1)+
+  geom_errorbar(fcr_meta_sd,mapping=aes(x=Date,y=fcr_meta$BIX,ymin=fcr_meta$BIX-BIX,ymax=fcr_meta$BIX+BIX,color="Meta"))+
   geom_point(data=fcr_hypo,mapping=aes(x=Date,y=BIX,color='Hypo'),size=2)+
   geom_line(data=fcr_hypo,mapping=aes(x=Date,y=BIX,color='Hypo'),size=1)+
+  geom_errorbar(fcr_hypo_sd,mapping=aes(x=Date,y=fcr_hypo$BIX,ymin=fcr_hypo$BIX-BIX,ymax=fcr_hypo$BIX+BIX,color="Hypo"))+
   geom_point(data=fcr_inf,mapping=aes(x=Date,y=BIX,color='Inf'),size=3)+
   geom_line(data=fcr_inf,mapping=aes(x=Date,y=BIX,color='Inf'),size=1)+
   geom_point(data=fcr_wet,mapping=aes(x=Date,y=BIX,color='Wet'),size=3)+
@@ -132,6 +139,7 @@ ggplot()+
   geom_vline(xintercept = as.POSIXct("2019-09-02"), color="black")+ # Oxygen on
   geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
   ylim(0,0.9)+
+  xlim(as.POSIXct("2019-04-28"),as.POSIXct("2019-11-09"))+
   scale_color_manual(breaks=c('Epi','Meta','Hypo','Inf','Wet'),values=c("#7FC6A4","#7EBDC2","#393E41","#F0B670","#FE5F55"))+  theme_classic(base_size=15)
 
 # Let's look at RC day data...
