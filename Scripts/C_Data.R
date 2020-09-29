@@ -189,3 +189,54 @@ inf <- ggplot()+
   theme_classic(base_size=15)
 
 ggarrange(s50,inf,ncol=1,nrow=2)
+
+###########################################3
+
+# Let's look at other environmental parameters as well!
+# Start with Chla data from Flora
+inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/272/4/e7e3e6e513985a602d9a5f22687d4efc" 
+infile1 <- paste0(getwd(),"/Data/flora.csv")
+download.file(inUrl1,infile1,method="curl")
+
+flora <- read.csv("./Data/flora.csv", header=T) %>%
+  select(Reservoir:Depth_m,TotalConc_ugL) %>%
+  dplyr::filter(Reservoir=="FCR") %>% 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) %>% 
+  filter(DateTime > as.POSIXct("2018-12-31") & DateTime < as.POSIXct("2020-01-01")) %>% 
+  filter(Site == 50)
+
+flora_1 <- flora %>% select(DateTime,Depth_m,TotalConc_ugL) %>% 
+  filter(Depth_m>=0 & Depth_m<0.5) %>% 
+  group_by(DateTime) %>% summarize_all(funs(mean)) %>% arrange(DateTime) %>% 
+  mutate(grouping="epi")
+
+flora_2 <- flora %>% select(DateTime,Depth_m,TotalConc_ugL) %>% 
+  filter(Depth_m>=4.5 & Depth_m<5.5) %>% 
+  group_by(DateTime) %>% summarize_all(funs(mean)) %>% arrange(DateTime) %>% 
+  mutate(grouping="meta")
+
+flora_3 <- flora %>% select(DateTime,Depth_m,TotalConc_ugL) %>% 
+  filter(Depth_m>=8.5 & Depth_m<9.5) %>% 
+  group_by(DateTime) %>% summarize_all(funs(mean)) %>% arrange(DateTime) %>% 
+  mutate(grouping="hypo")
+
+# Plot
+ggplot()+
+  geom_line(flora_1,mapping=aes(DateTime,TotalConc_ugL,color="epi"),size=1)+
+  geom_point(flora_1,mapping=aes(DateTime,TotalConc_ugL,color="epi"),size=2)+
+  geom_line(flora_2,mapping=aes(DateTime,TotalConc_ugL,color="meta"),size=1)+
+  geom_point(flora_2,mapping=aes(DateTime,TotalConc_ugL,color="meta"),size=2)+
+  geom_line(flora_3,mapping=aes(DateTime,TotalConc_ugL,color="hypo"),size=1)+
+  geom_point(flora_3,mapping=aes(DateTime,TotalConc_ugL,color="hypo"),size=2)+
+  geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-07-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-08-05"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-08-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-09-02"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
+  xlim(as.POSIXct("2019-04-28"),as.POSIXct("2019-11-09"))+
+  scale_color_manual(breaks=c('epi','meta','hypo'),values=c("#7FC6A4","#7EBDC2","#393E41"))+
+  theme_classic(base_size=15)
+
