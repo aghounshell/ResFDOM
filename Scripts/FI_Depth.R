@@ -186,13 +186,19 @@ fcr_res <- fcr_surf %>% filter(Station == 20 | Station == 30 | Station == 45 | S
 
 # Plot FCR
 ggplot(fcr_surf,mapping=aes(x=Date,y=HIX,color=as.factor(Station)))+
-  geom_point()+
-  geom_line()+
+  geom_point(size=2)+
+  geom_line(size=1)+
+  scale_color_manual(breaks=c('1','20','30','45','50','99','100','101','102','200'),
+                     values=c("#BFACC8","#393E41","#5C7E82","#7EBDC2","#7FC6A4","#F4D35E","#EEAA55","#E7804B","#DA2C38","#7DAF4B"))+ 
+  ylim(0,9)+
   theme_classic(base_size=15)
 
 ggplot(fcr_surf,mapping=aes(x=Date,y=BIX,color=as.factor(Station)))+
-  geom_point()+
-  geom_line()+
+  geom_point(size=2)+
+  geom_line(size=1)+
+  scale_color_manual(breaks=c('1','20','30','45','50','99','100','101','102','200'),
+                     values=c("#BFACC8","#393E41","#5C7E82","#7EBDC2","#7FC6A4","#F4D35E","#EEAA55","#E7804B","#DA2C38","#7DAF4B"))+ 
+  ylim(0,1)+
   theme_classic(base_size=15)
 
 ggplot(fcr_inflows,mapping=aes(x=Date,y=HIX,color=as.factor(Station)))+
@@ -217,13 +223,19 @@ ggplot(fcr_res,mapping=aes(x=Date,y=BIX,color=as.factor(Station)))+
 
 # Plot BVR
 ggplot(bvr_surf,mapping=aes(x=Date,y=HIX,color=as.factor(Station)))+
-  geom_point()+
-  geom_line()+
+  geom_point(size=2)+
+  geom_line(size=1)+
+  scale_color_manual(breaks=c('1','20','30','45','50','99','100','200'),
+                     values=c("#BFACC8","#393E41","#5C7E82","#7EBDC2","#7FC6A4","#F4D35E","#EEAA55","#7DAF4B"))+ 
+  ylim(0,9)+
   theme_classic(base_size=15)
 
 ggplot(bvr_surf,mapping=aes(x=Date,y=BIX,color=as.factor(Station)))+
-  geom_point()+
-  geom_line()+
+  geom_point(size=2)+
+  geom_line(size=1)+
+  scale_color_manual(breaks=c('1','20','30','45','50','99','100','200'),
+                     values=c("#BFACC8","#393E41","#5C7E82","#7EBDC2","#7FC6A4","#F4D35E","#EEAA55","#7DAF4B"))+ 
+  ylim(0,1)+
   theme_classic(base_size=15)
 
 

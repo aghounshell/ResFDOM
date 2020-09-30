@@ -19,6 +19,11 @@ fcrchem <- read.csv("./Data/chem.csv", header=T) %>%
   dplyr::filter(Reservoir=="FCR") %>%
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST")))
 
+bvrchem <- read.csv("./Data/chem.csv", header=T) %>%
+  select(Reservoir:DIC_mgL) %>%
+  dplyr::filter(Reservoir=="BVR") %>%
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST")))
+
 # Just curious...
 ggplot(fcrchem,aes(DateTime,DOC_mgL,color=as.factor(Depth_m)))+
   geom_line()
@@ -76,6 +81,35 @@ inf <- ggplot(fcrdoc_flow,mapping=aes(DateTime,DOC_mgL,color=as.factor(Site)))+
   theme_classic(base_size=15)
   
 ggarrange(s50,inf,ncol=1,nrow=2)
+
+# Separate and plot RC day data
+fcr_surf <- fcrchem %>% filter(Depth_m==0.1) %>% 
+  filter(DateTime > as.POSIXct("2018-12-31") & DateTime < as.POSIXct("2020-01-01")) %>% 
+  select(Reservoir:Depth_m,DOC_mgL)
+fcr_surf <- na.omit(fcr_surf)
+
+bvr_surf <- bvrchem %>% filter(Depth_m==0.1) %>% 
+  filter(DateTime > as.POSIXct("2018-12-31") & DateTime < as.POSIXct("2020-01-01")) %>% 
+  select(Reservoir:Depth_m,DOC_mgL)
+bvr_surf <- na.omit(bvr_surf)
+
+ggplot(fcr_surf,mapping=aes(x=DateTime,y=DOC_mgL,color=as.factor(Site)))+
+  geom_point(size=2)+
+  geom_line(size=1)+
+  scale_color_manual(breaks=c('1','20','30','45','50','99','100','101','102','200'),
+                     values=c("#BFACC8","#393E41","#5C7E82","#7EBDC2","#7FC6A4","#F4D35E","#EEAA55","#E7804B","#DA2C38","#7DAF4B"))+ 
+  xlim(as.POSIXct("2019-04-29"),as.POSIXct("2020-03-30"))+
+  ylim(0,9)+
+  theme_classic(base_size=15)
+
+ggplot(bvr_surf,mapping=aes(x=DateTime,y=DOC_mgL,color=as.factor(Site)))+
+  geom_point(size=2)+
+  geom_line(size=1)+
+  scale_color_manual(breaks=c('1','20','30','45','50','99','100','200','175'),
+                     values=c("#BFACC8","#393E41","#5C7E82","#7EBDC2","#7FC6A4","#F4D35E","#EEAA55","#7DAF4B","black"))+ 
+  xlim(as.POSIXct("2019-04-29"),as.POSIXct("2020-03-30"))+
+  ylim(0,9)+
+  theme_classic(base_size=15)
 
 # GHG data from EDI
 inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/551/2/38d72673295864956cccd6bbba99a1a3" 
