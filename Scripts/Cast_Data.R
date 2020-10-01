@@ -13,14 +13,50 @@ infile1 <- paste0(getwd(),"/Data/CTD_final_2013_2019.csv")
 download.file(inUrl1,infile1,method="curl")
 
 #read in CTD temp file from EDI to create field file, but first need to subset CTD data per each day to depths
-ctd<-read_csv('./Data/CTD_final_2013_2019.csv') %>% #read in observed CTD data, which has multiple casts on the same day (problematic for comparison)
+ctd<-read_csv('./Data/CTD_final_2013_2019.csv',col_types = cols(Reservoir = col_character(),Date = col_character(),pH=col_double())) %>% #read in observed CTD data, which has multiple casts on the same day (problematic for comparison)
   filter(Reservoir=="FCR") %>%
   filter(Site==50) %>%
   rename(time=Date, depth=Depth_m, temp=Temp_C, DO=DO_mgL, chla = Chla_ugL) %>%
-  mutate(time = as.POSIXct(strptime(time, "%Y-%m-%d", tz="EST"))) %>%
+  mutate(time = as.POSIXct(strptime(time, "%m/%d/%Y", tz="EST"))) %>%
   filter(time > as.POSIXct("2018-12-31") & time < as.POSIXct("2020-01-01")) %>% 
-  select(time, depth, temp, DO, chla) %>%
+  select(time, depth, temp, DO, chla, pH) %>%
   na.omit() 
+
+# Check pH variability
+ctd_1 <- ctd %>%  
+  filter(depth>=0 & depth<0.2) %>% 
+  group_by(time) %>% summarize_all(funs(mean)) %>% arrange(time) %>% 
+  mutate(grouping="epi")
+
+ctd_2 <- ctd %>% 
+  filter(depth>=4.9 & depth<5.1) %>% 
+  group_by(time) %>% summarize_all(funs(mean)) %>% arrange(time) %>% 
+  mutate(grouping="meta")
+
+ctd_3 <- ctd %>% 
+  filter(depth>=8.9 & depth<9.1) %>% 
+  group_by(time) %>% summarize_all(funs(mean)) %>% arrange(time) %>% 
+  mutate(grouping="hypo")
+
+# Plot pH
+ggplot()+
+  geom_line(ctd_1,mapping=aes(time,pH,color="epi"),size=1)+
+  geom_point(ctd_1,mapping=aes(time,pH,color="epi"),size=2)+
+  geom_line(ctd_2,mapping=aes(time,pH,color="meta"),size=1)+
+  geom_point(ctd_2,mapping=aes(time,pH,color="meta"),size=2)+
+  geom_line(ctd_3,mapping=aes(time,pH,color="hypo"),size=1)+
+  geom_point(ctd_3,mapping=aes(time,pH,color="hypo"),size=2)+
+  geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-07-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-08-05"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-08-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-09-02"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
+  xlim(as.POSIXct("2019-04-28"),as.POSIXct("2019-11-09"))+
+  scale_color_manual(breaks=c('epi','meta','hypo'),values=c("#7FC6A4","#7EBDC2","#393E41"))+
+  theme_classic(base_size=15)
 
 # Import YSI observations from EDI
 inUrl1 <- "https://pasta.lternet.edu/package/data/eml/edi/198/7/25b5e8b7f4291614d5c6d959a08148d8"
