@@ -176,6 +176,16 @@ inf <- ggplot()+
 
 ggarrange(s50,inf,ncol=1,nrow=2)
 
+# FCR depth HIX/BIX cross-plot
+ggplot()+
+  geom_point(data=fcr_epi,mapping=aes(x=BIX,y=HIX,color="Epi"),size=2)+
+  geom_point(data=fcr_meta,mapping=aes(x=BIX,y=HIX,color="Meta"),size=2)+
+  geom_point(data=fcr_hypo,mapping=aes(x=BIX,y=HIX,color="Hypo"),size=2)+
+  geom_point(data=fcr_inf,mapping=aes(x=BIX,y=HIX,color="Inf"),size=2)+
+  geom_point(data=fcr_wet,mapping=aes(x=BIX,y=HIX,color="Wet"),size=2)+
+  scale_color_manual(breaks=c('Epi','Meta','Hypo','Inf','Wet'),values=c("#7FC6A4","#7EBDC2","#393E41","#F0B670","#FE5F55"))+ 
+  theme_classic(base_size=15)
+  
 # Let's look at RC day data...
 fcr_surf <- fcr %>% filter(Depth==0.1)
 bvr_surf <- data %>% filter(Reservoir == "BVR")
@@ -200,6 +210,15 @@ ggplot(fcr_surf,mapping=aes(x=Date,y=BIX,color=as.factor(Station)))+
                      values=c("#BFACC8","#393E41","#5C7E82","#7EBDC2","#7FC6A4","#F4D35E","#EEAA55","#E7804B","#DA2C38","#7DAF4B"))+ 
   ylim(0,1)+
   theme_classic(base_size=15)
+
+# HIX-BIX crossplot
+ggplot(fcr_surf,mapping=aes(x=BIX,y=HIX,color=as.factor(Station)))+
+  geom_point(size=2)+
+  scale_color_manual(breaks=c('1','20','30','45','50','99','100','101','102','200'),
+                     values=c("#BFACC8","#393E41","#5C7E82","#7EBDC2","#7FC6A4","#F4D35E","#EEAA55","#E7804B","#DA2C38","#7DAF4B"))+ 
+  ylim(0.5,9)+
+  xlim(0.45,1)+
+  theme_classic(base_size=15)  
 
 ggplot(fcr_inflows,mapping=aes(x=Date,y=HIX,color=as.factor(Station)))+
   geom_point()+
@@ -238,6 +257,23 @@ ggplot(bvr_surf,mapping=aes(x=Date,y=BIX,color=as.factor(Station)))+
   ylim(0,1)+
   theme_classic(base_size=15)
 
+ggplot(bvr_surf,mapping=aes(x=BIX,y=HIX,color=as.factor(Station)))+
+  geom_point(size=2)+
+  scale_color_manual(breaks=c('1','20','30','45','50','99','100','101','102','200'),
+                     values=c("#BFACC8","#393E41","#5C7E82","#7EBDC2","#7FC6A4","#F4D35E","#EEAA55","#E7804B","#DA2C38","#7DAF4B"))+ 
+  ylim(0.5,9)+
+  xlim(0.45,1)+
+  theme_classic(base_size=15) 
+
+# Crossplot with both BVR and FCR data
+ggplot()+
+  geom_point(fcr_surf,mapping=aes(x=BIX,y=HIX,color=as.factor(Station)),size=3,shape=17)+
+  geom_point(bvr_surf,mapping=aes(x=BIX,y=HIX,color=as.factor(Station)),size=3,shape=16)+
+  scale_color_manual(breaks=c('1','20','30','45','50','99','100','101','102','200'),
+                     values=c("#BFACC8","#393E41","#5C7E82","#7EBDC2","#7FC6A4","#F4D35E","#EEAA55","#E7804B","#DA2C38","#7DAF4B"))+ 
+  ylim(0.5,9)+
+  xlim(0.45,1)+
+  theme_classic(base_size=15) 
 
 ###############################################
 
