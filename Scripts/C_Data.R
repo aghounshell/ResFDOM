@@ -224,6 +224,39 @@ inf <- ggplot()+
 
 ggarrange(s50,inf,ncol=1,nrow=2)
 
+# Plot surface only
+ggplot()+
+  geom_line(fcrghg_surf,mapping=aes(DateTime,ch4_umolL,color="epi"),size=1)+
+  geom_point(fcrghg_surf,mapping=aes(DateTime,ch4_umolL,color="epi"),size=2)+
+  geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-07-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-08-05"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-08-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-09-02"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
+  xlim(as.POSIXct("2019-04-28"),as.POSIXct("2019-11-09"))+
+  scale_color_manual(breaks=c('epi'),values=c("#7FC6A4"))+
+  theme_classic(base_size=15)
+
+
+ggplot()+
+  geom_line(fcrghg_surf,mapping=aes(DateTime,co2_umolL,color="epi"),size=1)+
+  geom_point(fcrghg_surf,mapping=aes(DateTime,co2_umolL,color="epi"),size=2)+
+  geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-07-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-08-05"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-08-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-09-02"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
+  xlim(as.POSIXct("2019-04-28"),as.POSIXct("2019-11-09"))+
+  scale_color_manual(breaks=c('epi'),values=c("#7FC6A4"))+
+  theme_classic(base_size=15)
+
+
 ###########################################3
 
 # Let's look at other environmental parameters as well!

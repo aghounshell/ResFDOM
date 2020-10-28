@@ -6,8 +6,100 @@
 ## Updated with more data
 ## A Hounshell, 08 Aug 2020
 
+## Updated with PARAFAC results (super rough model to look at potential trends)
+## A Hounshell, 28 Oct 2020
+
 # Load libraries
 pacman::p_load(tidyverse,ggplot2,ggpubr)
+
+# Load PARAFAC model results
+parafac <- read_csv("C:/Users/ahoun/OneDrive/Desktop/ResFDOM/Data/20201027_All_Mod4.csv")
+parafac$Date <- as.POSIXct(strptime(parafac$Date, "%m/%d/%Y", tz = "EST"))
+parafac$Fmax1_perc <- as.numeric(parafac$Fmax1_perc)
+parafac$Fmax2_perc <- as.numeric(parafac$Fmax2_perc)
+parafac$Fmax3_perc <- as.numeric(parafac$Fmax3_perc)
+parafac$Fmax4_perc <- as.numeric(parafac$Fmax4_perc)
+
+fcr_parafac <- parafac %>% filter(Reservoir == "FCR")
+fcr_epi_parafac <- fcr_parafac %>% filter(Station == 50 & Depth == 0.1) %>% group_by(Date) %>% 
+  summarise_all(funs(mean))
+fcr_epi_sd_parafac <- fcr_parafac %>% filter(Station == 50 & Depth == 0.1) %>% group_by(Date) %>% 
+  summarise_all(funs(sd))
+
+# Plot
+ggplot()+
+  geom_point(fcr_epi_parafac,mapping=aes(x=Date,y=Fmax1,color="Fmax1"))+
+  geom_line(fcr_epi_parafac,mapping=aes(x=Date,y=Fmax1,color="Fmax1"))+
+  geom_errorbar(fcr_epi_sd_parafac,mapping=aes(x=Date,y=Fmax1,ymin=fcr_epi_parafac$Fmax1-Fmax1,ymax=fcr_epi_parafac$Fmax1+Fmax1,color="Fmax1"))+
+  geom_point(fcr_epi_parafac,mapping=aes(x=Date,y=Fmax2,color="Fmax2"))+
+  geom_line(fcr_epi_parafac,mapping=aes(x=Date,y=Fmax2,color="Fmax2"))+
+  geom_errorbar(fcr_epi_sd_parafac,mapping=aes(x=Date,y=Fmax2,ymin=fcr_epi_parafac$Fmax2-Fmax2,ymax=fcr_epi_parafac$Fmax2+Fmax2,color="Fmax2"))+
+  geom_point(fcr_epi_parafac,mapping=aes(x=Date,y=Fmax3,color="Fmax3"))+
+  geom_line(fcr_epi_parafac,mapping=aes(x=Date,y=Fmax3,color="Fmax3"))+
+  geom_errorbar(fcr_epi_sd_parafac,mapping=aes(x=Date,y=Fmax3,ymin=fcr_epi_parafac$Fmax3-Fmax3,ymax=fcr_epi_parafac$Fmax3+Fmax3,color="Fmax3"))+
+  geom_point(fcr_epi_parafac,mapping=aes(x=Date,y=Fmax4,color="Fmax4"))+
+  geom_line(fcr_epi_parafac,mapping=aes(x=Date,y=Fmax4,color="Fmax4"))+
+  geom_errorbar(fcr_epi_sd_parafac,mapping=aes(x=Date,y=Fmax4,ymin=fcr_epi_parafac$Fmax4-Fmax4,ymax=fcr_epi_parafac$Fmax4+Fmax4,color="Fmax4"))+
+  theme_classic()
+
+ggplot()+
+  geom_point(fcr_epi_parafac,mapping=aes(x=Date,y=Fmax1_perc,color="Fmax1"))+
+  geom_line(fcr_epi_parafac,mapping=aes(x=Date,y=Fmax1_perc,color="Fmax1"))+
+  geom_errorbar(fcr_epi_sd_parafac,mapping=aes(x=Date,y=Fmax1_perc,ymin=fcr_epi_parafac$Fmax1_perc-Fmax1_perc,ymax=fcr_epi_parafac$Fmax1_perc+Fmax1_perc,color="Fmax1"))+
+  geom_point(fcr_epi_parafac,mapping=aes(x=Date,y=Fmax2_perc,color="Fmax2"))+
+  geom_line(fcr_epi_parafac,mapping=aes(x=Date,y=Fmax2_perc,color="Fmax2"))+
+  geom_errorbar(fcr_epi_sd_parafac,mapping=aes(x=Date,y=Fmax2_perc,ymin=fcr_epi_parafac$Fmax2_perc-Fmax2_perc,ymax=fcr_epi_parafac$Fmax2_perc+Fmax2_perc,color="Fmax2"))+
+  geom_point(fcr_epi_parafac,mapping=aes(x=Date,y=Fmax3_perc,color="Fmax3"))+
+  geom_line(fcr_epi_parafac,mapping=aes(x=Date,y=Fmax3_perc,color="Fmax3"))+
+  geom_errorbar(fcr_epi_sd_parafac,mapping=aes(x=Date,y=Fmax3_perc,ymin=fcr_epi_parafac$Fmax3_perc-Fmax3_perc,ymax=fcr_epi_parafac$Fmax3_perc+Fmax3_perc,color="Fmax3"))+
+  geom_point(fcr_epi_parafac,mapping=aes(x=Date,y=Fmax4_perc,color="Fmax4"))+
+  geom_line(fcr_epi_parafac,mapping=aes(x=Date,y=Fmax4_perc,color="Fmax4"))+
+  geom_errorbar(fcr_epi_sd_parafac,mapping=aes(x=Date,y=Fmax4_perc,ymin=fcr_epi_parafac$Fmax4_perc-Fmax4_perc,ymax=fcr_epi_parafac$Fmax4_perc+Fmax4_perc,color="Fmax4"))+
+  theme_classic()
+
+fcr_meta_parafac <- fcr_parafac %>% filter(Depth == 5.0) %>% group_by(Date) %>% summarise_all(funs(mean))
+fcr_meta_sd_parafac <- fcr_parafac %>% filter(Depth == 5.0) %>% group_by(Date) %>% summarise_all(funs(sd))
+
+ggplot()+
+  geom_point(fcr_meta_parafac,mapping=aes(x=Date,y=Fmax1,color="Fmax1"))+
+  geom_line(fcr_meta_parafac,mapping=aes(x=Date,y=Fmax1,color="Fmax1"))+
+  geom_errorbar(fcr_meta_sd_parafac,mapping=aes(x=Date,y=Fmax1,ymin=fcr_meta_parafac$Fmax1-Fmax1,ymax=fcr_meta_parafac$Fmax1+Fmax1,color="Fmax1"))+
+  geom_point(fcr_meta_parafac,mapping=aes(x=Date,y=Fmax2,color="Fmax2"))+
+  geom_line(fcr_meta_parafac,mapping=aes(x=Date,y=Fmax2,color="Fmax2"))+
+  geom_errorbar(fcr_meta_sd_parafac,mapping=aes(x=Date,y=Fmax2,ymin=fcr_meta_parafac$Fmax2-Fmax2,ymax=fcr_meta_parafac$Fmax2+Fmax2,color="Fmax2"))+
+  geom_point(fcr_meta_parafac,mapping=aes(x=Date,y=Fmax3,color="Fmax3"))+
+  geom_line(fcr_meta_parafac,mapping=aes(x=Date,y=Fmax3,color="Fmax3"))+
+  geom_errorbar(fcr_meta_sd_parafac,mapping=aes(x=Date,y=Fmax3,ymin=fcr_meta_parafac$Fmax3-Fmax3,ymax=fcr_meta_parafac$Fmax3+Fmax3,color="Fmax3"))+
+  geom_point(fcr_meta_parafac,mapping=aes(x=Date,y=Fmax4,color="Fmax4"))+
+  geom_line(fcr_meta_parafac,mapping=aes(x=Date,y=Fmax4,color="Fmax4"))+
+  geom_errorbar(fcr_meta_sd_parafac,mapping=aes(x=Date,y=Fmax4,ymin=fcr_meta_parafac$Fmax4-Fmax4,ymax=fcr_meta_parafac$Fmax4+Fmax4,color="Fmax4"))+
+  theme_classic()
+
+fcr_hypo_parafac <- fcr_parafac %>% filter(Depth == 9.0) %>% group_by(Date) %>% summarise_all(funs(mean))
+fcr_hypo_sd_parafac <- fcr_parafac %>% filter(Depth == 9.0) %>% group_by(Date) %>% summarise_all(funs(sd))
+
+ggplot()+
+  geom_point(fcr_hypo_parafac,mapping=aes(x=Date,y=Fmax1,color="Fmax1"))+
+  geom_line(fcr_hypo_parafac,mapping=aes(x=Date,y=Fmax1,color="Fmax1"))+
+  geom_errorbar(fcr_hypo_sd_parafac,mapping=aes(x=Date,y=Fmax1,ymin=fcr_hypo_parafac$Fmax1-Fmax1,ymax=fcr_hypo_parafac$Fmax1+Fmax1,color="Fmax1"))+
+  geom_point(fcr_hypo_parafac,mapping=aes(x=Date,y=Fmax2,color="Fmax2"))+
+  geom_line(fcr_hypo_parafac,mapping=aes(x=Date,y=Fmax2,color="Fmax2"))+
+  geom_errorbar(fcr_hypo_sd_parafac,mapping=aes(x=Date,y=Fmax2,ymin=fcr_hypo_parafac$Fmax2-Fmax2,ymax=fcr_hypo_parafac$Fmax2+Fmax2,color="Fmax2"))+
+  geom_point(fcr_hypo_parafac,mapping=aes(x=Date,y=Fmax3,color="Fmax3"))+
+  geom_line(fcr_hypo_parafac,mapping=aes(x=Date,y=Fmax3,color="Fmax3"))+
+  geom_errorbar(fcr_hypo_sd_parafac,mapping=aes(x=Date,y=Fmax3,ymin=fcr_hypo_parafac$Fmax3-Fmax3,ymax=fcr_hypo_parafac$Fmax3+Fmax3,color="Fmax3"))+
+  geom_point(fcr_hypo_parafac,mapping=aes(x=Date,y=Fmax4,color="Fmax4"))+
+  geom_line(fcr_hypo_parafac,mapping=aes(x=Date,y=Fmax4,color="Fmax4"))+
+  geom_errorbar(fcr_hypo_sd_parafac,mapping=aes(x=Date,y=Fmax4,ymin=fcr_hypo_parafac$Fmax4-Fmax4,ymax=fcr_hypo_parafac$Fmax4+Fmax4,color="Fmax4"))+
+  geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-07-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-08-05"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-08-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-09-02"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
+  theme_classic()
 
 # Load in data: EEMs 'results' files
 data <- read_csv("C:/Users/ahoun/OneDrive/Desktop/ResFDOM/Data/20200928_ResultsFiles_ResEEMs2019.csv")
