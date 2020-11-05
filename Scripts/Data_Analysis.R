@@ -533,13 +533,11 @@ hypo_dom_weekly <- hypo_dom_weekly %>% select(-bix_ar)
 epi_dom_corr <- epi_dom_weekly %>% select(-Date)
 chart.Correlation(epi_dom_corr,histogram=TRUE,method=c("spearman"))
 
-##################### START HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+meta_dom_corr <- meta_dom_weekly %>% select(-Date)
+chart.Correlation(meta_dom_corr,histogram=TRUE,method=c("spearman"))
 
-meta_ghg_corr <- meta_ghg_weekly %>% select(-Date)
-chart.Correlation(meta_ghg_corr,histogram=TRUE,method=c("spearman"))
-
-hypo_ghg_corr <- hypo_ghg_weekly %>% select(-Date)
-chart.Correlation(hypo_ghg_corr,histogram=TRUE,method=c("spearman"))
+hypo_dom_corr <- hypo_dom_weekly %>% select(-Date)
+chart.Correlation(hypo_dom_corr,histogram=TRUE,method=c("spearman"))
 
 ####################################################################################################
 # Develop AR Models for GHG data
@@ -548,11 +546,58 @@ chart.Correlation(hypo_ghg_corr,histogram=TRUE,method=c("spearman"))
 ############### Epi
 epi_dom_weekly_2 <- epi_dom_weekly[complete.cases(epi_dom_weekly),]
 
-# Remove CO2 (correlated w/ temp - all other r2 < 0.8)
-model_epi_ch4 <- glm(ch4_umolL ~ ch4_umolL_ARLag1 + temp + DO + Flora_ugL + Flow_cms + 
-                       Rain_Total_mm + ShortwaveRadiationUp_Average_W_m2, data = epi_ghg_weekly_2, 
+# Remove HIX (correlated w/ DOC - all other r2 < 0.8)
+model_epi_BIX <- glm(BIX ~ BIX_ARLag1 + DOC_mgL + temp + DO + Flora_ugL + Flow_cms + 
+                       Rain_Total_mm + ShortwaveRadiationUp_Average_W_m2, data = epi_dom_weekly_2, 
                      family = gaussian, na.action = 'na.fail')
 
-glm_epi_ch4 <- dredge(model_epi_ch4,rank = "AICc", fixed = "ch4_umolL_ARLag1")
+glm_epi_BIX <- dredge(model_epi_BIX,rank = "AICc", fixed = "BIX_ARLag1")
 
-select_glm_epi_ch4 <- subset(glm_epi_ch4,delta<2)
+select_glm_epi_BIX <- subset(glm_epi_BIX,delta<2)
+
+# Remove BIX (correlated w/ SW)
+model_epi_HIX <- glm(HIX ~ HIX_ARLag1 + DOC_mgL + temp + DO + Flora_ugL + Flow_cms + 
+                       Rain_Total_mm + ShortwaveRadiationUp_Average_W_m2, data = epi_dom_weekly_2, 
+                     family = gaussian, na.action = 'na.fail')
+
+glm_epi_HIX <- dredge(model_epi_HIX,rank = "AICc", fixed = "HIX_ARLag1")
+
+select_glm_epi_HIX <- subset(glm_epi_HIX,delta<2)
+
+######################## Meta
+meta_dom_weekly_2 <- meta_dom_weekly[complete.cases(meta_dom_weekly),]
+
+# Remove Flow
+model_meta_BIX <- glm(BIX ~ BIX_ARLag1 + HIX + DOC_mgL + temp + DO + Flora_ugL, data = meta_dom_weekly_2, 
+                     family = gaussian, na.action = 'na.fail')
+
+glm_meta_BIX <- dredge(model_meta_BIX,rank = "AICc", fixed = "BIX_ARLag1")
+
+select_glm_meta_BIX <- subset(glm_meta_BIX,delta<2)
+
+# Remove Flow
+model_meta_HIX <- glm(HIX ~ HIX_ARLag1 + BIX + DOC_mgL + temp + DO + Flora_ugL, data = meta_dom_weekly_2, 
+                     family = gaussian, na.action = 'na.fail')
+
+glm_meta_HIX <- dredge(model_meta_HIX,rank = "AICc", fixed = "HIX_ARLag1")
+
+select_glm_meta_HIX <- subset(glm_meta_HIX,delta<2)
+
+########################## Hypo
+hypo_dom_weekly_2 <- hypo_dom_weekly[complete.cases(hypo_dom_weekly),]
+
+# Keep all parameters
+model_hypo_BIX <- glm(BIX ~ BIX_ARLag1 + HIX + DOC_mgL + temp + DO + Flora_ugL + Flow_cms, 
+                      data = hypo_dom_weekly_2, family = gaussian, na.action = 'na.fail')
+
+glm_hypo_BIX <- dredge(model_hypo_BIX,rank = "AICc", fixed = "BIX_ARLag1")
+
+select_glm_hypo_BIX <- subset(glm_hypo_BIX,delta<2)
+
+# Remove BIX (correlated w/ Temp)
+model_hypo_HIX <- glm(HIX ~ HIX_ARLag1 + DOC_mgL + temp + DO + Flora_ugL + Flow_cms, data = hypo_dom_weekly_2, 
+                      family = gaussian, na.action = 'na.fail')
+
+glm_hypo_HIX <- dredge(model_hypo_HIX,rank = "AICc", fixed = "HIX_ARLag1")
+
+select_glm_hypo_HIX <- subset(glm_hypo_HIX,delta<2)
