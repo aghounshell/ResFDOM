@@ -99,16 +99,16 @@ fl_data <- fl_data %>% mutate(Date = as.Date(Date,"%Y-%m-%d")) %>% arrange(Date,
 fl_data <- ungroup(fl_data)
 auto_fl_data <- fl_data %>% select(-c("Date","Station","Depth","Location","Dilution"))
 
-chart.Correlation(auto_fl_data,histogram=TRUE,method=c("pearson"))
+chart.Correlation(auto_fl_data,histogram=TRUE,method=c("spearman"))
 
-# Remove autocorrelated parameters:
-# A, C, M, N, T, FI, T/M, T/N, T/C, C/N, A/N
-auto_fl_data <- auto_fl_data %>% select("Fmax1","Fmax2","Fmax3","Fmax4","B","BIX","HIX","A/T","A/C","M/C")
+# Remove autocorrelated parameters: R2 > 0.8
+# A, C, M, N, T, B, HIX, FI, T/M, T/N, T/C, A/T, C/N, A/N
+auto_fl_data <- auto_fl_data %>% select("Fmax1","Fmax2","Fmax3","Fmax4","BIX","T/B","A/C","M/C")
 
 chart.Correlation(auto_fl_data,histogram=TRUE,method=c("pearson"))
 
 # Select fluorescence data to be used in analyses
-fl_data_2 <- fl_data %>% select("Date","Station","Depth","Dilution","Fmax1","Fmax2","Fmax3","Fmax4","B","BIX","HIX","A/T","A/C","M/C")
+fl_data_2 <- fl_data %>% select("Date","Station","Depth","Dilution","Fmax1","Fmax2","Fmax3","Fmax4","BIX","T/B","A/C","M/C")
 
 # Also need to combine SD data for eems and parafac
 sd_parafac <- sd_parafac %>% select(-c("i","SampleName","Reservoir","Rep","Location"))
@@ -121,7 +121,7 @@ sd_fl_data <- full_join(sd_parafac,sd_eems,by=c("Date","Station","Depth"))
 sd_fl_data <- sd_fl_data %>% select("Date","Station","Depth","Fmax1","Fmax2","Fmax3","Fmax4","B","BIX","HIX","A/T","A/C","M/C")
 
 # Export out Fl data
-write_csv(fl_data_2,'C:/Users/ahoun/OneDrive/Desktop/ResFDOM/Data/20201103_FluorescentData_QAQC.csv')
+write_csv(fl_data_2,'C:/Users/ahoun/OneDrive/Desktop/ResFDOM/Data/20201105_FluorescentData_QAQC.csv')
 
 # Select 2019 data (aka: remove data from March 2020 RC day)
 fl_data_2 <- fl_data_2 %>% filter(Date > as.POSIXct("2018-12-31") & Date < as.POSIXct("2020-01-01")) %>% 
@@ -287,4 +287,4 @@ met_all <- met_all %>% mutate(Station = 50) %>% mutate(Depth = 0.1) %>% rename(D
 data_all <- left_join(data_all,met_all,by=c("Date","Station","Depth"))
 
 ######################## Export out data #############################
-write_csv(data_all,"./Data/20201103_All_Data.csv")
+write_csv(data_all,"./Data/20201105_All_Data.csv")
