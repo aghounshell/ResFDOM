@@ -103,12 +103,12 @@ chart.Correlation(auto_fl_data,histogram=TRUE,method=c("spearman"))
 
 # Remove autocorrelated parameters: R2 > 0.8
 # A, C, M, N, T, B, HIX, FI, T/M, T/N, T/C, A/T, C/N, A/N
-auto_fl_data <- auto_fl_data %>% select("Fmax1","Fmax2","Fmax3","Fmax4","BIX","T/B","A/C","M/C")
+auto_fl_data <- auto_fl_data %>% select("Fmax1","Fmax2","Fmax3","Fmax4","BIX","HIX","T/B","A/C","M/C")
 
 chart.Correlation(auto_fl_data,histogram=TRUE,method=c("pearson"))
 
 # Select fluorescence data to be used in analyses
-fl_data_2 <- fl_data %>% select("Date","Station","Depth","Dilution","Fmax1","Fmax2","Fmax3","Fmax4","BIX","T/B","A/C","M/C")
+fl_data_2 <- fl_data %>% select("Date","Station","Depth","Dilution","Fmax1","Fmax2","Fmax3","Fmax4","BIX","HIX","T/B","A/C","M/C")
 
 # Also need to combine SD data for eems and parafac
 sd_parafac <- sd_parafac %>% select(-c("i","SampleName","Reservoir","Rep","Location"))
