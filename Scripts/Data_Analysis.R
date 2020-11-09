@@ -57,35 +57,35 @@ completeFun <- function(data, desiredCols) {
   return(data[completeVec, ])
 }
 
-# Included: temp, DO, Flora, Flow, Rain, SW
-epi_ghg <- epi %>% select(Date,ch4_umolL:co2_umolL,temp:DO,Flora_ugL:ShortwaveRadiationUp_Average_W_m2)
+# Included: DOC, temp, DO, Flora, Flow, Rain, SW
+epi_ghg <- epi %>% select(Date,ch4_umolL:co2_umolL,DOC_mgL,temp:DO,Flora_ugL:ShortwaveRadiationUp_Average_W_m2)
 epi_ghg <- completeFun(epi_ghg,c("ch4_umolL","co2_umolL"))
-epi_ghg <- epi_ghg[complete.cases(epi_ghg),]
+epi_ghg <- epi_ghg %>% filter(Date > as.POSIXct("2019-05-19") & Date < as.POSIXct("2019-11-21"))
 
 # Included: DOC, temp, DO, Flora, Flow, Rain, SW
 epi_dom <- epi %>% select(Date,Fmax1:'M/C',DOC_mgL,temp:DO,Flora_ugL:ShortwaveRadiationUp_Average_W_m2)
 epi_dom <- completeFun(epi_dom,"HIX")
-epi_dom <- epi_dom[complete.cases(epi_dom),]
+epi_dom <- epi_dom %>% filter(Date > as.POSIXct("2019-05-19") & Date < as.POSIXct("2019-11-21"))
 
-# Included: temp, DO, Flora, Flow
-meta_ghg <- meta %>% select(Date,ch4_umolL:co2_umolL,temp:DO,Flora_ugL:Flow_cms)
+# Included: DOC, temp, DO, Flora, Flow
+meta_ghg <- meta %>% select(Date,ch4_umolL:co2_umolL,DOC_mgL,temp:DO,Flora_ugL:Flow_cms)
 meta_ghg <- completeFun(meta_ghg,c("ch4_umolL","co2_umolL"))
-meta_ghg <- meta_ghg[complete.cases(meta_ghg),]
+meta_ghg <- meta_ghg %>% filter(Date > as.POSIXct("2019-05-19") & Date < as.POSIXct("2019-11-21"))
 
 # Included: DOC, temp, DO, Flora, Flow
 meta_dom <- meta %>% select(Date,Fmax1:'M/C',DOC_mgL,temp:DO,Flora_ugL:Flow_cms)
 meta_dom <- completeFun(meta_dom,"HIX")
-meta_dom <- meta_dom[complete.cases(meta_dom),]
+meta_dom <- meta_dom %>% filter(Date > as.POSIXct("2019-05-19") & Date < as.POSIXct("2019-11-21"))
 
-# Included: temp, DO, Flora, Flow
-hypo_ghg <- hypo %>% select(Date,ch4_umolL:co2_umolL,temp:DO,Flora_ugL:Flow_cms)
+# Included: DOC, temp, DO, Flora, Flow
+hypo_ghg <- hypo %>% select(Date,ch4_umolL:co2_umolL,DOC_mgL,temp:DO,Flora_ugL:Flow_cms)
 hypo_ghg <- completeFun(hypo_ghg,c("ch4_umolL","co2_umolL"))
-hypo_ghg <- hypo_ghg[complete.cases(hypo_ghg),]
+hypo_ghg <- hypo_ghg %>% filter(Date > as.POSIXct("2019-05-19") & Date < as.POSIXct("2019-11-21"))
 
 # Included: DOC, temp, DO, Flora, Flow
 hypo_dom <- hypo %>% select(Date,Fmax1:'M/C',DOC_mgL,temp:DO,Flora_ugL:Flow_cms)
 hypo_dom <- completeFun(hypo_dom,"HIX")
-hypo_dom <- hypo_dom[complete.cases(hypo_dom),]
+hypo_dom <- hypo_dom %>% filter(Date > as.POSIXct("2019-05-19") & Date < as.POSIXct("2019-11-21"))
 
 ############################################################################################
 ### Look at frequency of sampling
@@ -95,12 +95,13 @@ plot(epi_ghg$Date,epi_ghg$ch4_umolL)
 # Extrapolate data to daily then select weekly data from 5-06-19 to 11-20-19
 # Create daily timepoints
 epi_ghg_ts <- inflow %>% 
-  filter(Date > as.POSIXct("2019-05-06") & Date < as.POSIXct("2019-11-21")) %>% 
+  filter(Date > as.POSIXct("2019-05-20") & Date < as.POSIXct("2019-11-21")) %>% 
   select(Date)
 epi_ghg_ts <- full_join(epi_ghg_ts,epi_ghg)
 epi_ghg_ts <- epi_ghg_ts %>% 
   mutate(ch4_umolL=na.fill(na.approx(ch4_umolL),"extend")) %>% 
   mutate(co2_umolL=na.fill(na.approx(co2_umolL),"extend")) %>% 
+  mutate(DOC_mgL=na.fill(na.approx(DOC_mgL),"extend")) %>% 
   mutate(temp=na.fill(na.approx(temp),"extend")) %>% 
   mutate(DO=na.fill(na.approx(DO),"extend")) %>% 
   mutate(Flora_ugL=na.fill(na.approx(Flora_ugL),"extend")) %>% 
@@ -120,12 +121,13 @@ ggplot()+
 
 # Meta ghg data
 meta_ghg_ts <- inflow %>% 
-  filter(Date > as.POSIXct("2019-05-06") & Date < as.POSIXct("2019-11-21")) %>% 
+  filter(Date > as.POSIXct("2019-05-20") & Date < as.POSIXct("2019-11-21")) %>% 
   select(Date)
 meta_ghg_ts <- full_join(meta_ghg_ts,meta_ghg)
 meta_ghg_ts <- meta_ghg_ts %>% 
   mutate(ch4_umolL=na.fill(na.approx(ch4_umolL),"extend")) %>% 
   mutate(co2_umolL=na.fill(na.approx(co2_umolL),"extend")) %>% 
+  mutate(DOC_mgL=na.fill(na.approx(DOC_mgL),"extend")) %>% 
   mutate(temp=na.fill(na.approx(temp),"extend")) %>% 
   mutate(DO=na.fill(na.approx(DO),"extend")) %>% 
   mutate(Flora_ugL=na.fill(na.approx(Flora_ugL),"extend")) %>% 
@@ -143,12 +145,13 @@ ggplot()+
 
 # Hypo ghg data
 hypo_ghg_ts <- inflow %>% 
-  filter(Date > as.POSIXct("2019-05-06") & Date < as.POSIXct("2019-11-21")) %>% 
+  filter(Date > as.POSIXct("2019-05-20") & Date < as.POSIXct("2019-11-21")) %>% 
   select(Date)
 hypo_ghg_ts <- full_join(hypo_ghg_ts,hypo_ghg)
 hypo_ghg_ts <- hypo_ghg_ts %>% 
   mutate(ch4_umolL=na.fill(na.approx(ch4_umolL),"extend")) %>% 
   mutate(co2_umolL=na.fill(na.approx(co2_umolL),"extend")) %>% 
+  mutate(DOC_mgL=na.fill(na.approx(DOC_mgL),"extend")) %>% 
   mutate(temp=na.fill(na.approx(temp),"extend")) %>% 
   mutate(DO=na.fill(na.approx(DO),"extend")) %>% 
   mutate(Flora_ugL=na.fill(na.approx(Flora_ugL),"extend")) %>% 
@@ -184,20 +187,20 @@ colnames(y) <- c("ch4","ch4_umolL_ARLag1")
 epi_ghg_weekly <- cbind(epi_ghg_weekly,y)
 epi_ghg_weekly <- epi_ghg_weekly %>% select(-ch4)
 
-# CO2, epi - 1, 2, 3 lag is important
+# CO2, epi - 1 lag is important
 plot(epi_ghg_weekly$co2_umolL,type="b")
 lag1.plot(epi_ghg_weekly$co2_umolL,10)
 PlotACF(epi_ghg_weekly$co2_umolL)
 acf2(epi_ghg_weekly$co2_umolL,na.action=na.pass)
 pacf(epi_ghg_weekly$co2_umolL,na.action=na.pass)
-xlag3 = lag(epi_ghg_weekly$co2_umolL,3)
-y = cbind(epi_ghg_weekly$co2_umolL,xlag3)
+xlag1 = lag(epi_ghg_weekly$co2_umolL,1)
+y = cbind(epi_ghg_weekly$co2_umolL,xlag1)
 ar1fit = lm(y[,1]~y[,2])
 summary(ar1fit)
 plot(ar1fit$fit,ar1fit$residuals)
 acf(ar1fit$residuals)
 # Add AR lag to methane epi data
-colnames(y) <- c("co2","co2_umolL_ARLag3")
+colnames(y) <- c("co2","co2_umolL_ARLag1")
 epi_ghg_weekly <- cbind(epi_ghg_weekly,y)
 epi_ghg_weekly <- epi_ghg_weekly %>% select(-co2)
 
@@ -460,7 +463,7 @@ colnames(y) <- c("bix_ar","BIX_ARLag1")
 epi_dom_weekly <- cbind(epi_dom_weekly,y)
 epi_dom_weekly <- epi_dom_weekly %>% select(-bix_ar)
 
-# HIX, meta - 1 lag important
+# HIX, meta - NO LAG IMPORTANT???
 plot(meta_dom_weekly$HIX,type="b")
 lag1.plot(meta_dom_weekly$HIX,10)
 PlotACF(meta_dom_weekly$HIX)
@@ -494,7 +497,7 @@ colnames(y) <- c("bix_ar","BIX_ARLag1")
 meta_dom_weekly <- cbind(meta_dom_weekly,y)
 meta_dom_weekly <- meta_dom_weekly %>% select(-bix_ar)
 
-# HIX, hypo - 1 lag important
+# HIX, hypo - NO LAG IMPORTANT???
 plot(hypo_dom_weekly$HIX,type="b")
 lag1.plot(hypo_dom_weekly$HIX,10)
 PlotACF(hypo_dom_weekly$HIX)
@@ -601,3 +604,24 @@ model_hypo_HIX <- glm(HIX ~ HIX_ARLag1 + DOC_mgL + temp + DO + Flora_ugL + Flow_
 glm_hypo_HIX <- dredge(model_hypo_HIX,rank = "AICc", fixed = "HIX_ARLag1")
 
 select_glm_hypo_HIX <- subset(glm_hypo_HIX,delta<2)
+
+##############################################################
+# Plot ACF and PACF for GHG and DOM parameters
+pdf("./Fig_Output/ACF_Plots.pdf", width=12, height=8)
+
+acf2(epi_ghg_weekly$ch4_umolL,na.action=na.pass)
+acf2(epi_ghg_weekly$co2_umolL,na.action=na.pass)
+acf2(epi_dom_weekly$HIX,na.action=na.pass)
+acf2(epi_dom_weekly$BIX,na.action=na.pass)
+
+acf2(meta_ghg_weekly$ch4_umolL,na.action=na.pass)
+acf2(meta_ghg_weekly$co2_umolL,na.action=na.pass)
+acf2(meta_dom_weekly$HIX,na.action=na.pass)
+acf2(meta_dom_weekly$BIX,na.action=na.pass)
+
+acf2(hypo_ghg_weekly$ch4_umolL,na.action=na.pass)
+acf2(hypo_ghg_weekly$co2_umolL,na.action=na.pass)
+acf2(hypo_dom_weekly$HIX,na.action=na.pass)
+acf2(hypo_dom_weekly$BIX,na.action=na.pass)
+
+dev.off()
