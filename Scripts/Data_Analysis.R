@@ -57,33 +57,41 @@ completeFun <- function(data, desiredCols) {
   return(data[completeVec, ])
 }
 
-# Included: DOC, temp, DO, Flora, Flow, Rain, SW
-epi_ghg <- epi %>% select(Date,ch4_umolL:co2_umolL,DOC_mgL,temp:DO,Flora_ugL:ShortwaveRadiationUp_Average_W_m2)
-epi_ghg <- completeFun(epi_ghg,c("ch4_umolL","co2_umolL"))
-epi_ghg <- epi_ghg %>% filter(Date > as.POSIXct("2019-05-19") & Date < as.POSIXct("2019-11-21"))
+# Load in 'weekly' dates for AR model
+ar_dates <- read.csv("./Data/AR_Dates.csv") %>% 
+  mutate(AR.Model.Dates = as.POSIXct(strptime(AR.Model.Dates, "%m/%d/%Y",tz='EST'))) %>% 
+  rename(Date = AR.Model.Dates)
 
 # Included: DOC, temp, DO, Flora, Flow, Rain, SW
-epi_dom <- epi %>% select(Date,Fmax1:'M/C',DOC_mgL,temp:DO,Flora_ugL:ShortwaveRadiationUp_Average_W_m2)
+epi_ghg <- epi %>% select(Date,BIX:HIX,ch4_umolL:co2_umolL,DOC_mgL,temp:DO,Flora_ugL:ShortwaveRadiationUp_Average_W_m2)
+epi_ghg <- completeFun(epi_ghg,c("ch4_umolL","co2_umolL"))
+epi_ghg <- epi_ghg %>% filter(Date > as.POSIXct("2019-05-19") & Date < as.POSIXct("2019-11-21"))
+epi_ghg <- left_join(ar_dates,epi_ghg)
+
+#################### NEED TO UPDATE FOR NEAR WEEKLY DATA BELOW ###########################
+
+# Included: DOC, temp, DO, Flora, Flow, Rain, SW
+epi_dom <- epi %>% select(Date,Fmax1:co2_umolL,DOC_mgL,temp:DO,Flora_ugL:ShortwaveRadiationUp_Average_W_m2)
 epi_dom <- completeFun(epi_dom,"HIX")
 epi_dom <- epi_dom %>% filter(Date > as.POSIXct("2019-05-19") & Date < as.POSIXct("2019-11-21"))
 
 # Included: DOC, temp, DO, Flora, Flow
-meta_ghg <- meta %>% select(Date,ch4_umolL:co2_umolL,DOC_mgL,temp:DO,Flora_ugL:Flow_cms)
+meta_ghg <- meta %>% select(Date,BIX:HIX,ch4_umolL:co2_umolL,DOC_mgL,temp:DO,Flora_ugL:Flow_cms)
 meta_ghg <- completeFun(meta_ghg,c("ch4_umolL","co2_umolL"))
 meta_ghg <- meta_ghg %>% filter(Date > as.POSIXct("2019-05-19") & Date < as.POSIXct("2019-11-21"))
 
 # Included: DOC, temp, DO, Flora, Flow
-meta_dom <- meta %>% select(Date,Fmax1:'M/C',DOC_mgL,temp:DO,Flora_ugL:Flow_cms)
+meta_dom <- meta %>% select(Date,Fmax1:co2_umolL,DOC_mgL,temp:DO,Flora_ugL:Flow_cms)
 meta_dom <- completeFun(meta_dom,"HIX")
 meta_dom <- meta_dom %>% filter(Date > as.POSIXct("2019-05-19") & Date < as.POSIXct("2019-11-21"))
 
 # Included: DOC, temp, DO, Flora, Flow
-hypo_ghg <- hypo %>% select(Date,ch4_umolL:co2_umolL,DOC_mgL,temp:DO,Flora_ugL:Flow_cms)
+hypo_ghg <- hypo %>% select(Date,HIX:BIX,ch4_umolL:co2_umolL,DOC_mgL,temp:DO,Flora_ugL:Flow_cms)
 hypo_ghg <- completeFun(hypo_ghg,c("ch4_umolL","co2_umolL"))
 hypo_ghg <- hypo_ghg %>% filter(Date > as.POSIXct("2019-05-19") & Date < as.POSIXct("2019-11-21"))
 
 # Included: DOC, temp, DO, Flora, Flow
-hypo_dom <- hypo %>% select(Date,Fmax1:'M/C',DOC_mgL,temp:DO,Flora_ugL:Flow_cms)
+hypo_dom <- hypo %>% select(Date,Fmax1:co2_umolL,DOC_mgL,temp:DO,Flora_ugL:Flow_cms)
 hypo_dom <- completeFun(hypo_dom,"HIX")
 hypo_dom <- hypo_dom %>% filter(Date > as.POSIXct("2019-05-19") & Date < as.POSIXct("2019-11-21"))
 
@@ -99,6 +107,8 @@ epi_ghg_ts <- inflow %>%
   select(Date)
 epi_ghg_ts <- full_join(epi_ghg_ts,epi_ghg)
 epi_ghg_ts <- epi_ghg_ts %>% 
+  mutate(HIX=na.fill(na.approx(HIX),"extend")) %>% 
+  mutate(BIX=na.fill(na.approx(BIX),"extend")) %>% 
   mutate(ch4_umolL=na.fill(na.approx(ch4_umolL),"extend")) %>% 
   mutate(co2_umolL=na.fill(na.approx(co2_umolL),"extend")) %>% 
   mutate(DOC_mgL=na.fill(na.approx(DOC_mgL),"extend")) %>% 
@@ -125,6 +135,8 @@ meta_ghg_ts <- inflow %>%
   select(Date)
 meta_ghg_ts <- full_join(meta_ghg_ts,meta_ghg)
 meta_ghg_ts <- meta_ghg_ts %>% 
+  mutate(HIX=na.fill(na.approx(HIX),"extend")) %>% 
+  mutate(BIX=na.fill(na.approx(BIX),"extend")) %>% 
   mutate(ch4_umolL=na.fill(na.approx(ch4_umolL),"extend")) %>% 
   mutate(co2_umolL=na.fill(na.approx(co2_umolL),"extend")) %>% 
   mutate(DOC_mgL=na.fill(na.approx(DOC_mgL),"extend")) %>% 
@@ -149,6 +161,8 @@ hypo_ghg_ts <- inflow %>%
   select(Date)
 hypo_ghg_ts <- full_join(hypo_ghg_ts,hypo_ghg)
 hypo_ghg_ts <- hypo_ghg_ts %>% 
+  mutate(HIX=na.fill(na.approx(HIX),"extend")) %>% 
+  mutate(BIX=na.fill(na.approx(BIX),"extend")) %>% 
   mutate(ch4_umolL=na.fill(na.approx(ch4_umolL),"extend")) %>% 
   mutate(co2_umolL=na.fill(na.approx(co2_umolL),"extend")) %>% 
   mutate(DOC_mgL=na.fill(na.approx(DOC_mgL),"extend")) %>% 
@@ -290,8 +304,8 @@ chart.Correlation(hypo_ghg_corr,histogram=TRUE,method=c("spearman"))
 ############### Epi
 epi_ghg_weekly_2 <- epi_ghg_weekly[complete.cases(epi_ghg_weekly),]
 
-# Remove CO2 (correlated w/ temp - all other r2 < 0.8)
-model_epi_ch4 <- glm(ch4_umolL ~ ch4_umolL_ARLag1 + temp + DO + Flora_ugL + Flow_cms + 
+# Remove: HIX, CO2
+model_epi_ch4 <- glm(ch4_umolL ~ ch4_umolL_ARLag1 + BIX + DOC_mgL + temp + DO + Flora_ugL + Flow_cms + 
                        Rain_Total_mm + ShortwaveRadiationUp_Average_W_m2, data = epi_ghg_weekly_2, 
                      family = gaussian, na.action = 'na.fail')
 
@@ -299,28 +313,28 @@ glm_epi_ch4 <- dredge(model_epi_ch4,rank = "AICc", fixed = "ch4_umolL_ARLag1")
 
 select_glm_epi_ch4 <- subset(glm_epi_ch4,delta<2)
 
-# Keep all variables (r2 < 0.8)
-model_epi_co2 <- glm(co2_umolL ~ co2_umolL_ARLag3 + ch4_umolL + temp + DO + Flora_ugL + Flow_cms + 
+# Remove: HIX, CH4
+model_epi_co2 <- glm(co2_umolL ~ co2_umolL_ARLag1 + BIX + DOC_mgL + temp + DO + Flora_ugL + Flow_cms + 
                        Rain_Total_mm + ShortwaveRadiationUp_Average_W_m2, data = epi_ghg_weekly_2, 
                      family = gaussian, na.action = 'na.fail')
 
-glm_epi_co2 <- dredge(model_epi_co2,rank="AICc",fixed="co2_umolL_ARLag3")
+glm_epi_co2 <- dredge(model_epi_co2,rank="AICc",fixed="co2_umolL_ARLag1")
 
 select_glm_epi_co2 <- subset(glm_epi_co2,delta<2)
 
 ############ Meta
 meta_ghg_weekly_2 <- meta_ghg_weekly[complete.cases(meta_ghg_weekly),]
 
-# Remove: CO2, Flow
-model_meta_ch4 <- glm(ch4_umolL ~ ch4_umolL_ARLag1 + temp + DO + Flora_ugL, data = meta_ghg_weekly_2, 
+# Remove: CO2
+model_meta_ch4 <- glm(ch4_umolL ~ ch4_umolL_ARLag1 + BIX + HIX + DOC_mgL + temp + DO + Flora_ugL + Flow_cms, data = meta_ghg_weekly_2, 
                       family = gaussian, na.action = 'na.fail')
 
 glm_meta_ch4 <- dredge(model_meta_ch4,rank="AICc",fixed="ch4_umolL_ARLag1")
 
 select_glm_meta_ch4 <- subset(glm_meta_ch4,delta<2)
 
-# Remove: Flow
-model_meta_co2 <- glm(co2_umolL ~ co2_umolL_ARLag1 + ch4_umolL + temp + DO + Flora_ugL, 
+# Keep all parameters
+model_meta_co2 <- glm(co2_umolL ~ co2_umolL_ARLag1 + BIX + HIX + DOC_mgL + ch4_umolL + temp + DO + Flora_ugL + Flow_cms, 
                       data = meta_ghg_weekly_2, family = gaussian, na.action = 'na.fail')
 
 glm_meta_co2 <- dredge(model_meta_co2,rank="AICc",fixed="co2_umolL_ARLag1")
@@ -331,7 +345,7 @@ select_glm_meta_co2 <- subset(glm_meta_co2,delta<2)
 hypo_ghg_weekly_2 <- hypo_ghg_weekly[complete.cases(hypo_ghg_weekly),]
 
 # Remove: CO2
-model_hypo_ch4 <- glm(ch4_umolL ~ ch4_umolL_ARLag1 + temp + DO + Flora_ugL + Flow_cms, 
+model_hypo_ch4 <- glm(ch4_umolL ~ ch4_umolL_ARLag1 + BIX + HIX + DOC_mgL + temp + DO + Flora_ugL + Flow_cms, 
                       data = hypo_ghg_weekly_2, family = gaussian, na.action = 'na.fail')
 
 glm_hypo_ch4 <- dredge(model_hypo_ch4,rank="AICc",fixed="ch4_umolL_ARLag1")
@@ -339,7 +353,7 @@ glm_hypo_ch4 <- dredge(model_hypo_ch4,rank="AICc",fixed="ch4_umolL_ARLag1")
 select_glm_hypo_ch4 <- subset(glm_hypo_ch4,delta<2)
 
 # Keep all parameters (r2 < 0.8)
-model_hypo_co2 <- glm(co2_umolL ~ co2_umolL_ARLag1 + ch4_umolL + temp + DO + Flora_ugL + Flow_cms, 
+model_hypo_co2 <- glm(co2_umolL ~ co2_umolL_ARLag1 + BIX + HIX + DOC_mgL + ch4_umolL + temp + DO + Flora_ugL + Flow_cms, 
                       data = hypo_ghg_weekly_2, family = gaussian, na.action = 'na.fail')
 
 glm_hypo_co2 <- dredge(model_hypo_co2,rank="AICc",fixed="co2_umolL_ARLag1")
@@ -358,6 +372,8 @@ epi_dom_ts <- epi_dom_ts %>% select(-c(Fmax1:B,'A/T':'M/C'))
 epi_dom_ts <- epi_dom_ts %>% 
   mutate(HIX=na.fill(na.approx(HIX),"extend")) %>% 
   mutate(BIX=na.fill(na.approx(BIX),"extend")) %>% 
+  mutate(co2_umolL=na.fill(na.approx(co2_umolL),"extend")) %>% 
+  mutate(ch4_umolL=na.fill(na.approx(ch4_umolL),"extend")) %>% 
   mutate(DOC_mgL=na.fill(na.approx(DOC_mgL),"extend")) %>% 
   mutate(temp=na.fill(na.approx(temp),"extend")) %>% 
   mutate(DO=na.fill(na.approx(DO),"extend")) %>% 
@@ -385,6 +401,8 @@ meta_dom_ts <- meta_dom_ts %>% select(-c(Fmax1:B,'A/T':'M/C'))
 meta_dom_ts <- meta_dom_ts %>% 
   mutate(HIX=na.fill(na.approx(HIX),"extend")) %>% 
   mutate(BIX=na.fill(na.approx(BIX),"extend")) %>% 
+  mutate(co2_umolL=na.fill(na.approx(co2_umolL),"extend")) %>% 
+  mutate(ch4_umolL=na.fill(na.approx(ch4_umolL),"extend")) %>% 
   mutate(DOC_mgL=na.fill(na.approx(DOC_mgL),"extend")) %>% 
   mutate(temp=na.fill(na.approx(temp),"extend")) %>% 
   mutate(DO=na.fill(na.approx(DO),"extend")) %>% 
@@ -410,6 +428,8 @@ hypo_dom_ts <- hypo_dom_ts %>% select(-c(Fmax1:B,'A/T':'M/C'))
 hypo_dom_ts <- hypo_dom_ts %>% 
   mutate(HIX=na.fill(na.approx(HIX),"extend")) %>% 
   mutate(BIX=na.fill(na.approx(BIX),"extend")) %>% 
+  mutate(co2_umolL=na.fill(na.approx(co2_umolL),"extend")) %>% 
+  mutate(ch4_umolL=na.fill(na.approx(ch4_umolL),"extend")) %>% 
   mutate(DOC_mgL=na.fill(na.approx(DOC_mgL),"extend")) %>% 
   mutate(temp=na.fill(na.approx(temp),"extend")) %>% 
   mutate(DO=na.fill(na.approx(DO),"extend")) %>% 
@@ -549,8 +569,8 @@ chart.Correlation(hypo_dom_corr,histogram=TRUE,method=c("spearman"))
 ############### Epi
 epi_dom_weekly_2 <- epi_dom_weekly[complete.cases(epi_dom_weekly),]
 
-# Remove HIX (correlated w/ DOC - all other r2 < 0.8)
-model_epi_BIX <- glm(BIX ~ BIX_ARLag1 + DOC_mgL + temp + DO + Flora_ugL + Flow_cms + 
+# Remove CO2, CH4
+model_epi_BIX <- glm(BIX ~ BIX_ARLag1 + HIX + DOC_mgL + temp + DO + Flora_ugL + Flow_cms + 
                        Rain_Total_mm + ShortwaveRadiationUp_Average_W_m2, data = epi_dom_weekly_2, 
                      family = gaussian, na.action = 'na.fail')
 
@@ -558,7 +578,7 @@ glm_epi_BIX <- dredge(model_epi_BIX,rank = "AICc", fixed = "BIX_ARLag1")
 
 select_glm_epi_BIX <- subset(glm_epi_BIX,delta<2)
 
-# Remove BIX (correlated w/ SW)
+# Remove BIX (correlated w/ SW), CO2, CH4
 model_epi_HIX <- glm(HIX ~ HIX_ARLag1 + DOC_mgL + temp + DO + Flora_ugL + Flow_cms + 
                        Rain_Total_mm + ShortwaveRadiationUp_Average_W_m2, data = epi_dom_weekly_2, 
                      family = gaussian, na.action = 'na.fail')
@@ -570,38 +590,38 @@ select_glm_epi_HIX <- subset(glm_epi_HIX,delta<2)
 ######################## Meta
 meta_dom_weekly_2 <- meta_dom_weekly[complete.cases(meta_dom_weekly),]
 
-# Remove Flow
-model_meta_BIX <- glm(BIX ~ BIX_ARLag1 + HIX + DOC_mgL + temp + DO + Flora_ugL, data = meta_dom_weekly_2, 
+# Remove CO2
+model_meta_BIX <- glm(BIX ~ BIX_ARLag1 + HIX + ch4_umolL + DOC_mgL + temp + DO + Flora_ugL + Flow_cms, data = meta_dom_weekly_2, 
                      family = gaussian, na.action = 'na.fail')
 
 glm_meta_BIX <- dredge(model_meta_BIX,rank = "AICc", fixed = "BIX_ARLag1")
 
 select_glm_meta_BIX <- subset(glm_meta_BIX,delta<2)
 
-# Remove Flow
-model_meta_HIX <- glm(HIX ~ HIX_ARLag1 + BIX + DOC_mgL + temp + DO + Flora_ugL, data = meta_dom_weekly_2, 
+# Remove CO2
+model_meta_HIX <- glm(HIX ~ BIX + ch4_umolL + DOC_mgL + temp + DO + Flora_ugL + Flow_cms, data = meta_dom_weekly_2, 
                      family = gaussian, na.action = 'na.fail')
 
-glm_meta_HIX <- dredge(model_meta_HIX,rank = "AICc", fixed = "HIX_ARLag1")
+glm_meta_HIX <- dredge(model_meta_HIX,rank = "AICc")
 
 select_glm_meta_HIX <- subset(glm_meta_HIX,delta<2)
 
 ########################## Hypo
 hypo_dom_weekly_2 <- hypo_dom_weekly[complete.cases(hypo_dom_weekly),]
 
-# Keep all parameters
-model_hypo_BIX <- glm(BIX ~ BIX_ARLag1 + HIX + DOC_mgL + temp + DO + Flora_ugL + Flow_cms, 
+# Remove CO2
+model_hypo_BIX <- glm(BIX ~ BIX_ARLag1 + HIX + ch4_umolL + DOC_mgL + temp + DO + Flora_ugL + Flow_cms, 
                       data = hypo_dom_weekly_2, family = gaussian, na.action = 'na.fail')
 
 glm_hypo_BIX <- dredge(model_hypo_BIX,rank = "AICc", fixed = "BIX_ARLag1")
 
 select_glm_hypo_BIX <- subset(glm_hypo_BIX,delta<2)
 
-# Remove BIX (correlated w/ Temp)
-model_hypo_HIX <- glm(HIX ~ HIX_ARLag1 + DOC_mgL + temp + DO + Flora_ugL + Flow_cms, data = hypo_dom_weekly_2, 
+# Remove CO2
+model_hypo_HIX <- glm(HIX ~ BIX + ch4_umolL + DOC_mgL + temp + DO + Flora_ugL + Flow_cms, data = hypo_dom_weekly_2, 
                       family = gaussian, na.action = 'na.fail')
 
-glm_hypo_HIX <- dredge(model_hypo_HIX,rank = "AICc", fixed = "HIX_ARLag1")
+glm_hypo_HIX <- dredge(model_hypo_HIX,rank = "AICc")
 
 select_glm_hypo_HIX <- subset(glm_hypo_HIX,delta<2)
 
