@@ -64,41 +64,34 @@ ar_dates <- read.csv("./Data/AR_Dates.csv") %>%
 
 # Included: DOC, temp, DO, Flora, Flow, Rain, SW
 epi_ghg <- epi %>% select(Date,BIX:HIX,ch4_umolL:co2_umolL,DOC_mgL,temp:DO,Flora_ugL:ShortwaveRadiationUp_Average_W_m2)
-epi_ghg <- completeFun(epi_ghg,c("ch4_umolL","co2_umolL"))
-epi_ghg <- epi_ghg %>% filter(Date > as.POSIXct("2019-05-19") & Date < as.POSIXct("2019-11-21"))
 epi_ghg <- left_join(ar_dates,epi_ghg)
-
-#################### NEED TO UPDATE FOR NEAR WEEKLY DATA BELOW ###########################
 
 # Included: DOC, temp, DO, Flora, Flow, Rain, SW
 epi_dom <- epi %>% select(Date,Fmax1:co2_umolL,DOC_mgL,temp:DO,Flora_ugL:ShortwaveRadiationUp_Average_W_m2)
-epi_dom <- completeFun(epi_dom,"HIX")
-epi_dom <- epi_dom %>% filter(Date > as.POSIXct("2019-05-19") & Date < as.POSIXct("2019-11-21"))
+epi_dom <- left_join(ar_dates,epi_dom)
 
 # Included: DOC, temp, DO, Flora, Flow
 meta_ghg <- meta %>% select(Date,BIX:HIX,ch4_umolL:co2_umolL,DOC_mgL,temp:DO,Flora_ugL:Flow_cms)
-meta_ghg <- completeFun(meta_ghg,c("ch4_umolL","co2_umolL"))
-meta_ghg <- meta_ghg %>% filter(Date > as.POSIXct("2019-05-19") & Date < as.POSIXct("2019-11-21"))
+meta_ghg <- left_join(ar_dates,meta_ghg)
 
 # Included: DOC, temp, DO, Flora, Flow
 meta_dom <- meta %>% select(Date,Fmax1:co2_umolL,DOC_mgL,temp:DO,Flora_ugL:Flow_cms)
-meta_dom <- completeFun(meta_dom,"HIX")
-meta_dom <- meta_dom %>% filter(Date > as.POSIXct("2019-05-19") & Date < as.POSIXct("2019-11-21"))
+meta_dom <- left_join(ar_dates,meta_dom)
 
 # Included: DOC, temp, DO, Flora, Flow
 hypo_ghg <- hypo %>% select(Date,HIX:BIX,ch4_umolL:co2_umolL,DOC_mgL,temp:DO,Flora_ugL:Flow_cms)
-hypo_ghg <- completeFun(hypo_ghg,c("ch4_umolL","co2_umolL"))
-hypo_ghg <- hypo_ghg %>% filter(Date > as.POSIXct("2019-05-19") & Date < as.POSIXct("2019-11-21"))
+hypo_ghg <- left_join(ar_dates,hypo_ghg)
 
 # Included: DOC, temp, DO, Flora, Flow
 hypo_dom <- hypo %>% select(Date,Fmax1:co2_umolL,DOC_mgL,temp:DO,Flora_ugL:Flow_cms)
-hypo_dom <- completeFun(hypo_dom,"HIX")
-hypo_dom <- hypo_dom %>% filter(Date > as.POSIXct("2019-05-19") & Date < as.POSIXct("2019-11-21"))
+hypo_dom <- left_join(ar_dates,hypo_dom)
 
 ############################################################################################
 ### Look at frequency of sampling
 plot(epi_dom$Date,epi_dom$Fmax1)
 plot(epi_ghg$Date,epi_ghg$ch4_umolL)
+
+#################### NEED TO UPDATE FOR NEAR WEEKLY DATA BELOW ###########################
 
 # Extrapolate data to daily then select weekly data from 5-06-19 to 11-20-19
 # Create daily timepoints
