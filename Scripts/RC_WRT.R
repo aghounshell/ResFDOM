@@ -34,6 +34,10 @@ fcr <- fcr %>% mutate(wrt_d = (3.1E5/Flow_cms)*(1/60)*(1/60)*(1/24))
 # BVR: Averaged water level for 2019 (10.91m) which corresponds to 8.9E5 m3
 bvr <- bvr %>% mutate(wrt_d = (8.9E5/Flow_cms)*(1/60)*(1/60)*(1/24))
 
+wrt <- rbind(fcr,bvr)
+
+write.csv(wrt,"./Data/20201110_WRT.csv")
+
 # Plot
 ggplot()+
   geom_line(bvr,mapping=aes(x=Date,y=wrt_d,color='BVR',group=1),size=1)+
@@ -269,3 +273,53 @@ fcr_ratios$NH4_ugL <- fcr_50_ratios$NH4_ugL/(fcr_200_data$NH4_ugL+fcr_99_data$NH
 fcr_ratios$NO3NO2_ugL <- fcr_50_ratios$NO3NO2_ugL/(fcr_200_data$NO3NO2_ugL+fcr_99_data$NO3NO2_ugL)
 fcr_ratios$SRP_ugL <- fcr_50_ratios$SRP_ugL/(fcr_200_data$SRP_ugL+fcr_99_data$SRP_ugL)
 fcr_ratios$DOC_mgL <- fcr_50_ratios$DOC_mgL/(fcr_200_data$DOC_mgL+fcr_99_data$DOC_mgL)
+
+bvr_50_ratios <- bvr_50_data[-c(6),]
+bvr_ratios <- bvr_200_data %>% select(DateTime)
+bvr_ratios$TN_ugL <- bvr_50_ratios$TN_ugL/(bvr_200_data$TN_ugL+bvr_100_data$TN_ugL)
+bvr_ratios$TP_ugL <- bvr_50_ratios$TP_ugL/(bvr_200_data$TP_ugL+bvr_100_data$TP_ugL)
+bvr_ratios$NH4_ugL <- bvr_50_ratios$NH4_ugL/(bvr_200_data$NH4_ugL+bvr_100_data$NH4_ugL)
+bvr_ratios$NO3NO2_ugL <- bvr_50_ratios$NO3NO2_ugL/(bvr_200_data$NO3NO2_ugL+bvr_100_data$NO3NO2_ugL)
+bvr_ratios$SRP_ugL <- bvr_50_ratios$SRP_ugL/(bvr_200_data$SRP_ugL+bvr_100_data$SRP_ugL)
+bvr_ratios$DOC_mgL <- bvr_50_ratios$DOC_mgL/(bvr_200_data$DOC_mgL+bvr_100_data$DOC_mgL)
+
+stream_ratios <- fcr_102_data %>% select(DateTime)
+stream_ratios$TN_ugL <- fcr_99_data$TN_ugL/(fcr_102_data$TN_ugL)
+stream_ratios$TP_ugL <- fcr_99_data$TP_ugL/(fcr_102_data$TP_ugL)
+stream_ratios$NH4_ugL <- fcr_99_data$NH4_ugL/(fcr_102_data$NH4_ugL)
+stream_ratios$NO3NO2_ugL <- fcr_99_data$NO3NO2_ugL/(fcr_102_data$NO3NO2_ugL)
+stream_ratios$SRP_ugL <- fcr_99_data$SRP_ugL/(fcr_102_data$SRP_ugL)
+stream_ratios$DOC_mgL <- fcr_99_data$DOC_mgL/(fcr_102_data$DOC_mgL)
+
+# Plot all ratios
+tn <- ggplot()+
+  geom_point(fcr_ratios,mapping=aes(x=DateTime,y=TN_ugL,color="FCR"))+
+  geom_line(fcr_ratios,mapping=aes(x=DateTime,y=TN_ugL,color="FCR"))+
+  geom_point(bvr_ratios,mapping=aes(x=DateTime,y=TN_ugL,color="BVR"))+
+  geom_line(bvr_ratios,mapping=aes(x=DateTime,y=TN_ugL,color="BVR"))+
+  geom_point(stream_ratios,mapping=aes(x=DateTime,y=TN_ugL,color="Stream"))+
+  geom_line(stream_ratios,mapping=aes(x=DateTime,y=TN_ugL,color="Stream"))+
+  geom_hline(yintercept=1.0,linetype="dashed")+
+  theme_classic(base_size = 15)
+
+tp <- ggplot()+
+  geom_point(fcr_ratios,mapping=aes(x=DateTime,y=TP_ugL,color="FCR"))+
+  geom_line(fcr_ratios,mapping=aes(x=DateTime,y=TP_ugL,color="FCR"))+
+  geom_point(bvr_ratios,mapping=aes(x=DateTime,y=TP_ugL,color="BVR"))+
+  geom_line(bvr_ratios,mapping=aes(x=DateTime,y=TP_ugL,color="BVR"))+
+  geom_point(stream_ratios,mapping=aes(x=DateTime,y=TP_ugL,color="Stream"))+
+  geom_line(stream_ratios,mapping=aes(x=DateTime,y=TP_ugL,color="Stream"))+
+  geom_hline(yintercept=1.0,linetype="dashed")+
+  theme_classic(base_size = 15)
+
+doc <- ggplot()+
+  geom_point(fcr_ratios,mapping=aes(x=DateTime,y=DOC_mgL,color="FCR"))+
+  geom_line(fcr_ratios,mapping=aes(x=DateTime,y=DOC_mgL,color="FCR"))+
+  geom_point(bvr_ratios,mapping=aes(x=DateTime,y=DOC_mgL,color="BVR"))+
+  geom_line(bvr_ratios,mapping=aes(x=DateTime,y=DOC_mgL,color="BVR"))+
+  geom_point(stream_ratios,mapping=aes(x=DateTime,y=DOC_mgL,color="Stream"))+
+  geom_line(stream_ratios,mapping=aes(x=DateTime,y=DOC_mgL,color="Stream"))+
+  geom_hline(yintercept=1.0,linetype="dashed")+
+  theme_classic(base_size = 15)
+
+ggarrange(tn,tp,doc,common.legend = TRUE)
