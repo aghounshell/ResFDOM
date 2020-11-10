@@ -18,6 +18,10 @@ dom <- data %>% select(Date:'M/C') %>% filter(Station == 50)
 dom <- dom[complete.cases(dom),]
 
 # Double check correlations
+dom_corr <- dom %>% select(-c(Date,Station,Depth))
+chart.Correlation(dom_corr,histogram=TRUE,method=c("spearman"))
+
+# Remove Fmax4, Fmax2, M/C
 dom_corr <- dom %>% select(-c(Date,Station,Depth,Fmax4,Fmax2,'M/C'))
 chart.Correlation(dom_corr,histogram=TRUE,method=c("spearman"))
 
@@ -56,13 +60,22 @@ c_data <- c_data[complete.cases(c_data),]
 
 c_data$location <- paste(c_data$Station,c_data$Depth)
 
+# Check correlations
+c_corr <- c_data %>% select(-c(Date,Station,Depth,location))
+chart.Correlation(c_corr,histogram=TRUE,method=c("spearman"))
+
 c_corr <- c_data %>% select(-c(Date,Station,Depth,location,Fmax4,'M/C'))
 chart.Correlation(c_corr,histogram=TRUE,method=c("spearman"))
 
-# Normalize data using scale
-c_scale <- scale(c_corr)
+# Correct data for right-skew
+c_skew <- (c_corr)^(1/3)
+chart.Correlation(c_skew,histogram=TRUE,method=c("spearman"))
 
-# Conduct PCA on DOM data - normalized but not transformed; no outliers removed
+# Normalize data using scale
+c_scale <- scale(c_skew)
+chart.Correlation(c_scale,histogram=TRUE,method=c("spearman"))
+
+# Conduct PCA on DOM data - normalized and transformed; no outliers removed
 c_pca <- rda(c_scale)
 summary(c_pca,axes=0)
 plot(c_pca)
@@ -89,7 +102,7 @@ with(c_data,points(dom_pca,display="sites",col=c("black","black","black","black"
 with(c_data,legend("topright",legend=levels(location),bty="n",col=c("black","black","black","black","black"),
                   pch=c(21,22,23,24,25),pt.bg=colvec,cex=1.3))
 arrows(0, 0, cspe_sc2[,1], cspe_sc2[,2], angle=20, col="black")
-text(c_pca, display = "species", scaling=2, cex = 0.8, col = "black")
+text(c_pca, display = "species", scaling=2, cex = 1, col = "black")
 
 plot(c_pca,choices=c(1,3),type="n",scaling=2,xlab="PC1 (33% var. explained)",ylab="PC3 (18% var. explained)",
      cex.axis=1.5,cex.lab=1.5)
@@ -98,7 +111,7 @@ with(c_data,points(c_pca,choices=c(1,3),display="sites",col=c("black","black","b
 with(c_data,legend("bottomleft",legend=levels(location),bty="n",col=c("black","black","black","black","black"),
                      pch=c(21,22,23,24,25),pt.bg=colvec,cex=1.3))
 arrows(0, 0, cspe_sc2[,1], cspe_sc2[,3], angle=20, col="black")
-text(c_pca,choices=c(1,3), display = "species", scaling=2, cex = 0.8, col = "black")
+text(c_pca,choices=c(1,3), display = "species", scaling=2, cex = 1, col = "black")
 
 plot(c_pca,choices=c(2,3),type="n",scaling=2,xlab="PC2 (23% var. explained)",ylab="PC3 (18% var. explained)",
      cex.axis=1.5,cex.lab=1.5)
@@ -107,4 +120,113 @@ with(c_data,points(c_pca,choices=c(2,3),display="sites",col=c("black","black","b
 with(c_data,legend("bottomleft",legend=levels(location),bty="n",col=c("black","black","black","black","black"),
                    pch=c(21,22,23,24,25),pt.bg=colvec,cex=1.3))
 arrows(0, 0, cspe_sc2[,2], cspe_sc2[,3], angle=20, col="black")
-text(c_pca,choices=c(2,3), display = "species", scaling=2, cex = 0.8, col = "black")
+text(c_pca,choices=c(2,3), display = "species", scaling=2, cex = 1, col = "black")
+
+############## PCA at station 50 only? All C data ######################
+c_data_50 <- data %>% select(Date:co2_umolL) %>% filter(Station == "50")
+c_data_50 <- c_data_50[complete.cases(c_data_50),]
+
+# Check correlations
+c_corr_50 <- c_data_50 %>% select(-c(Date,Station,Depth))
+chart.Correlation(c_corr_50,histogram=TRUE,method=c("spearman"))
+
+c_corr_50 <- c_data_50 %>% select(-c(Date,Station,Depth,Fmax2,Fmax4,'M/C'))
+chart.Correlation(c_corr_50,histogram=TRUE,method=c("spearman"))
+
+# Correct data for right-skew
+c_skew_50 <- (c_corr_50)^(1/3)
+chart.Correlation(c_skew_50,histogram=TRUE,method=c("spearman"))
+
+# Normalize data using scale
+c_scale_50 <- scale(c_skew_50)
+chart.Correlation(c_scale_50,histogram=TRUE,method=c("spearman"))
+
+# Conduct PCA on DOM data - normalized and transformed; no outliers removed
+c_pca_50 <- rda(c_scale_50)
+summary(c_pca_50,axes=0)
+plot(c_pca_50)
+text(c_pca_50)
+screeplot(c_pca_50, bstick = TRUE)
+
+# Extract species scores for scaling 2
+c50_spe_sc2 <- scores(c_pca_50, choices=1:3, display="sp", scaling=2)
+
+# Plot results on two axes
+c_data_50$Depth <- factor(c_data_50$Depth, levels=c("0.1", "5", "9"))
+with(c_data_50,levels(Depth))
+colvec<-c("#7FC6A4","#7EBDC2","#393E41")
+with(c_data_50,levels(Depth))
+sq<-c(21,22,23)
+
+plot(c_pca_50,type="n",scaling=2,xlab="PC1 (33% var. explained)",ylab="PC2 (30% var. explained)",cex.axis=1.5,
+     cex.lab=1.5)
+with(c_data_50,points(c_pca_50,display="sites",col=c("black","black","black"),scaling=2,pch=sq[Depth],
+                bg=colvec[Depth],cex=1.5))
+with(c_data_50,legend("topright",legend=levels(Depth),bty="n",col=c("black","black","black"),
+                pt.bg=colvec,cex=1.3))
+arrows(0, 0, c50_spe_sc2[,1], c50_spe_sc2[,2], angle=20, col="black")
+text(c_pca_50, display = "species", scaling=2, cex = 1, col = "black")
+
+###########################################################################
+# Now conduct RDA using C data and Env Data (DO, Temp, Flora) for station 50
+rda_data <- data %>% 
+  select(Date:Fmax1,Fmax3,BIX:'A/C',ch4_umolL,co2_umolL,DOC_mgL,temp,DO,Flora_ugL) %>% 
+  filter(Station == "50")
+rda_data <- rda_data[complete.cases(rda_data),]
+
+rda_c_data <- rda_data %>% select(Fmax1,Fmax3,BIX:'A/C',ch4_umolL,co2_umolL)
+rda_env_data <- rda_data %>% select(temp,DO,Flora_ugL,DOC_mgL)
+
+# Double check correlations
+chart.Correlation(rda_c_data,histogram=TRUE,method=c("spearman"))
+chart.Correlation(rda_env_data,histogram=TRUE,method=c("spearman"))
+
+# Correct data for right-skew
+rda_c_skew <- (rda_c_data)^(1/3)
+
+# Normalize data using scale
+rda_c_scale <- as.data.frame(scale(rda_c_skew))
+chart.Correlation(rda_c_scale,histogram=TRUE,method=c("spearman"))
+rda_env_scale <- as.data.frame(scale(rda_env_data))
+
+# Conduct RDA
+c_rda <- rda(rda_c_scale~.,rda_env_scale,scale=FALSE)
+
+# Check global model (R2 = 0.4)
+(R2a_all <- RsquareAdj(c_rda)$adj.r.squared)
+
+# Test of all canoical axes from full rda
+anova(c_rda,by="axis",permutation=how(nperm=999))
+
+# Use forward selection to select the model with the best number of explanatory variables
+c_rda_forsel <- forward.sel(rda_c_scale,rda_env_scale,Xscale=FALSE,Yscale=FALSE,
+                            Ycenter=FALSE,adjR2thresh=R2a_all)
+
+# All variables are important (DO, DOC, Flora)
+# C RDA model: DO, DOC, Flora
+c_rda_final <- rda(rda_c_scale ~ rda_env_scale$DO + rda_env_scale$DOC_mgL + rda_env_scale$Flora_ugL,scale=FALSE)
+
+# Extract scores
+c_rspe_sc2 <- scores(c_rda_final,display="sp",choices=c(1,2),scaling=2)
+c_rbp.sc2 <- scores(c_rda_final,display="bp",choices=c(1,2),scaling=2)
+
+# Plot
+par(mar=c(5.1,5.1,4.1,2.1))
+par(mfrow=c(1,1))
+
+rda_data$Depth <- factor(rda_data$Depth, levels=c("0.1", "5", "9"))
+with(rda_data,levels(Depth))
+colvec<-c("#7FC6A4","#7EBDC2","#393E41")
+with(rda_data,levels(Depth))
+sq<-c(21,22,23)
+
+plot(c_rda_final,scaling=2,display="sites",xlab="RDA1 (56% fitted,23% total var.)",
+     ylab="RDA2 (40% fitted, 16% total var.)",cex.axis=1.5,cex.lab=1.5)
+with(rda_data,points(c_rda_final,display="sites",col=c("black","black","black"),scaling=2,pch=sq[Depth],
+                  bg=colvec[Depth],cex=1.5))
+with(rda_data,legend("bottomleft",legend=levels(Depth),bty="n",col=c("black","black","black"),
+                  pch=c(21,22,23),pt.bg=colvec,cex=1.5))
+arrows(0,0,c_rspe_sc2[,1], c_rspe_sc2[,2],lty="dashed",col="black",adj=0.5,length=0)
+text(c_rda_final,display = "species", scaling=2, cex = 1.5, 
+     col = "black")
+text(c_rda_final,display="bp",scaling=2,cex=1.5,col="black")
