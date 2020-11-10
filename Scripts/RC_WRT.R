@@ -323,3 +323,11 @@ doc <- ggplot()+
   theme_classic(base_size = 15)
 
 ggarrange(tn,tp,doc,common.legend = TRUE)
+
+# Plot Chla at station 50 for FCR and BVR (b/c I'm curious :)
+ggplot()+
+  geom_line(fcr_50_data,mapping=aes(x=DateTime,y=Chla_ugL,color="FCR"))+
+  geom_point(fcr_50_data,mapping=aes(x=DateTime,y=Chla_ugL,color="FCR"))+
+  geom_line(bvr_50_data,mapping=aes(x=DateTime,y=Chla_ugL,color="BVR"))+
+  geom_point(bvr_50_data,mapping=aes(x=DateTime,y=Chla_ugL,color="BVR"))+
+  theme_classic(base_size=15)
