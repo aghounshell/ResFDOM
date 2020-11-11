@@ -13,6 +13,89 @@ pacman::p_load(vegan,adespatial,ade4,PerformanceAnalytics,corrplot,Hmisc,ggplot2
 data <- read_csv("./Data/20201105_All_Data.csv")
 data$Date <- as.POSIXct(strptime(data$Date, "%Y-%m-%d", tz = "EST"))
 
+# Epi data
+epi <- data %>% filter(Station == 50 & Depth == 0.1)
+
+# Meta data
+meta <- data %>% filter(Station == 50 & Depth == 5)
+
+# Hypo data
+hypo <- data %>% filter(Station == 50 & Depth == 9)
+
+# Missing some inflow data
+inflow <- read_csv('./Data/Inflow.csv') %>% 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d",tz='EST'))) %>% 
+  filter(DateTime > as.POSIXct("2019-01-01") & DateTime < as.POSIXct("2020-01-01")) %>% 
+  select(Site,DateTime,WVWA_Flow_cms) %>% 
+  rename(Station = Site, Date = DateTime, Flow_cms = WVWA_Flow_cms)
+
+inflow <- inflow %>%  group_by(Date) %>% summarise_all(funs(mean(.,na.rm=TRUE)))
+
+# Combine w/ Epi, Meta, and Hypo data
+epi <- left_join(epi,inflow,by="Date")
+epi <- epi %>% 
+  mutate(Flow_cms.x = Flow_cms.y) %>% 
+  select(-c("Station.y","Flow_cms.y")) %>% 
+  rename(Flow_cms = Flow_cms.x)
+
+meta <- left_join(meta,inflow,by="Date")
+meta <- meta %>% 
+  mutate(Flow_cms.x = Flow_cms.y) %>% 
+  select(-c("Station.y","Flow_cms.y")) %>% 
+  rename(Flow_cms = Flow_cms.x)
+
+hypo <- left_join(hypo,inflow,by="Date")
+hypo <- hypo %>% 
+  mutate(Flow_cms.x = Flow_cms.y) %>% 
+  select(-c("Station.y","Flow_cms.y")) %>% 
+  rename(Flow_cms = Flow_cms.x)
+
+data_2 <- rbind(epi,meta,hypo) %>% arrange(Date)
+
+############## PCA at station 50 only - All data used for AR Model ######################
+data_50 <- data_2 %>% select(Date,Depth,BIX,HIX,ch4_umolL,co2_umolL,DOC_mgL,temp,DO,Flora_ugL,Flow_cms)
+data_50 <- data_50[complete.cases(data_50),]
+
+# Check correlations
+corr_50 <- data_50 %>% select(-c(Date,Depth))
+chart.Correlation(corr_50,histogram=TRUE,method=c("spearman"))
+
+# Correct data for right-skew
+skew_50 <- (corr_50)^(1/3)
+chart.Correlation(skew_50,histogram=TRUE,method=c("spearman"))
+
+# Normalize data using scale
+scale_50 <- scale(skew_50)
+chart.Correlation(scale_50,histogram=TRUE,method=c("spearman"))
+
+# Conduct PCA on DOM data - normalized and transformed; no outliers removed
+cpca_50 <- rda(scale_50)
+summary(cpca_50,axes=0)
+plot(cpca_50)
+text(cpca_50)
+screeplot(cpca_50, bstick = TRUE)
+
+# Extract species scores for scaling 2
+c50_spe_sc2 <- scores(cpca_50, choices=1:3, display="sp", scaling=2)
+
+# Plot results on two axes
+par(mar=c(5.1,5.1,4.1,2.1))
+
+data_50$Depth <- factor(data_50$Depth, levels=c("0.1", "5", "9"))
+with(data_50,levels(Depth))
+colvec<-c("#7FC6A4","#7EBDC2","#393E41")
+with(data_50,levels(Depth))
+sq<-c(21,22,23)
+
+plot(cpca_50,type="n",scaling=2,xlab="PC1 (37% var. explained)",ylab="PC2 (29% var. explained)",cex.axis=1.5,
+     cex.lab=1.5)
+with(data_50,points(cpca_50,display="sites",col=c("black","black","black"),scaling=2,pch=sq[Depth],
+                      bg=colvec[Depth],cex=1.5))
+with(data_50,legend("topright",legend=levels(Depth),bty="n",col=c("black","black","black"),
+                   pch=c(21,22,23),pt.bg=colvec,cex=1.3))
+arrows(0, 0, c50_spe_sc2[,1], c50_spe_sc2[,2], angle=20, col="black")
+text(cpca_50, display = "species", scaling=2, cex = 1, col = "black")
+
 # Separate DOM data
 dom <- data %>% select(Date:'M/C') %>% filter(Station == 50)
 dom <- dom[complete.cases(dom),]
