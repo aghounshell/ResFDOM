@@ -52,7 +52,6 @@ hypo <- hypo %>%
   rename(Flow_cms = Flow_cms.x)
 
 ###################################################################################
-
 ## Separate into GHG and DOM datasets and filter for complete cases
 completeFun <- function(data, desiredCols) {
   completeVec <- complete.cases(data[, desiredCols])
@@ -150,40 +149,6 @@ colnames(y) <- c("co2","co2_umolL_ARLag1")
 epi_data <- cbind(epi_data,y)
 epi_data <- epi_data %>% select(-co2)
 
-# HIX, epi - 1 lag important
-plot(epi_data$HIX,type="b")
-lag1.plot(epi_data$HIX,10)
-PlotACF(epi_data$HIX)
-acf2(epi_data$HIX,na.action=na.pass)
-pacf(epi_data$HIX,na.action=na.pass)
-xlag1 = lag(epi_data$HIX,1)
-y = cbind(epi_data$HIX,xlag1)
-ar1fit = lm(y[,1]~y[,2])
-summary(ar1fit)
-plot(ar1fit$fit,ar1fit$residuals)
-acf(ar1fit$residuals)
-# Add AR lag to HIX epi data
-colnames(y) <- c("hix_ar","HIX_ARLag1")
-epi_data <- cbind(epi_data,y)
-epi_data <- epi_data %>% select(-hix_ar)
-
-# BIX, epi - 1 lag important
-plot(epi_data$BIX,type="b")
-lag1.plot(epi_data$BIX,10)
-PlotACF(epi_data$BIX)
-acf2(epi_data$BIX,na.action=na.pass)
-pacf(epi_data$BIX,na.action=na.pass)
-xlag1 = lag(epi_data$BIX,1)
-y = cbind(epi_data$BIX,xlag1)
-ar1fit = lm(y[,1]~y[,2])
-summary(ar1fit)
-plot(ar1fit$fit,ar1fit$residuals)
-acf(ar1fit$residuals)
-# Add AR lag to HIX epi data
-colnames(y) <- c("bix_ar","BIX_ARLag1")
-epi_data <- cbind(epi_data,y)
-epi_data <- epi_data %>% select(-bix_ar)
-
 # Methane, meta - 1 lag is important
 plot(meta_data$ch4_umolL,type="b")
 lag1.plot(meta_data$ch4_umolL,10)
@@ -217,40 +182,6 @@ acf(ar1fit$residuals)
 colnames(y) <- c("co2","co2_umolL_ARLag1")
 meta_data <- cbind(meta_data,y)
 meta_data <- meta_data %>% select(-co2)
-
-# HIX, meta - NO LAG IMPORTANT???
-plot(meta_data$HIX,type="b")
-lag1.plot(meta_data$HIX,10)
-PlotACF(meta_data$HIX)
-acf2(meta_data$HIX,na.action=na.pass)
-pacf(meta_data$HIX,na.action=na.pass)
-xlag1 = lag(meta_data$HIX,1)
-y = cbind(meta_data$HIX,xlag1)
-ar1fit = lm(y[,1]~y[,2])
-summary(ar1fit)
-plot(ar1fit$fit,ar1fit$residuals)
-acf(ar1fit$residuals)
-# Add AR lag to HIX epi data
-colnames(y) <- c("hix_ar","HIX_ARLag1")
-meta_data <- cbind(meta_data,y)
-meta_data <- meta_data %>% select(-hix_ar)
-
-# BIX, meta - 1 lag important
-plot(meta_data$BIX,type="b")
-lag1.plot(meta_data$BIX,10)
-PlotACF(meta_data$BIX)
-acf2(meta_data$BIX,na.action=na.pass)
-pacf(meta_data$BIX,na.action=na.pass)
-xlag1 = lag(meta_data$BIX,1)
-y = cbind(meta_data$BIX,xlag1)
-ar1fit = lm(y[,1]~y[,2])
-summary(ar1fit)
-plot(ar1fit$fit,ar1fit$residuals)
-acf(ar1fit$residuals)
-# Add AR lag to HIX epi data
-colnames(y) <- c("bix_ar","BIX_ARLag1")
-meta_data <- cbind(meta_data,y)
-meta_data <- meta_data %>% select(-bix_ar)
 
 # Methane, hypo - NO LAG IS IMPORTANT???
 plot(hypo_data$ch4_umolL,type="b")
@@ -286,40 +217,6 @@ colnames(y) <- c("co2","co2_umolL_ARLag1")
 hypo_data <- cbind(hypo_data,y)
 hypo_data <- hypo_data %>% select(-co2)
 
-# HIX, hypo - NO LAG IMPORTANT???
-plot(hypo_data$HIX,type="b")
-lag1.plot(hypo_data$HIX,10)
-PlotACF(hypo_data$HIX)
-acf2(hypo_data$HIX,na.action=na.pass)
-pacf(hypo_data$HIX,na.action=na.pass)
-xlag1 = lag(hypo_data$HIX,1)
-y = cbind(hypo_data$HIX,xlag1)
-ar1fit = lm(y[,1]~y[,2])
-summary(ar1fit)
-plot(ar1fit$fit,ar1fit$residuals)
-acf(ar1fit$residuals)
-# Add AR lag to HIX epi data
-colnames(y) <- c("hix_ar","HIX_ARLag1")
-hypo_data <- cbind(hypo_data,y)
-hypo_data <- hypo_data %>% select(-hix_ar)
-
-# BIX, hypo - 1 lag important
-plot(hypo_data$BIX,type="b")
-lag1.plot(hypo_data$BIX,10)
-PlotACF(hypo_data$BIX)
-acf2(hypo_data$BIX,na.action=na.pass)
-pacf(hypo_data$BIX,na.action=na.pass)
-xlag1 = lag(hypo_data$BIX,1)
-y = cbind(hypo_data$BIX,xlag1)
-ar1fit = lm(y[,1]~y[,2])
-summary(ar1fit)
-plot(ar1fit$fit,ar1fit$residuals)
-acf(ar1fit$residuals)
-# Add AR lag to HIX epi data
-colnames(y) <- c("bix_ar","BIX_ARLag1")
-hypo_data <- cbind(hypo_data,y)
-hypo_data <- hypo_data %>% select(-bix_ar)
-
 ##############################################################
 # Plot ACF and PACF for GHG and DOM parameters
 pdf("./Fig_Output/ACF_Plots.pdf", width=12, height=8)
@@ -346,15 +243,13 @@ dev.off()
 # Check for correlations among variables
 # Remove variables that are collinear with r2 > 0.60
 epi_data_2 <- epi_data[complete.cases(epi_data),]
-epi_data_2 <- epi_data_2 %>% select(-c(Date,BIX_ARLag1,HIX_ARLag1,HIX))
+epi_data_2 <- epi_data_2 %>% select(-c(Date,HIX))
 epi_data_2 <- as.data.frame(epi_data_2)
 epi_data_2 <- epi_data_2 %>% 
   mutate(Flow_cms_norm = log(Flow_cms)) %>%
   mutate(co2_umolL_norm = log(co2_umolL)) %>% 
   mutate(co2_umolL_ARLag1_norm = log(co2_umolL_ARLag1)) %>% 
-  mutate(ch4_umolL_norm = log(ch4_umolL)) %>% 
-  mutate(ch4_umolL_ARLag1_norm = log(ch4_umolL_ARLag1)) %>% 
-  select(-c(co2_umolL,Flow_cms,co2_umolL_ARLag1,ch4_umolL,ch4_umolL_ARLag1))
+  select(-c(co2_umolL,Flow_cms,co2_umolL_ARLag1))
 epi_data_2 <- scale(epi_data_2)
 
 chart.Correlation(epi_data_2,histogram=TRUE,method=c("spearman"))
@@ -362,10 +257,10 @@ epi_data_2 <- as.data.frame(epi_data_2)
 
 # Epi CH4 = ch4_lag + flow + DOC + flora + BIX
 # Remove: co2_lag, temp, co2, do
-epi_ch4_corr <- epi_data_2 %>% select(ch4_umolL_norm,ch4_umolL_ARLag1_norm,Flow_cms_norm,DOC_mgL,Flora_ugL,BIX)
+epi_ch4_corr <- epi_data_2 %>% select(ch4_umolL,ch4_umolL_ARLag1,Flow_cms_norm,DOC_mgL,Flora_ugL,BIX)
 chart.Correlation(epi_ch4_corr,histogram=TRUE,method=c("spearman"))
 
-model_epi_ch4 <- glm(ch4_umolL_norm ~ ch4_umolL_ARLag1_norm + DOC_mgL + BIX + Flora_ugL +
+model_epi_ch4 <- glm(ch4_umolL ~ ch4_umolL_ARLag1 + DOC_mgL + BIX + Flora_ugL +
                        Flow_cms_norm, data = epi_data_2, 
                      family = gaussian, na.action = 'na.fail')
 
@@ -388,16 +283,14 @@ select_glm_epi_co2 <- subset(glm_epi_co2,delta<2)
 
 ########################## Hypo
 hypo_data_2 <- hypo_data[complete.cases(hypo_data),]
-hypo_data_2 <- hypo_data_2 %>% select(-c(Date,BIX_ARLag1,HIX_ARLag1,HIX))
+hypo_data_2 <- hypo_data_2 %>% select(-c(Date,HIX))
 hypo_data_2 <- as.data.frame(hypo_data_2)
 hypo_data_2 <- hypo_data_2 %>% 
   mutate(Flow_cms_norm = log(Flow_cms)) %>% 
   mutate(Flora_ugL_norm = log(Flora_ugL)) %>% 
-  mutate(co2_umolL_norm = log(co2_umolL)) %>% 
-  mutate(co2_umolL_ARLag1_norm = log(co2_umolL_ARLag1)) %>% 
   mutate(ch4_umolL_norm = log(ch4_umolL)) %>% 
   mutate(ch4_umolL_ARLag1_norm = log(ch4_umolL_ARLag1)) %>% 
-  select(-c(co2_umolL,Flow_cms,co2_umolL_ARLag1,ch4_umolL,ch4_umolL_ARLag1,Flora_ugL))
+  select(-c(Flow_cms,ch4_umolL,ch4_umolL_ARLag1,Flora_ugL))
 hypo_data_2 <- scale(hypo_data_2)
 
 chart.Correlation(hypo_data_2,histogram=TRUE,method=c("spearman"))
@@ -417,10 +310,10 @@ select_glm_hypo_ch4 <- subset(glm_hypo_ch4,delta<2)
 
 # Hypo Co2 = co2_lag + Flow + DO + DOC
 # Remove: ch4_lag, temp, BIX, flora,ch4
-hypo_co2_corr <- hypo_data_2 %>% select(co2_umolL_norm,co2_umolL_ARLag1_norm,Flow_cms_norm,DO,DOC_mgL)
+hypo_co2_corr <- hypo_data_2 %>% select(co2_umolL,co2_umolL_ARLag1,Flow_cms_norm,DO,DOC_mgL)
 chart.Correlation(hypo_co2_corr,histogram=TRUE,method=c("spearman"))
 
-model_hypo_co2 <- glm(co2_umolL_norm ~ co2_umolL_ARLag1_norm + DOC_mgL + DO + Flow_cms_norm, 
+model_hypo_co2 <- glm(co2_umolL ~ co2_umolL_ARLag1 + DOC_mgL + DO + Flow_cms_norm, 
                       data = hypo_data_2, family = gaussian, na.action = 'na.fail')
 
 glm_hypo_co2 <- dredge(model_hypo_co2,rank="AICc")
@@ -456,7 +349,7 @@ epi_data_uncorr <- epi_data_uncorr %>%
 # CO2 Epi
 (select_glm_epi_co2$DO*sd(epi_data_uncorr$DO))+mean(epi_data_uncorr$DO)
 (select_glm_epi_co2$Flora_ugL*sd(epi_data_uncorr$Flora_ugL))+mean(epi_data_uncorr$Flora_ugL)
-exp((select_glm_epi_co2$Flow_cms_norm*sd(epi_data_uncorr$Flow_cms_norm))+mean(epi_data_uncorr$Flow_cms_norm))
+(select_glm_epi_co2$Flow_cms_norm*sd(epi_data_uncorr$Flow_cms_norm))+mean(epi_data_uncorr$Flow_cms_norm)
 # CH4 Hypo
 hypo_data_uncorr <- hypo_data[complete.cases(hypo_data),]
 hypo_data_uncorr <- hypo_data_uncorr %>% 
@@ -512,6 +405,108 @@ glm_meta_co2 <- dredge(model_meta_co2,rank="AICc")
 select_glm_meta_co2 <- subset(glm_meta_co2,delta<2)
 
 ############################## DOM data
+# HIX, epi - 1 lag important
+plot(epi_data$HIX,type="b")
+lag1.plot(epi_data$HIX,10)
+PlotACF(epi_data$HIX)
+acf2(epi_data$HIX,na.action=na.pass)
+pacf(epi_data$HIX,na.action=na.pass)
+xlag1 = lag(epi_data$HIX,1)
+y = cbind(epi_data$HIX,xlag1)
+ar1fit = lm(y[,1]~y[,2])
+summary(ar1fit)
+plot(ar1fit$fit,ar1fit$residuals)
+acf(ar1fit$residuals)
+# Add AR lag to HIX epi data
+colnames(y) <- c("hix_ar","HIX_ARLag1")
+epi_data <- cbind(epi_data,y)
+epi_data <- epi_data %>% select(-hix_ar)
+
+# BIX, epi - 1 lag important
+plot(epi_data$BIX,type="b")
+lag1.plot(epi_data$BIX,10)
+PlotACF(epi_data$BIX)
+acf2(epi_data$BIX,na.action=na.pass)
+pacf(epi_data$BIX,na.action=na.pass)
+xlag1 = lag(epi_data$BIX,1)
+y = cbind(epi_data$BIX,xlag1)
+ar1fit = lm(y[,1]~y[,2])
+summary(ar1fit)
+plot(ar1fit$fit,ar1fit$residuals)
+acf(ar1fit$residuals)
+# Add AR lag to HIX epi data
+colnames(y) <- c("bix_ar","BIX_ARLag1")
+epi_data <- cbind(epi_data,y)
+epi_data <- epi_data %>% select(-bix_ar)
+
+# HIX, meta - NO LAG IMPORTANT???
+plot(meta_data$HIX,type="b")
+lag1.plot(meta_data$HIX,10)
+PlotACF(meta_data$HIX)
+acf2(meta_data$HIX,na.action=na.pass)
+pacf(meta_data$HIX,na.action=na.pass)
+xlag1 = lag(meta_data$HIX,1)
+y = cbind(meta_data$HIX,xlag1)
+ar1fit = lm(y[,1]~y[,2])
+summary(ar1fit)
+plot(ar1fit$fit,ar1fit$residuals)
+acf(ar1fit$residuals)
+# Add AR lag to HIX epi data
+colnames(y) <- c("hix_ar","HIX_ARLag1")
+meta_data <- cbind(meta_data,y)
+meta_data <- meta_data %>% select(-hix_ar)
+
+# BIX, meta - 1 lag important
+plot(meta_data$BIX,type="b")
+lag1.plot(meta_data$BIX,10)
+PlotACF(meta_data$BIX)
+acf2(meta_data$BIX,na.action=na.pass)
+pacf(meta_data$BIX,na.action=na.pass)
+xlag1 = lag(meta_data$BIX,1)
+y = cbind(meta_data$BIX,xlag1)
+ar1fit = lm(y[,1]~y[,2])
+summary(ar1fit)
+plot(ar1fit$fit,ar1fit$residuals)
+acf(ar1fit$residuals)
+# Add AR lag to HIX epi data
+colnames(y) <- c("bix_ar","BIX_ARLag1")
+meta_data <- cbind(meta_data,y)
+meta_data <- meta_data %>% select(-bix_ar)
+
+# HIX, hypo - NO LAG IMPORTANT???
+plot(hypo_data$HIX,type="b")
+lag1.plot(hypo_data$HIX,10)
+PlotACF(hypo_data$HIX)
+acf2(hypo_data$HIX,na.action=na.pass)
+pacf(hypo_data$HIX,na.action=na.pass)
+xlag1 = lag(hypo_data$HIX,1)
+y = cbind(hypo_data$HIX,xlag1)
+ar1fit = lm(y[,1]~y[,2])
+summary(ar1fit)
+plot(ar1fit$fit,ar1fit$residuals)
+acf(ar1fit$residuals)
+# Add AR lag to HIX epi data
+colnames(y) <- c("hix_ar","HIX_ARLag1")
+hypo_data <- cbind(hypo_data,y)
+hypo_data <- hypo_data %>% select(-hix_ar)
+
+# BIX, hypo - 1 lag important
+plot(hypo_data$BIX,type="b")
+lag1.plot(hypo_data$BIX,10)
+PlotACF(hypo_data$BIX)
+acf2(hypo_data$BIX,na.action=na.pass)
+pacf(hypo_data$BIX,na.action=na.pass)
+xlag1 = lag(hypo_data$BIX,1)
+y = cbind(hypo_data$BIX,xlag1)
+ar1fit = lm(y[,1]~y[,2])
+summary(ar1fit)
+plot(ar1fit$fit,ar1fit$residuals)
+acf(ar1fit$residuals)
+# Add AR lag to HIX epi data
+colnames(y) <- c("bix_ar","BIX_ARLag1")
+hypo_data <- cbind(hypo_data,y)
+hypo_data <- hypo_data %>% select(-bix_ar)
+
 # Epi BIX = bix_lag + Flow, DOC, Flora, Temp
 # Remove: HIX_lag, CO2_lag, CH4_lag, DO, HIX, CO2, ch4
 epi_bix_corr <- epi_data_2 %>% select(BIX,BIX_ARLag1,Flow_cms_norm,DOC_mgL,Flora_ugL,temp)
