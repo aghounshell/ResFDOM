@@ -108,6 +108,11 @@ fcr_all <- fcr_all %>% group_by(time,depth) %>% summarize_all(funs(mean))
 # Save as .csv
 write.csv(fcr_all, "./Data/YSICTD_Merge.csv", row.names = F)
 
+# Load in data
+fcr_all <- read.csv("./Data/YSICTD_Merge.csv") %>% 
+  mutate(time = as.POSIXct(strptime(time, "%Y-%m-%d", tz="EST")))
+
+
 ########################################################
 # Then average around 0.1 m, 5.0 m, and 9.0 m
 ctd_1 <- fcr_all %>%  
@@ -144,6 +149,56 @@ ggplot()+
   xlim(as.POSIXct("2019-04-28"),as.POSIXct("2019-11-09"))+
   scale_color_manual(breaks=c('epi','meta','hypo'),values=c("#7FC6A4","#7EBDC2","#393E41"))+
   theme_classic(base_size=15)
+
+# Plot DO (epi and hypo only for AGU)
+ggplot()+
+  geom_line(ctd_1,mapping=aes(time,DO,color="epi"),size=1)+
+  geom_point(ctd_1,mapping=aes(time,DO,color="epi"),size=2)+
+  geom_line(ctd_3,mapping=aes(time,DO,color="hypo"),size=1)+
+  geom_point(ctd_3,mapping=aes(time,DO,color="hypo"),size=2)+
+  geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-07-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-08-05"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-08-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-09-02"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
+  xlim(as.POSIXct("2019-04-28"),as.POSIXct("2019-11-09"))+
+  scale_color_manual(breaks=c('epi','hypo'),values=c("#7EBDC2","#393E41"),labels=c("Epi","Hypo"))+
+  xlab("Date")+
+  ylab(expression(paste("DO (mg L"^-1*")")))+
+  annotate("text",x=c(as.POSIXct("2019-05-23"),as.POSIXct("2019-06-10"),as.POSIXct("2019-06-27"),
+                      as.POSIXct("2019-07-14"),as.POSIXct("2019-07-27"),as.POSIXct("2019-08-12"),
+                      as.POSIXct("2019-08-27"),as.POSIXct("2019-09-12"),as.POSIXct("2019-11-05")),
+           y=12.5,label=c("Off","On","Off","On","Off","On","Off","On","Turnover"),size=5.5)+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+
+# Plot Temp; epi and hypo only (For AGU)
+ggplot()+
+  geom_line(ctd_1,mapping=aes(time,temp,color="epi"),size=1)+
+  geom_point(ctd_1,mapping=aes(time,temp,color="epi"),size=2)+
+  geom_line(ctd_3,mapping=aes(time,temp,color="hypo"),size=1)+
+  geom_point(ctd_3,mapping=aes(time,temp,color="hypo"),size=2)+
+  geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-07-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-08-05"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-08-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-09-02"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
+  xlim(as.POSIXct("2019-04-28"),as.POSIXct("2019-11-09"))+
+  scale_color_manual(breaks=c('epi','hypo'),values=c("#7EBDC2","#393E41"),labels=c("Epi","Hypo"))+
+  xlab("Date")+
+  ylab(expression(paste("Temp (C"^o*")")))+
+  annotate("text",x=c(as.POSIXct("2019-05-23"),as.POSIXct("2019-06-10"),as.POSIXct("2019-06-27"),
+                      as.POSIXct("2019-07-14"),as.POSIXct("2019-07-27"),as.POSIXct("2019-08-12"),
+                      as.POSIXct("2019-08-27"),as.POSIXct("2019-09-12"),as.POSIXct("2019-11-05")),
+           y=30,label=c("Off","On","Off","On","Off","On","Off","On","Turnover"),size=5.5)+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
 
 # Plot Temp
 ggplot()+

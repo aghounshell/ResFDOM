@@ -5,7 +5,7 @@ setwd("C:/Users/ahoun/OneDrive/Desktop/ResFDOM")
 
 # Load in libraries
 pacman::p_load(tidyverse,ggplot2,ggpubr,PerformanceAnalytics,astsa,cowplot,lubridate,dplR,zoo,naniar,
-               DescTools,MuMIn)
+               DescTools,MuMIn,rsq)
 
 # Load compiled data
 data <- read_csv("./Data/20201103_All_Data.csv")
@@ -50,6 +50,8 @@ hypo <- hypo %>%
   mutate(Flow_cms.x = Flow_cms.y) %>% 
   select(-c("Station.y","Flow_cms.y")) %>% 
   rename(Flow_cms = Flow_cms.x)
+
+###################################################################################
 
 ## Separate into GHG and DOM datasets and filter for complete cases
 completeFun <- function(data, desiredCols) {
@@ -344,23 +346,26 @@ dev.off()
 # Check for correlations among variables
 # Remove variables that are collinear with r2 > 0.60
 epi_data_2 <- epi_data[complete.cases(epi_data),]
-epi_data_2 <- epi_data_2 %>% select(-c(Date,BIX_ARLag1,HIX_ARLag1))
+epi_data_2 <- epi_data_2 %>% select(-c(Date,BIX_ARLag1,HIX_ARLag1,HIX))
 epi_data_2 <- as.data.frame(epi_data_2)
 epi_data_2 <- epi_data_2 %>% 
+  mutate(Flow_cms_norm = log(Flow_cms)) %>%
   mutate(co2_umolL_norm = log(co2_umolL)) %>% 
-  mutate(Flow_cms_norm = log(Flow_cms)) %>% 
   mutate(co2_umolL_ARLag1_norm = log(co2_umolL_ARLag1)) %>% 
-  select(-c(co2_umolL,Flow_cms,co2_umolL_ARLag1))
+  mutate(ch4_umolL_norm = log(ch4_umolL)) %>% 
+  mutate(ch4_umolL_ARLag1_norm = log(ch4_umolL_ARLag1)) %>% 
+  select(-c(co2_umolL,Flow_cms,co2_umolL_ARLag1,ch4_umolL,ch4_umolL_ARLag1))
 epi_data_2 <- scale(epi_data_2)
 
 chart.Correlation(epi_data_2,histogram=TRUE,method=c("spearman"))
+epi_data_2 <- as.data.frame(epi_data_2)
 
-# Epi CH4 = ch4_lag + Flow + DOC + Flora + BIX
-# Remove: co2_lag, HIX_lag, BIX_lag, temp, co2, DO, HIX
-epi_ch4_corr <- epi_data_2 %>% select(ch4_umolL,ch4_umolL_ARLag1,Flow_cms_norm,DOC_mgL,Flora_ugL,BIX)
+# Epi CH4 = ch4_lag + flow + DOC + flora + BIX
+# Remove: co2_lag, temp, co2, do
+epi_ch4_corr <- epi_data_2 %>% select(ch4_umolL_norm,ch4_umolL_ARLag1_norm,Flow_cms_norm,DOC_mgL,Flora_ugL,BIX)
 chart.Correlation(epi_ch4_corr,histogram=TRUE,method=c("spearman"))
 
-model_epi_ch4 <- glm(ch4_umolL ~ ch4_umolL_ARLag1 + DOC_mgL + BIX + Flora_ugL +
+model_epi_ch4 <- glm(ch4_umolL_norm ~ ch4_umolL_ARLag1_norm + DOC_mgL + BIX + Flora_ugL +
                        Flow_cms_norm, data = epi_data_2, 
                      family = gaussian, na.action = 'na.fail')
 
@@ -368,8 +373,8 @@ glm_epi_ch4 <- dredge(model_epi_ch4,rank = "AICc")
 
 select_glm_epi_ch4 <- subset(glm_epi_ch4,delta<2)
 
-# Epi CO2 = co2_lag + Flow + DO + DOC + Flora
-# Remove: ch4_lag, HIX_lag, BIX_lag, temp, ch4, BIX, HIX
+# Epi CO2 = co2_lag + flow + DO + DOC + flora
+# Remove: ch4_lag, temp, ch4, bix
 epi_co2_corr <- epi_data_2 %>% select(co2_umolL_norm,co2_umolL_ARLag1_norm,Flow_cms_norm,DO,DOC_mgL,Flora_ugL)
 chart.Correlation(epi_co2_corr,histogram=TRUE,method=c("spearman"))
 
@@ -381,9 +386,98 @@ glm_epi_co2 <- dredge(model_epi_co2,rank = "AICc")
 
 select_glm_epi_co2 <- subset(glm_epi_co2,delta<2)
 
-############ Meta
+########################## Hypo
+hypo_data_2 <- hypo_data[complete.cases(hypo_data),]
+hypo_data_2 <- hypo_data_2 %>% select(-c(Date,BIX_ARLag1,HIX_ARLag1,HIX))
+hypo_data_2 <- as.data.frame(hypo_data_2)
+hypo_data_2 <- hypo_data_2 %>% 
+  mutate(Flow_cms_norm = log(Flow_cms)) %>% 
+  mutate(Flora_ugL_norm = log(Flora_ugL)) %>% 
+  mutate(co2_umolL_norm = log(co2_umolL)) %>% 
+  mutate(co2_umolL_ARLag1_norm = log(co2_umolL_ARLag1)) %>% 
+  mutate(ch4_umolL_norm = log(ch4_umolL)) %>% 
+  mutate(ch4_umolL_ARLag1_norm = log(ch4_umolL_ARLag1)) %>% 
+  select(-c(co2_umolL,Flow_cms,co2_umolL_ARLag1,ch4_umolL,ch4_umolL_ARLag1,Flora_ugL))
+hypo_data_2 <- scale(hypo_data_2)
+
+chart.Correlation(hypo_data_2,histogram=TRUE,method=c("spearman"))
+hypo_data_2 <- as.data.frame(hypo_data_2)
+
+# Hypo CH4 = ch4_lag + DO + Flow + DOC + CO2 + BIX
+# Remove: co2_lag, temp, flora
+hypo_ch4_corr <- hypo_data_2 %>% select(ch4_umolL_norm,ch4_umolL_ARLag1_norm,Flow_cms_norm,DO,DOC_mgL,co2_umolL,BIX)
+chart.Correlation(hypo_ch4_corr,histogram=TRUE,method=c("spearman"))
+
+model_hypo_ch4 <- glm(ch4_umolL_norm ~ ch4_umolL_ARLag1_norm + BIX + DOC_mgL + DO + Flow_cms_norm + co2_umolL, 
+                      data = hypo_data_2, family = gaussian, na.action = 'na.fail')
+
+glm_hypo_ch4 <- dredge(model_hypo_ch4,rank="AICc")
+
+select_glm_hypo_ch4 <- subset(glm_hypo_ch4,delta<2)
+
+# Hypo Co2 = co2_lag + Flow + DO + DOC
+# Remove: ch4_lag, temp, BIX, flora,ch4
+hypo_co2_corr <- hypo_data_2 %>% select(co2_umolL_norm,co2_umolL_ARLag1_norm,Flow_cms_norm,DO,DOC_mgL)
+chart.Correlation(hypo_co2_corr,histogram=TRUE,method=c("spearman"))
+
+model_hypo_co2 <- glm(co2_umolL_norm ~ co2_umolL_ARLag1_norm + DOC_mgL + DO + Flow_cms_norm, 
+                      data = hypo_data_2, family = gaussian, na.action = 'na.fail')
+
+glm_hypo_co2 <- dredge(model_hypo_co2,rank="AICc")
+
+select_glm_hypo_co2 <- subset(glm_hypo_co2,delta<2)
+
+############################## 
+# Calculate R2 for each developed model
+mod1_epi_ch4 <- glm(ch4_umolL ~ ch4_umolL_ARLag1, data = epi_data_2, 
+                    family = gaussian, na.action = 'na.fail')
+mod1_epi_co2 <- glm(co2_umolL_norm ~ co2_umolL_ARLag1_norm + DO + Flora_ugL +
+                      Flow_cms_norm, data = epi_data_2, 
+                    family = gaussian, na.action = 'na.fail')
+mod1_hypo_ch4 <- glm(ch4_umolL_norm ~ BIX + DOC_mgL + DO + co2_umolL, 
+                      data = hypo_data_2, family = gaussian, na.action = 'na.fail')
+mod1_hypo_co2 <- glm(co2_umolL ~ co2_umolL_ARLag1 + DOC_mgL + DO + Flow_cms_norm, 
+                     data = hypo_data_2, family = gaussian, na.action = 'na.fail')
+
+round((rsq(mod1_epi_ch4, type = 'sse')), digits = 2)
+round((rsq(mod1_epi_co2, type = 'sse')), digits = 2)
+round((rsq(mod1_hypo_co2, type = 'sse')), digits = 2)
+round((rsq(mod1_hypo_ch4, type = 'sse')), digits = 2)
+
+# Then need to 'un-transform' variables
+epi_data_uncorr <- epi_data[complete.cases(epi_data),]
+epi_data_uncorr <- epi_data_uncorr %>% 
+  mutate(co2_umolL_norm = log(co2_umolL)) %>% 
+  mutate(Flow_cms_norm = log(Flow_cms)) %>% 
+  mutate(co2_umolL_ARLag1_norm = log(co2_umolL_ARLag1)) %>% 
+  select(-c(co2_umolL,Flow_cms,co2_umolL_ARLag1))
+# CH4 lag term
+(select_glm_epi_ch4$ch4_umolL_ARLag1*sd(epi_data_uncorr$ch4_umolL_ARLag1))+mean(epi_data_uncorr$ch4_umolL_ARLag1)
+# CO2 Epi
+(select_glm_epi_co2$DO*sd(epi_data_uncorr$DO))+mean(epi_data_uncorr$DO)
+(select_glm_epi_co2$Flora_ugL*sd(epi_data_uncorr$Flora_ugL))+mean(epi_data_uncorr$Flora_ugL)
+exp((select_glm_epi_co2$Flow_cms_norm*sd(epi_data_uncorr$Flow_cms_norm))+mean(epi_data_uncorr$Flow_cms_norm))
+# CH4 Hypo
+hypo_data_uncorr <- hypo_data[complete.cases(hypo_data),]
+hypo_data_uncorr <- hypo_data_uncorr %>% 
+  mutate(Flow_cms_norm = log(Flow_cms)) %>% 
+  mutate(Flora_ugL_norm = log(Flora_ugL)) %>% 
+  mutate(ch4_umolL_norm = log(ch4_umolL)) %>% 
+  mutate(ch4_umolL_ARLag1_norm = log(ch4_umolL_ARLag1)) %>% 
+  select(-c(Flow_cms,Flora_ugL,ch4_umolL,ch4_umolL_ARLag1))
+
+(select_glm_hypo_ch4$BIX*sd(hypo_data_uncorr$BIX))+mean(hypo_data_uncorr$BIX)
+(select_glm_hypo_ch4$co2_umolL*sd(hypo_data_uncorr$co2_umolL))+mean(hypo_data_uncorr$co2_umolL)
+(select_glm_hypo_ch4$DO*sd(hypo_data_uncorr$DO))+mean(hypo_data_uncorr$DO)
+(select_glm_hypo_ch4$DOC_mgL*sd(hypo_data_uncorr$DOC_mgL))+mean(hypo_data_uncorr$DOC_mgL)
+# CO2 Hypo
+(select_glm_hypo_co2$co2_umolL_ARLag1*sd(hypo_data_uncorr$co2_umolL_ARLag1))+mean(hypo_data_uncorr$co2_umolL_ARLag1)
+(select_glm_hypo_co2$DO*sd(hypo_data_uncorr$DO))+mean(hypo_data_uncorr$DO)
+(select_glm_hypo_co2$DOC_mgL*sd(hypo_data_uncorr$DOC_mgL))+mean(hypo_data_uncorr$DOC_mgL)
+
+############ Meta - NEED TO NORMALIZE GHG DATA
 meta_data_2 <- meta_data[complete.cases(meta_data),]
-meta_data_2 <- meta_data_2 %>% select(-c(Date,BIX_ARLag1,HIX_ARLag1))
+meta_data_2 <- meta_data_2 %>% select(-c(Date,BIX_ARLag1,HIX_ARLag1,HIX))
 meta_data_2 <- as.data.frame(meta_data_2)
 meta_data_2 <- meta_data_2 %>% 
   mutate(Flow_cms_norm = log(Flow_cms)) %>% 
@@ -391,68 +485,31 @@ meta_data_2 <- meta_data_2 %>%
 meta_data_2 <- scale(meta_data_2)
 
 chart.Correlation(meta_data_2,histogram=TRUE,method=c("spearman"))
+meta_data_2 <- as.data.frame(meta_data_2)
 
-# Meta CH4 = ch4_lag + Flora + DO + DOC + HIX + BIX
-# Remove: co2_lag, bix_lag, hix_lag, temp, co2, flow
-meta_ch4_corr <- meta_data_2 %>% select(ch4_umolL,ch4_umolL_ARLag1,Flora_ugL,DO,DOC_mgL,HIX,BIX)
+# Meta CH4 = ch4_lag + Flora + DO + DOC + BIX
+# Remove: co2_lag, temp, co2, flow
+meta_ch4_corr <- meta_data_2 %>% select(ch4_umolL,ch4_umolL_ARLag1,Flora_ugL,DO,DOC_mgL,BIX)
 chart.Correlation(meta_ch4_corr,histogram=TRUE,method=c("spearman"))
 
-model_meta_ch4 <- glm(ch4_umolL ~ ch4_umolL_ARLag1 + Flora_ugL + DO + DOC_mgL + HIX + BIX, data = meta_data_2, 
+model_meta_ch4 <- glm(ch4_umolL ~ ch4_umolL_ARLag1 + Flora_ugL + DO + DOC_mgL + BIX, data = meta_data_2, 
                       family = gaussian, na.action = 'na.fail')
 
 glm_meta_ch4 <- dredge(model_meta_ch4,rank="AICc")
 
 select_glm_meta_ch4 <- subset(glm_meta_ch4,delta<2)
 
-# Meta CO2 = co2_lag + Flora + DOC + HIX + BIX
-# Remove: hix_lag, bix_lag, ch4_lag, flow, DO, temp, CH4
-meta_co2_corr <- meta_data_2 %>% select(co2_umolL,co2_umolL_ARLag1,Flora_ugL,DOC_mgL,HIX,BIX)
+# Meta CO2 = co2_lag + Flora + DOC + BIX
+# Remove: ch4_lag, flow, DO, temp, CH4
+meta_co2_corr <- meta_data_2 %>% select(co2_umolL,co2_umolL_ARLag1,Flora_ugL,DOC_mgL,BIX)
 chart.Correlation(meta_co2_corr,histogram=TRUE,method=c("spearman"))
 
-model_meta_co2 <- glm(co2_umolL ~ co2_umolL_ARLag1 + Flora_ugL + DOC_mgL + HIX + BIX, data = meta_data_2, 
+model_meta_co2 <- glm(co2_umolL ~ co2_umolL_ARLag1 + Flora_ugL + DOC_mgL + BIX, data = meta_data_2, 
                       family = gaussian, na.action = 'na.fail')
 
 glm_meta_co2 <- dredge(model_meta_co2,rank="AICc")
 
 select_glm_meta_co2 <- subset(glm_meta_co2,delta<2)
-
-########################## Hypo
-hypo_data_2 <- hypo_data[complete.cases(hypo_data),]
-hypo_data_2 <- hypo_data_2 %>% select(-c(Date,BIX_ARLag1,HIX_ARLag1))
-hypo_data_2 <- as.data.frame(hypo_data_2)
-hypo_data_2 <- hypo_data_2 %>% 
-  mutate(Flow_cms_norm = log(Flow_cms)) %>% 
-  mutate(Flora_ugL_norm = log(Flora_ugL)) %>% 
-  mutate(ch4_umolL_norm = log(ch4_umolL)) %>% 
-  mutate(ch4_umolL_ARLag1_norm = log(ch4_umolL_ARLag1)) %>% 
-  select(-c(Flow_cms,Flora_ugL,ch4_umolL,ch4_umolL_ARLag1))
-hypo_data_2 <- scale(hypo_data_2)
-
-chart.Correlation(hypo_data_2,histogram=TRUE,method=c("spearman"))
-
-# Hypo CH4 = ch4_lag + DO + Flow + DOC + CO2 + BIX+ HIX
-# Remove: co2_lag, hix_lag, bix_lag, temp
-hypo_ch4_corr <- hypo_data_2 %>% select(ch4_umolL_norm,ch4_umolL_ARLag1_norm,Flow_cms_norm,DO,DOC_mgL,co2_umolL,BIX,HIX)
-chart.Correlation(hypo_ch4_corr,histogram=TRUE,method=c("spearman"))
-
-model_hypo_ch4 <- glm(ch4_umolL_norm ~ ch4_umolL_ARLag1_norm + BIX + HIX + DOC_mgL + DO + Flow_cms_norm, 
-                      data = hypo_data_2, family = gaussian, na.action = 'na.fail')
-
-glm_hypo_ch4 <- dredge(model_hypo_ch4,rank="AICc")
-
-select_glm_hypo_ch4 <- subset(glm_hypo_ch4,delta<2)
-
-# Hypo Co2 = co2_lag + Flow + DO + DOC + HIX
-# Remove: co2_lag, hix_lag, bix_lag, temp, BIX, flora, ch4
-hypo_co2_corr <- hypo_data_2 %>% select(co2_umolL,co2_umolL_ARLag1,Flow_cms_norm,DO,DOC_mgL,HIX)
-chart.Correlation(hypo_co2_corr,histogram=TRUE,method=c("spearman"))
-
-model_hypo_co2 <- glm(co2_umolL ~ co2_umolL_ARLag1 + HIX + DOC_mgL + DO + Flow_cms_norm, 
-                      data = hypo_data_2, family = gaussian, na.action = 'na.fail')
-
-glm_hypo_co2 <- dredge(model_hypo_co2,rank="AICc")
-
-select_glm_hypo_co2 <- subset(glm_hypo_co2,delta<2)
 
 ############################## DOM data
 # Epi BIX = bix_lag + Flow, DOC, Flora, Temp

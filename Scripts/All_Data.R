@@ -66,6 +66,7 @@ eems <- eems %>% filter(Reservoir == "FCR") %>% filter(Station == "50"|Station =
 eems$Date <- as.POSIXct(strptime(eems$Date, "%m/%d/%Y", tz = "EST"))
 m_eems <- eems %>% group_by(Date,Station,Depth) %>% summarise_all(funs(mean))
 sd_eems <- eems %>% group_by(Date,Station,Depth) %>% summarise_all(funs(sd))
+sd_eems_full <- eems %>% group_by(Date,Station,Depth) %>% summarise_all(funs(sd))
 
 # Combine columns station and depth for plotting
 # Combine columns (station, depth) for plotting
@@ -86,6 +87,41 @@ ggplot(m_eems,mapping=aes(x=Date,y=BIX,color=Location))+
   geom_errorbar(m_eems,mapping=aes(x=Date,y=BIX,ymin=BIX-sd_eems$BIX,ymax=BIX+sd_eems$BIX,color=Location))+
   xlim(as.POSIXct("2019-04-28"),as.POSIXct("2019-11-21"))+
   theme_classic(base_size=15)
+
+# Plots for AGU
+m_eems_50 <- m_eems %>% 
+  filter(Station == "50") %>% 
+  filter(Depth == "0.1"|Depth == "9") %>% 
+  filter(Date > as.POSIXct("2019-05-20") & Date < as.POSIXct("2019-11-21"))
+
+sd_eems_50 <- sd_eems %>% 
+  filter(Station == "50") %>% 
+  filter(Depth == "0.1"|Depth == "9") %>% 
+  filter(Date > as.POSIXct("2019-05-20") & Date < as.POSIXct("2019-11-21"))
+
+bix <- ggplot(m_eems_50,mapping=aes(x=Date,y=BIX,color=(as.factor(Depth))))+
+  geom_hline(yintercept = 0.7, color = "grey")+
+  geom_hline(yintercept = 0.8, color = "grey")+
+  geom_line(size=1)+
+  geom_point(size=2)+
+  geom_errorbar(sd_eems_50,mapping=aes(ymin=m_eems_50$BIX-BIX,ymax=m_eems_50$BIX+BIX))+
+  geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-07-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-08-05"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-08-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-09-02"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
+  ylim(0,1)+
+  xlab("Date")+
+  scale_color_manual(breaks=c('0.1','9'),values=c("#7EBDC2","#393E41"),labels=c("Epi","Hypo"))+
+  annotate("text",x=c(as.POSIXct("2019-05-23"),as.POSIXct("2019-06-10"),as.POSIXct("2019-06-27"),
+                      as.POSIXct("2019-07-14"),as.POSIXct("2019-07-27"),as.POSIXct("2019-08-12"),
+                      as.POSIXct("2019-08-27"),as.POSIXct("2019-09-12"),as.POSIXct("2019-11-05")),
+           y=1,label=c("Off","On","Off","On","Off","On","Off","On","Turnover"),size=5.5)+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
 
 #################### Combine PARAFAC and EEMs data by location ##############################
 fl_data <- full_join(m_parafac,m_eems,by=c("Date","Location","Station","Depth"))
@@ -138,6 +174,90 @@ fcrghg <- read.csv("./Data/ghg.csv", header=T) %>%
 m_ghg <- fcrghg %>% group_by(DateTime,Depth_m) %>% summarise_all(funs(mean(.,na.rm=TRUE)))
 sd_ghg <- fcrghg %>% group_by(DateTime,Depth_m) %>% summarise_all(funs(sd(.,na.rm=TRUE)))
 
+# Plot for AGU: Station 50 epi and hypo only
+m_ghg_50 <- m_ghg %>% 
+  filter(Depth_m == "0.1"|Depth_m == "9") %>% 
+  filter(DateTime > as.POSIXct("2019-05-20") & DateTime < as.POSIXct("2019-11-21"))
+
+sd_ghg_50 <- sd_ghg %>% 
+  filter(Depth_m == "0.1"|Depth_m == "9") %>% 
+  filter(DateTime > as.POSIXct("2019-05-20") & DateTime < as.POSIXct("2019-11-21"))
+
+ch4 <- ggplot(m_ghg_50,mapping=aes(x=DateTime,y=ch4_umolL,color=(as.factor(Depth_m))))+
+  geom_line(size=1)+
+  geom_point(size=2)+
+  geom_errorbar(sd_ghg_50,mapping=aes(ymin=m_ghg_50$ch4_umolL-ch4_umolL,ymax=m_ghg_50$ch4_umolL+ch4_umolL))+
+  geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-07-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-08-05"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-08-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-09-02"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
+  xlab("Date")+
+  ylab(expression(paste("CH"[4]*" (", mu,"mol L"^-1*")")))+
+  scale_color_manual(breaks=c('0.1','9'),values=c("#7EBDC2","#393E41"),labels=c("Epi","Hypo"))+
+  annotate("text",x=c(as.POSIXct("2019-05-23"),as.POSIXct("2019-06-10"),as.POSIXct("2019-06-27"),
+                      as.POSIXct("2019-07-14"),as.POSIXct("2019-07-27"),as.POSIXct("2019-08-12"),
+                      as.POSIXct("2019-08-27"),as.POSIXct("2019-09-12"),as.POSIXct("2019-11-05")),
+           y=125,label=c("Off","On","Off","On","Off","On","Off","On","Turnover"),size=5.5)+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+
+co2 <- ggplot(m_ghg_50,mapping=aes(x=DateTime,y=co2_umolL,color=(as.factor(Depth_m))))+
+  geom_line(size=1)+
+  geom_point(size=2)+
+  geom_errorbar(sd_ghg_50,mapping=aes(ymin=m_ghg_50$co2_umolL-co2_umolL,ymax=m_ghg_50$co2_umolL+co2_umolL))+
+  geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-07-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-08-05"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-08-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-09-02"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
+  xlab("Date")+
+  ylab(expression(paste("CO"[2]*" (", mu,"mol L"^-1*")")))+
+  scale_color_manual(breaks=c('0.1','9'),values=c("#7EBDC2","#393E41"),labels=c("Epi","Hypo"))+
+  annotate("text",x=c(as.POSIXct("2019-05-23"),as.POSIXct("2019-06-10"),as.POSIXct("2019-06-27"),
+                      as.POSIXct("2019-07-14"),as.POSIXct("2019-07-27"),as.POSIXct("2019-08-12"),
+                      as.POSIXct("2019-08-27"),as.POSIXct("2019-09-12"),as.POSIXct("2019-11-05")),
+           y=1000,label=c("Off","On","Off","On","Off","On","Off","On","Turnover"),size=5.5)+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+
+m_ghg_50_epi <- m_ghg_50 %>% 
+  filter(Depth_m == "0.1")
+sd_ghg_50_epi <- sd_ghg_50 %>% 
+  filter(Depth_m == "0.1")
+
+# Plot CO2 epi ONLY
+ggplot(m_ghg_50_epi,mapping=aes(x=DateTime,y=co2_umolL,color=(as.factor(Depth_m))))+
+  geom_line(size=1)+
+  geom_point(size=2)+
+  geom_errorbar(sd_ghg_50_epi,mapping=aes(ymin=m_ghg_50_epi$co2_umolL-co2_umolL,ymax=m_ghg_50_epi$co2_umolL+co2_umolL))+
+  geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-07-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-08-05"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-08-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-09-02"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
+  xlab("Date")+
+  ylab(expression(paste("CO"[2]*" (", mu,"mol L"^-1*")")))+
+  scale_color_manual(breaks=c('0.1'),values=c("#7EBDC2"),labels=c("Epi"))+
+  annotate("text",x=c(as.POSIXct("2019-05-23"),as.POSIXct("2019-06-10"),as.POSIXct("2019-06-27"),
+                      as.POSIXct("2019-07-14"),as.POSIXct("2019-07-27"),as.POSIXct("2019-08-12"),
+                      as.POSIXct("2019-08-27"),as.POSIXct("2019-09-12"),as.POSIXct("2019-11-05")),
+           y=300,label=c("Off","On","Off","On","Off","On","Off","On","Turnover"),size=5.5)+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+
+
+# Collate data for future use in AR model
+
 m_ghg <- m_ghg %>% select(-c("Reservoir"))
 m_ghg <- m_ghg %>% mutate(Station = ifelse(Depth_m < 10.0, 50, round(Depth_m)),
                           Depth = ifelse(Depth_m > 10.0, 0.1, Depth_m))
@@ -178,6 +298,45 @@ fcrchem <- read.csv("./Data/chem.csv", header=T) %>%
 
 fcrchem <- fcrchem %>% select(-c("Reservoir")) %>% 
   rename(Date = DateTime, Depth = Depth_m, Station = Site)
+
+# Plot for AGU
+fcrchem_50 <- fcrchem %>% 
+  filter(Station == "50") %>% 
+  filter(Depth == "0.1"|Depth == "9") %>% 
+  filter(Date > as.POSIXct("2019-05-20") & Date < as.POSIXct("2019-11-21"))
+
+completeFun <- function(data, desiredCols) {
+  completeVec <- complete.cases(data[, desiredCols])
+  return(data[completeVec, ])
+}
+
+fcrchem_50 <- completeFun(fcrchem_50,"DOC_mgL")
+
+# Plot
+doc <- ggplot(fcrchem_50,mapping=aes(x=Date,y=DOC_mgL,color=(as.factor(Depth))))+
+  geom_line(size=1)+
+  geom_point(size=2)+
+  geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-07-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-08-05"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-08-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-09-02"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
+  xlab("Date")+
+  ylab(expression(paste("DOC (mg L"^-1*")")))+
+  scale_color_manual(breaks=c('0.1','9'),values=c("#7EBDC2","#393E41"),labels=c("Epi","Hypo"))+
+  annotate("text",x=c(as.POSIXct("2019-05-23"),as.POSIXct("2019-06-10"),as.POSIXct("2019-06-27"),
+                      as.POSIXct("2019-07-14"),as.POSIXct("2019-07-27"),as.POSIXct("2019-08-12"),
+                      as.POSIXct("2019-08-27"),as.POSIXct("2019-09-12"),as.POSIXct("2019-11-05")),
+           y=8,label=c("Off","On","Off","On","Off","On","Off","On","Turnover"),size=5.5)+
+  ylim(0,8)+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+
+ggarrange(bix,ch4,doc,co2,ncol=2,nrow=2,common.legend = TRUE)
+
 m_fl_ghg_chem <- full_join(m_fl_ghg,fcrchem,by=c("Date","Station","Depth"))
 m_fl_ghg_chem <- m_fl_ghg_chem %>% arrange(Date,Station,Depth)
 
