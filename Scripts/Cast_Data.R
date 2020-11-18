@@ -112,7 +112,6 @@ write.csv(fcr_all, "./Data/YSICTD_Merge.csv", row.names = F)
 fcr_all <- read.csv("./Data/YSICTD_Merge.csv") %>% 
   mutate(time = as.POSIXct(strptime(time, "%Y-%m-%d", tz="EST")))
 
-
 ########################################################
 # Then average around 0.1 m, 5.0 m, and 9.0 m
 ctd_1 <- fcr_all %>%  
@@ -153,9 +152,9 @@ ggplot()+
 # Plot DO (epi and hypo only for AGU)
 ggplot()+
   geom_line(ctd_1,mapping=aes(time,DO,color="epi"),size=1)+
-  geom_point(ctd_1,mapping=aes(time,DO,color="epi"),size=2)+
+  geom_point(ctd_1,mapping=aes(time,DO,color="epi"),size=4)+
   geom_line(ctd_3,mapping=aes(time,DO,color="hypo"),size=1)+
-  geom_point(ctd_3,mapping=aes(time,DO,color="hypo"),size=2)+
+  geom_point(ctd_3,mapping=aes(time,DO,color="hypo"),size=4)+
   geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
   geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
   geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
@@ -173,7 +172,7 @@ ggplot()+
                       as.POSIXct("2019-08-27"),as.POSIXct("2019-09-12"),as.POSIXct("2019-11-05")),
            y=12.5,label=c("Off","On","Off","On","Off","On","Off","On","Turnover"),size=5.5)+
   theme_classic(base_size=15)+
-  theme(legend.title=element_blank())
+  theme(legend.title=element_blank(),legend.text = element_text(size = 20))
 
 # Plot Temp; epi and hypo only (For AGU)
 ggplot()+

@@ -186,7 +186,7 @@ sd_ghg_50 <- sd_ghg %>%
 
 ch4 <- ggplot(m_ghg_50,mapping=aes(x=DateTime,y=ch4_umolL,color=(as.factor(Depth_m))))+
   geom_line(size=1)+
-  geom_point(size=2)+
+  geom_point(size=4)+
   geom_errorbar(sd_ghg_50,mapping=aes(ymin=m_ghg_50$ch4_umolL-ch4_umolL,ymax=m_ghg_50$ch4_umolL+ch4_umolL))+
   geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
   geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
@@ -204,11 +204,11 @@ ch4 <- ggplot(m_ghg_50,mapping=aes(x=DateTime,y=ch4_umolL,color=(as.factor(Depth
                       as.POSIXct("2019-08-27"),as.POSIXct("2019-09-12"),as.POSIXct("2019-11-05")),
            y=125,label=c("Off","On","Off","On","Off","On","Off","On","Turnover"),size=5.5)+
   theme_classic(base_size=15)+
-  theme(legend.title=element_blank())
+  theme(legend.title=element_blank(),legend.text = element_text(size = 20))
 
 co2 <- ggplot(m_ghg_50,mapping=aes(x=DateTime,y=co2_umolL,color=(as.factor(Depth_m))))+
   geom_line(size=1)+
-  geom_point(size=2)+
+  geom_point(size=4)+
   geom_errorbar(sd_ghg_50,mapping=aes(ymin=m_ghg_50$co2_umolL-co2_umolL,ymax=m_ghg_50$co2_umolL+co2_umolL))+
   geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
   geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
@@ -226,7 +226,9 @@ co2 <- ggplot(m_ghg_50,mapping=aes(x=DateTime,y=co2_umolL,color=(as.factor(Depth
                       as.POSIXct("2019-08-27"),as.POSIXct("2019-09-12"),as.POSIXct("2019-11-05")),
            y=1000,label=c("Off","On","Off","On","Off","On","Off","On","Turnover"),size=5.5)+
   theme_classic(base_size=15)+
-  theme(legend.title=element_blank())
+  theme(legend.title=element_blank(),legend.text = element_text(size = 20))
+
+ggarrange(ch4,co2,nrow=2,ncol=1,common.legend = TRUE)
 
 m_ghg_50_epi <- m_ghg_50 %>% 
   filter(Depth_m == "0.1")
