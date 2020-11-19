@@ -5,7 +5,7 @@ setwd("C:/Users/ahoun/OneDrive/Desktop/ResFDOM")
 
 # Load in libraries
 pacman::p_load(tidyverse,ggplot2,ggpubr,PerformanceAnalytics,astsa,cowplot,lubridate,dplR,zoo,naniar,
-               DescTools,MuMIn,rsq)
+               DescTools,MuMIn,rsq,Metrics)
 
 # Load compiled data
 data <- read_csv("./Data/20201103_All_Data.csv")
@@ -250,7 +250,11 @@ epi_data_2 <- epi_data_2 %>%
   mutate(co2_umolL_norm = log(co2_umolL)) %>% 
   mutate(co2_umolL_ARLag1_norm = log(co2_umolL_ARLag1)) %>% 
   select(-c(co2_umolL,Flow_cms,co2_umolL_ARLag1))
-epi_data_2 <- scale(epi_data_2)
+epi_data_3 <- scale(epi_data_2)
+epi_data_3 <- as.data.frame(epi_data_3)
+epi_data_3 <- epi_data_3 %>% rename(ch4_umolL_zt = ch4_umolL,co2_umolL_norm_zt = co2_umolL_norm)
+epi_data_2 <- cbind(epi_data_2$ch4_umolL,epi_data_2$co2_umolL_norm,epi_data_3)
+epi_data_2 <- epi_data_2 %>% rename(ch4_umolL = `epi_data_2$ch4_umolL`,co2_umolL_norm = `epi_data_2$co2_umolL_norm`)
 
 chart.Correlation(epi_data_2,histogram=TRUE,method=c("spearman"))
 epi_data_2 <- as.data.frame(epi_data_2)
@@ -292,16 +296,22 @@ hypo_data_2 <- hypo_data_2 %>%
   mutate(ch4_umolL_ARLag1_norm = log(ch4_umolL_ARLag1)) %>% 
   select(-c(Flow_cms,ch4_umolL,ch4_umolL_ARLag1,Flora_ugL))
 hypo_data_2 <- scale(hypo_data_2)
+hypo_data_3 <- scale(hypo_data_2)
+hypo_data_3 <- as.data.frame(hypo_data_3)
+hypo_data_3 <- hypo_data_3 %>% rename(ch4_umolL_norm_zt = ch4_umolL_norm,co2_umolL_zt = co2_umolL)
+hypo_data_2 <- cbind(hypo_data_2$ch4_umolL_norm,hypo_data_2$co2_umolL,hypo_data_3)
+hypo_data_2 <- hypo_data_2 %>% rename(ch4_umolL_norm = `hypo_data_2$ch4_umolL_norm`,co2_umolL = `hypo_data_2$co2_umolL`)
+
 
 chart.Correlation(hypo_data_2,histogram=TRUE,method=c("spearman"))
 hypo_data_2 <- as.data.frame(hypo_data_2)
 
 # Hypo CH4 = ch4_lag + DO + Flow + DOC + CO2 + BIX
 # Remove: co2_lag, temp, flora
-hypo_ch4_corr <- hypo_data_2 %>% select(ch4_umolL_norm,ch4_umolL_ARLag1_norm,Flow_cms_norm,DO,DOC_mgL,co2_umolL,BIX)
+hypo_ch4_corr <- hypo_data_2 %>% select(ch4_umolL_norm,ch4_umolL_ARLag1_norm,Flow_cms_norm,DO,DOC_mgL,co2_umolL_zt,BIX)
 chart.Correlation(hypo_ch4_corr,histogram=TRUE,method=c("spearman"))
 
-model_hypo_ch4 <- glm(ch4_umolL_norm ~ ch4_umolL_ARLag1_norm + BIX + DOC_mgL + DO + Flow_cms_norm + co2_umolL, 
+model_hypo_ch4 <- glm(ch4_umolL_norm ~ ch4_umolL_ARLag1_norm + BIX + DOC_mgL + DO + Flow_cms_norm + co2_umolL_zt, 
                       data = hypo_data_2, family = gaussian, na.action = 'na.fail')
 
 glm_hypo_ch4 <- dredge(model_hypo_ch4,rank="AICc")
@@ -327,7 +337,7 @@ mod1_epi_ch4 <- glm(ch4_umolL ~ ch4_umolL_ARLag1, data = epi_data_2,
 mod1_epi_co2 <- glm(co2_umolL_norm ~ co2_umolL_ARLag1_norm + DO + Flora_ugL +
                       Flow_cms_norm, data = epi_data_2, 
                     family = gaussian, na.action = 'na.fail')
-mod1_hypo_ch4 <- glm(ch4_umolL_norm ~ BIX + DOC_mgL + DO + co2_umolL, 
+mod1_hypo_ch4 <- glm(ch4_umolL_norm ~ BIX + DOC_mgL + DO + co2_umolL_zt, 
                       data = hypo_data_2, family = gaussian, na.action = 'na.fail')
 mod1_hypo_co2 <- glm(co2_umolL ~ co2_umolL_ARLag1 + DOC_mgL + DO + Flow_cms_norm, 
                      data = hypo_data_2, family = gaussian, na.action = 'na.fail')
@@ -336,6 +346,16 @@ round((rsq(mod1_epi_ch4, type = 'sse')), digits = 2)
 round((rsq(mod1_epi_co2, type = 'sse')), digits = 2)
 round((rsq(mod1_hypo_co2, type = 'sse')), digits = 2)
 round((rsq(mod1_hypo_ch4, type = 'sse')), digits = 2)
+
+pred1_mod1_epi_ch4 <- predict(mod1_epi_ch4,newdata = epi_data_2)
+pred1_mod1_epi_co2 <- predict(mod1_epi_co2,newdata = epi_data_2)
+pred1_mod1_hypo_ch4 <- predict(mod1_hypo_ch4,newdata = hypo_data_2)
+pred1_mod1_hypo_co2 <- predict(mod1_hypo_co2,newdata = hypo_data_2)
+
+round(rmse(pred1_mod1_epi_ch4, epi_data_2$ch4_umolL), digits = 1)
+round(rmse(pred1_mod1_epi_co2, epi_data_2$co2_umolL_norm), digits = 1)
+round(rmse(pred1_mod1_hypo_ch4, hypo_data_2$ch4_umolL_norm), digits = 1)
+round(rmse(pred1_mod1_hypo_co2, hypo_data_2$co2_umolL), digits = 1)
 
 # Then need to 'un-transform' variables
 epi_data_uncorr <- epi_data[complete.cases(epi_data),]
