@@ -268,7 +268,7 @@ model_epi_ch4 <- glm(ch4_umolL ~ ch4_umolL_ARLag1 + DOC_mgL + BIX + Flora_ugL +
                        Flow_cms_norm, data = epi_data_2, 
                      family = gaussian, na.action = 'na.fail')
 
-glm_epi_ch4 <- dredge(model_epi_ch4,rank = "AICc")
+glm_epi_ch4 <- dredge(model_epi_ch4,rank = "AICc",fixed = "ch4_umolL_ARLag1")
 
 select_glm_epi_ch4 <- subset(glm_epi_ch4,delta<2)
 
@@ -281,7 +281,7 @@ model_epi_co2 <- glm(co2_umolL_norm ~ co2_umolL_ARLag1_norm + DOC_mgL + DO + Flo
                        Flow_cms_norm, data = epi_data_2, 
                      family = gaussian, na.action = 'na.fail')
 
-glm_epi_co2 <- dredge(model_epi_co2,rank = "AICc")
+glm_epi_co2 <- dredge(model_epi_co2,rank = "AICc",fixed = "co2_umolL_ARLag1_norm")
 
 select_glm_epi_co2 <- subset(glm_epi_co2,delta<2)
 
@@ -337,15 +337,24 @@ mod1_epi_ch4 <- glm(ch4_umolL ~ ch4_umolL_ARLag1, data = epi_data_2,
 mod1_epi_co2 <- glm(co2_umolL_norm ~ co2_umolL_ARLag1_norm + DO + Flora_ugL +
                       Flow_cms_norm, data = epi_data_2, 
                     family = gaussian, na.action = 'na.fail')
+mod1_epi_co2_lag <- glm(co2_umolL_norm ~ co2_umolL_ARLag1_norm, data = epi_data_2,
+                        family = gaussian, na.action = 'na.fail')
 mod1_hypo_ch4 <- glm(ch4_umolL_norm ~ BIX + DOC_mgL + DO + co2_umolL_zt, 
                       data = hypo_data_2, family = gaussian, na.action = 'na.fail')
+mod1_hypo_ch4_do <- glm(ch4_umolL_norm ~ DO, 
+                     data = hypo_data_2, family = gaussian, na.action = 'na.fail')
 mod1_hypo_co2 <- glm(co2_umolL ~ co2_umolL_ARLag1 + DOC_mgL + DO + Flow_cms_norm, 
+                     data = hypo_data_2, family = gaussian, na.action = 'na.fail')
+mod1_hypo_co2_lag <- glm(co2_umolL ~ co2_umolL_ARLag1, 
                      data = hypo_data_2, family = gaussian, na.action = 'na.fail')
 
 round((rsq(mod1_epi_ch4, type = 'sse')), digits = 2)
 round((rsq(mod1_epi_co2, type = 'sse')), digits = 2)
+round((rsq(mod1_epi_co2_lag, type = 'sse')), digits = 2)
 round((rsq(mod1_hypo_co2, type = 'sse')), digits = 2)
+round((rsq(mod1_hypo_co2_lag, type = 'sse')), digits = 2)
 round((rsq(mod1_hypo_ch4, type = 'sse')), digits = 2)
+round((rsq(mod1_hypo_ch4_do, type = 'sse')), digits = 2)
 
 pred1_mod1_epi_ch4 <- predict(mod1_epi_ch4,newdata = epi_data_2)
 pred1_mod1_epi_co2 <- predict(mod1_epi_co2,newdata = epi_data_2)
