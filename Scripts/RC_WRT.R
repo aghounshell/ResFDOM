@@ -79,6 +79,8 @@ fcr_50_data <- data %>% filter(Reservoir=="FCR" & Site == "50")%>%
   select(DateTime,TN_ugL:Flow_cms)
 fcr_102_data <- data %>% filter(Reservoir=="FCR" & Site == "102")%>% 
   select(DateTime,TN_ugL:Flow_cms)
+fcr_101_data <- data %>% filter(Reservoir=="FCR" & Site == "101")%>% 
+  select(DateTime,TN_ugL:Flow_cms)
 
 bvr_100_data <- data %>% filter(Reservoir=="BVR" & Site == "100")%>% 
   select(DateTime,TN_ugL:Flow_cms)
@@ -101,6 +103,19 @@ fcr_102_data <- fcr_102_data %>%
 # Get in order for combining with calculated processing rates
 fcr_102_inflow <- fcr_102_data %>% select(DateTime,TN_load_mgs:Site)
 
+# Separate by inflow (101)
+fcr_101_data <- fcr_101_data %>% 
+  mutate(TN_load_mgs=TN_ugL*Flow_cms) %>% 
+  mutate(TP_load_mgs=TP_ugL*Flow_cms) %>% 
+  mutate(NH4_load_mgs=NH4_ugL*Flow_cms) %>% 
+  mutate(NO3NO2_load_mgs=NO3NO2_ugL*Flow_cms) %>% 
+  mutate(SRP_load_mgs=SRP_ugL*Flow_cms) %>% 
+  mutate(DOC_load_gs=DOC_mgL*Flow_cms) %>% 
+  mutate(Site = "101")
+
+# Get in order for combining with calculated processing rates
+fcr_101_inflow <- fcr_101_data %>% select(DateTime,TN_load_mgs:Site)
+
 # And outflow (99)
 fcr_99_data <- fcr_99_data %>% 
   mutate(TN_load_mgs=TN_ugL*Flow_cms) %>% 
@@ -113,19 +128,19 @@ fcr_99_data <- fcr_99_data %>%
 
 fcr_99_inflow <- fcr_99_data %>% select(DateTime,TN_load_mgs:Site)
 
-# Calculate processing rates as outflow-inflows
-stream_p <- fcr_102_data %>% select(DateTime)
+# Calculate processing rates as outflow-inflows (99-101)
+stream_p <- fcr_101_data %>% select(DateTime)
 # (+) = production; (-) = consumption
-stream_p$TN_load_mgs <- fcr_99_data$TN_load_mgs-fcr_102_data$TN_load_mgs
-stream_p$TP_load_mgs <- fcr_99_data$TP_load_mgs-fcr_102_data$TP_load_mgs
-stream_p$NH4_load_mgs <- fcr_99_data$NH4_load_mgs-fcr_102_data$NH4_load_mgs
-stream_p$NO3NO2_load_mgs <- fcr_99_data$NO3NO2_load_mgs-fcr_102_data$NO3NO2_load_mgs
-stream_p$SRP_load_mgs <- fcr_99_data$SRP_load_mgs-fcr_102_data$SRP_load_mgs
-stream_p$DOC_load_gs <- fcr_99_data$DOC_load_gs-fcr_102_data$DOC_load_gs
+stream_p$TN_load_mgs <- fcr_99_data$TN_load_mgs-fcr_101_data$TN_load_mgs
+stream_p$TP_load_mgs <- fcr_99_data$TP_load_mgs-fcr_101_data$TP_load_mgs
+stream_p$NH4_load_mgs <- fcr_99_data$NH4_load_mgs-fcr_101_data$NH4_load_mgs
+stream_p$NO3NO2_load_mgs <- fcr_99_data$NO3NO2_load_mgs-fcr_101_data$NO3NO2_load_mgs
+stream_p$SRP_load_mgs <- fcr_99_data$SRP_load_mgs-fcr_101_data$SRP_load_mgs
+stream_p$DOC_load_gs <- fcr_99_data$DOC_load_gs-fcr_101_data$DOC_load_gs
 stream_p <- stream_p %>% mutate(Site = "Processing")
 
 # Combine inflow, outflow, and processing rates
-stream_p <- rbind(fcr_99_inflow,fcr_102_inflow,stream_p)
+stream_p <- rbind(fcr_99_inflow,fcr_101_inflow,stream_p)
 
 # Plot as bar plots for TN, TP, and DOC
 tn <- ggplot(stream_p,mapping=aes(x=DateTime,y=TN_load_mgs,fill=Site))+
@@ -186,6 +201,58 @@ fcr_inflow <- fcr_inflow %>% mutate(Site = "Inflow")
 
 # Combine data from inflow + outflow + processing rates
 fcr_res_p <- rbind(fcr_1_inflow,fcr_res_p,fcr_inflow)
+
+# Plot barplots for TN, TP, and DOC
+tn <- ggplot(fcr_res_p,mapping=aes(x=DateTime,y=TN_load_mgs,fill=Site))+
+  geom_bar(stat="identity",position=position_dodge())+
+  theme_classic()
+
+tp <- ggplot(fcr_res_p,mapping=aes(x=DateTime,y=TP_load_mgs,fill=Site))+
+  geom_bar(stat="identity",position=position_dodge())+
+  theme_classic()
+
+doc <- ggplot(fcr_res_p,mapping=aes(x=DateTime,y=DOC_load_gs,fill=Site))+
+  geom_bar(stat="identity",position=position_dodge())+
+  theme_classic()
+
+ggarrange(tn,tp,doc,common.legend = TRUE)
+
+## Calculate processing rate in FCR using concentrations at site 50 and outflow measured at site 01
+fcr_50_data <- fcr_50_data[-c(6),]
+
+fcr_50_data <- fcr_50_data %>% 
+  mutate(TN_load_mgs=TN_ugL*fcr_1_data$Flow_cms) %>% 
+  mutate(TP_load_mgs=TP_ugL*fcr_1_data$Flow_cms) %>% 
+  mutate(NH4_load_mgs=NH4_ugL*fcr_1_data$Flow_cms) %>% 
+  mutate(NO3NO2_load_mgs=NO3NO2_ugL*fcr_1_data$Flow_cms) %>% 
+  mutate(SRP_load_mgs=SRP_ugL*fcr_1_data$Flow_cms) %>% 
+  mutate(DOC_load_gs=DOC_mgL*fcr_1_data$Flow_cms) %>% 
+  mutate(Site = "1_outflow")
+
+fcr_50_outflow <- fcr_50_data %>% select(DateTime,TN_load_mgs:Site)
+
+# Calculate processing rates
+fcr_res_p <- fcr_102_data %>% select(DateTime)
+fcr_res_p$TN_load_mgs <- fcr_50_data$TN_load_mgs-fcr_99_data$TN_load_mgs-fcr_200_data$TN_load_mgs
+fcr_res_p$TP_load_mgs <- fcr_50_data$TP_load_mgs-fcr_99_data$TP_load_mgs-fcr_200_data$TP_load_mgs
+fcr_res_p$NH4_load_mgs <- fcr_50_data$NH4_load_mgs-fcr_99_data$NH4_load_mgs-fcr_200_data$NH4_load_mgs
+fcr_res_p$NO3NO2_load_mgs <- fcr_50_data$NO3NO2_load_mgs-fcr_99_data$NO3NO2_load_mgs-fcr_200_data$NO3NO2_load_mgs
+fcr_res_p$SRP_load_mgs <- fcr_50_data$SRP_load_mgs-fcr_99_data$SRP_load_mgs-fcr_200_data$SRP_load_mgs
+fcr_res_p$DOC_load_gs <- fcr_50_data$DOC_load_gs-fcr_99_data$DOC_load_gs-fcr_200_data$DOC_load_gs
+fcr_res_p <- fcr_res_p %>% mutate(Site = "Processing")
+
+# Calculate summed inflow (200+99)
+fcr_inflow <- fcr_102_data %>% select(DateTime)
+fcr_inflow$TN_load_mgs <- fcr_99_data$TN_load_mgs+fcr_200_data$TN_load_mgs
+fcr_inflow$TP_load_mgs <- fcr_99_data$TP_load_mgs+fcr_200_data$TP_load_mgs
+fcr_inflow$NH4_load_mgs <- fcr_99_data$NH4_load_mgs+fcr_200_data$NH4_load_mgs
+fcr_inflow$NO3NO2_load_mgs <- fcr_99_data$NO3NO2_load_mgs+fcr_200_data$NO3NO2_load_mgs
+fcr_inflow$SRP_load_mgs <- fcr_99_data$SRP_load_mgs+fcr_200_data$SRP_load_mgs
+fcr_inflow$DOC_load_gs <- fcr_99_data$DOC_load_gs+fcr_200_data$DOC_load_gs
+fcr_inflow <- fcr_inflow %>% mutate(Site = "Inflow")
+
+# Combine data from inflow + outflow + processing rates
+fcr_res_p <- rbind(fcr_50_outflow,fcr_res_p,fcr_inflow)
 
 # Plot barplots for TN, TP, and DOC
 tn <- ggplot(fcr_res_p,mapping=aes(x=DateTime,y=TN_load_mgs,fill=Site))+
