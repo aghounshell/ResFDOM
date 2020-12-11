@@ -1,7 +1,7 @@
 ### Script to conduct data analyses on all compiled data (see All_Data.R)
 ### A Hounshell, 04 Nov 2020
 
-setwd("C:/Users/ahoun/OneDrive/Desktop/ResFDOM")
+setwd("C:/Users/ahoun/Desktop/ResFDOM")
 
 # Load in libraries
 pacman::p_load(tidyverse,ggplot2,ggpubr,PerformanceAnalytics,astsa,cowplot,lubridate,dplR,zoo,naniar,
