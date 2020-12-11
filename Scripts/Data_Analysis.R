@@ -60,8 +60,7 @@ completeFun <- function(data, desiredCols) {
 
 # Load in 'weekly' dates for AR model
 ar_dates <- read.csv("./Data/AR_Dates.csv") %>% 
-  mutate(AR.Model.Dates = as.POSIXct(strptime(AR.Model.Dates, "%m/%d/%Y",tz='EST'))) %>% 
-  rename(Date = AR.Model.Dates)
+  mutate(Date = as.POSIXct(strptime(Date, "%m/%d/%Y",tz='EST')))
 
 # Included: DOC, temp, DO, Flora, Flow, Rain, SW
 epi_ghg <- epi %>% select(Date,BIX:HIX,ch4_umolL:co2_umolL,DOC_mgL,temp:DO,Flora_ugL:Flow_cms)
@@ -268,7 +267,7 @@ model_epi_ch4 <- glm(ch4_umolL ~ ch4_umolL_ARLag1 + DOC_mgL + BIX + Flora_ugL +
                        Flow_cms_norm, data = epi_data_2, 
                      family = gaussian, na.action = 'na.fail')
 
-glm_epi_ch4 <- dredge(model_epi_ch4,rank = "AICc",fixed = "ch4_umolL_ARLag1")
+glm_epi_ch4 <- dredge(model_epi_ch4,rank = "AICc")
 
 select_glm_epi_ch4 <- subset(glm_epi_ch4,delta<2)
 
@@ -281,7 +280,7 @@ model_epi_co2 <- glm(co2_umolL_norm ~ co2_umolL_ARLag1_norm + DOC_mgL + DO + Flo
                        Flow_cms_norm, data = epi_data_2, 
                      family = gaussian, na.action = 'na.fail')
 
-glm_epi_co2 <- dredge(model_epi_co2,rank = "AICc",fixed = "co2_umolL_ARLag1_norm")
+glm_epi_co2 <- dredge(model_epi_co2,rank = "AICc")
 
 select_glm_epi_co2 <- subset(glm_epi_co2,delta<2)
 
@@ -299,6 +298,7 @@ hypo_data_2 <- scale(hypo_data_2)
 hypo_data_3 <- scale(hypo_data_2)
 hypo_data_3 <- as.data.frame(hypo_data_3)
 hypo_data_3 <- hypo_data_3 %>% rename(ch4_umolL_norm_zt = ch4_umolL_norm,co2_umolL_zt = co2_umolL)
+hypo_data_2 <- as.data.frame(hypo_data_2)
 hypo_data_2 <- cbind(hypo_data_2$ch4_umolL_norm,hypo_data_2$co2_umolL,hypo_data_3)
 hypo_data_2 <- hypo_data_2 %>% rename(ch4_umolL_norm = `hypo_data_2$ch4_umolL_norm`,co2_umolL = `hypo_data_2$co2_umolL`)
 
@@ -334,37 +334,101 @@ select_glm_hypo_co2 <- subset(glm_hypo_co2,delta<2)
 # Calculate R2 for each developed model
 mod1_epi_ch4 <- glm(ch4_umolL ~ ch4_umolL_ARLag1, data = epi_data_2, 
                     family = gaussian, na.action = 'na.fail')
+
+mod1_epi_co2_lag <- glm(co2_umolL_norm ~ co2_umolL_ARLag1_norm, data = epi_data_2,
+                        family = gaussian, na.action = 'na.fail')
+glm_epi_co2_lag <- dredge(mod1_epi_co2_lag)
+
 mod1_epi_co2 <- glm(co2_umolL_norm ~ co2_umolL_ARLag1_norm + DO + Flora_ugL +
                       Flow_cms_norm, data = epi_data_2, 
                     family = gaussian, na.action = 'na.fail')
-mod1_epi_co2_lag <- glm(co2_umolL_norm ~ co2_umolL_ARLag1_norm, data = epi_data_2,
-                        family = gaussian, na.action = 'na.fail')
-mod1_hypo_ch4 <- glm(ch4_umolL_norm ~ BIX + DOC_mgL + DO + co2_umolL_zt, 
+mod2_epi_co2 <- glm(co2_umolL_norm ~ co2_umolL_ARLag1_norm + DO, data = epi_data_2)
+mod3_epi_co2 <- glm(co2_umolL_norm ~ co2_umolL_ARLag1_norm + DO + Flora_ugL, 
+                    data = epi_data_2)
+mod4_epi_co2 <- glm(co2_umolL_norm ~ co2_umolL_ARLag1_norm + DO + Flow_cms_norm,
+                    data = epi_data_2)
+
+mod1_hypo_ch4_lag <- glm(ch4_umolL_norm ~ ch4_umolL_ARLag1_norm, 
+                     data = hypo_data_2, family = gaussian, na.action = 'na.fail')
+glm_hypo_ch4_lag <- dredge(mod1_hypo_ch4_lag)
+
+mod1_hypo_ch4 <- glm(ch4_umolL_norm ~ BIX + DOC_mgL + DO, 
+                     data = hypo_data_2, family = gaussian, na.action = 'na.fail')
+mod2_hypo_ch4 <- glm(ch4_umolL_norm ~ BIX + DOC_mgL + DO + co2_umolL_zt, 
                       data = hypo_data_2, family = gaussian, na.action = 'na.fail')
 mod1_hypo_ch4_do <- glm(ch4_umolL_norm ~ DO, 
                      data = hypo_data_2, family = gaussian, na.action = 'na.fail')
-mod1_hypo_co2 <- glm(co2_umolL ~ co2_umolL_ARLag1 + DOC_mgL + DO + Flow_cms_norm, 
-                     data = hypo_data_2, family = gaussian, na.action = 'na.fail')
+
 mod1_hypo_co2_lag <- glm(co2_umolL ~ co2_umolL_ARLag1, 
+                         data = hypo_data_2, family = gaussian, na.action = 'na.fail')
+glm_hypo_co2_lag <- dredge(mod1_hypo_co2_lag)
+
+mod1_hypo_co2 <- glm(co2_umolL ~ co2_umolL_ARLag1 + DOC_mgL + Flow_cms_norm, 
                      data = hypo_data_2, family = gaussian, na.action = 'na.fail')
+mod2_hypo_co2 <- glm(co2_umolL ~ co2_umolL_ARLag1 + DOC_mgL + DO + Flow_cms_norm, 
+                     data = hypo_data_2, family = gaussian, na.action = 'na.fail')
+
 
 round((rsq(mod1_epi_ch4, type = 'sse')), digits = 2)
-round((rsq(mod1_epi_co2, type = 'sse')), digits = 2)
+
 round((rsq(mod1_epi_co2_lag, type = 'sse')), digits = 2)
-round((rsq(mod1_hypo_co2, type = 'sse')), digits = 2)
-round((rsq(mod1_hypo_co2_lag, type = 'sse')), digits = 2)
+
+round((rsq(mod1_epi_co2, type = 'sse')), digits = 2)
+round((rsq(mod2_epi_co2, type = 'sse')), digits = 2)
+round((rsq(mod3_epi_co2, type = 'sse')), digits = 2)
+round((rsq(mod4_epi_co2, type = 'sse')), digits = 2)
+
+round((rsq(mod1_hypo_ch4_lag, type = 'sse')), digits = 2)
+
 round((rsq(mod1_hypo_ch4, type = 'sse')), digits = 2)
+round((rsq(mod2_hypo_ch4, type = 'sse')), digits = 2)
 round((rsq(mod1_hypo_ch4_do, type = 'sse')), digits = 2)
 
+round((rsq(mod1_hypo_co2_lag, type = 'sse')), digits = 2)
+
+round((rsq(mod1_hypo_co2, type = 'sse')), digits = 2)
+round((rsq(mod2_hypo_co2, type = 'sse')), digits = 2)
+
+
 pred1_mod1_epi_ch4 <- predict(mod1_epi_ch4,newdata = epi_data_2)
+
+pred1_mod1_epi_co2_lag <- predict(mod1_epi_co2_lag,newdata=epi_data_2)
+
 pred1_mod1_epi_co2 <- predict(mod1_epi_co2,newdata = epi_data_2)
+pred1_mod2_epi_co2 <- predict(mod2_epi_co2,newdata = epi_data_2)
+pred1_mod3_epi_co2 <- predict(mod3_epi_co2,newdata = epi_data_2)
+pred1_mod4_epi_co2 <- predict(mod4_epi_co2,newdata = epi_data_2)
+
+pred1_mod1_hypo_ch4_lag <- predict(mod1_hypo_ch4_lag,newdata = hypo_data_2)
+
 pred1_mod1_hypo_ch4 <- predict(mod1_hypo_ch4,newdata = hypo_data_2)
+pred1_mod2_hypo_ch4 <- predict(mod2_hypo_ch4,newdata = hypo_data_2)
+
+pred1_mod1_hypo_co2_lag <- predict(mod1_hypo_co2_lag,newdata = hypo_data_2)
+
 pred1_mod1_hypo_co2 <- predict(mod1_hypo_co2,newdata = hypo_data_2)
+pred1_mod2_hypo_co2 <- predict(mod2_hypo_co2,newdata = hypo_data_2)
+
 
 round(rmse(pred1_mod1_epi_ch4, epi_data_2$ch4_umolL), digits = 1)
+
+round(rmse(pred1_mod1_epi_co2_lag, epi_data_2$co2_umolL_norm),digits = 1)
+
 round(rmse(pred1_mod1_epi_co2, epi_data_2$co2_umolL_norm), digits = 1)
+round(rmse(pred1_mod2_epi_co2, epi_data_2$co2_umolL_norm), digits = 1)
+round(rmse(pred1_mod3_epi_co2, epi_data_2$co2_umolL_norm), digits = 1)
+round(rmse(pred1_mod4_epi_co2, epi_data_2$co2_umolL_norm), digits = 1)
+
+round(rmse(pred1_mod1_hypo_ch4_lag, hypo_data_2$ch4_umolL_norm), digits = 1)
+
 round(rmse(pred1_mod1_hypo_ch4, hypo_data_2$ch4_umolL_norm), digits = 1)
+round(rmse(pred1_mod2_hypo_ch4, hypo_data_2$ch4_umolL_norm), digits = 1)
+
+round(rmse(pred1_mod1_hypo_co2_lag, hypo_data_2$co2_umolL), digits = 1)
+
 round(rmse(pred1_mod1_hypo_co2, hypo_data_2$co2_umolL), digits = 1)
+round(rmse(pred1_mod2_hypo_co2, hypo_data_2$co2_umolL), digits = 1)
+
 
 # Then need to 'un-transform' variables
 epi_data_uncorr <- epi_data[complete.cases(epi_data),]
