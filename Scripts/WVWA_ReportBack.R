@@ -30,7 +30,7 @@ fcrchem <- completeFun(fcrchem,"DOC_mgL")
 
 fcrchem_long <- fcrchem %>% filter(Station == 50 | Station == 100)
 
-# Plot long-term DOC
+# Plot long-term DOC (add in oxygenation schedule?)
 ggplot(fcrchem_long,mapping=aes(x=Date,y=DOC_mgL,color=as.factor(Location)))+
   geom_line(size=1)+
   geom_point(size=3)+
@@ -38,15 +38,15 @@ ggplot(fcrchem_long,mapping=aes(x=Date,y=DOC_mgL,color=as.factor(Location)))+
   ylab(expression(paste("DOC (mg L"^-1*")")))+
   scale_color_manual(breaks=c('50 0.1','50 9','100 0.1'),values=c("#7EBDC2","#393E41","#F0B670"),labels=c("Site 50 0.1m","Site 50 9m","Inflow"))+
   xlim(as.POSIXct("2014-01-01"),as.POSIXct("2019-12-31"))+
-  ylim(0,20)+
+  #ylim(0,8)+
   theme_classic(base_size=15)+
   theme(legend.title=element_blank())
 
-ggplot(fcrchem,mapping=aes(x=Date,y=DOC_mgL,color=as.factor(Location)))+
+ggplot(fcrchem_long,mapping=aes(x=Date,y=DOC_mgL,color=as.factor(Location)))+
   geom_line(size=1)+
   geom_point(size=3)+
   ylab(expression(paste("DOC (mg L"^-1*")")))+
-  scale_color_manual(breaks=c('50 0.1','50 9','100 0.1','200 0.1'),values=c("#7EBDC2","#393E41","#F0B670","#FE5F55"),labels=c("Site 50 0.1m","Site 50 9m","Inflow","Wetlands"))+
+  scale_color_manual(breaks=c('50 0.1','50 9','100 0.1'),values=c("#7EBDC2","#393E41","#F0B670"),labels=c("Site 50 0.1m","Site 50 9m","Inflow"))+
   xlim(as.POSIXct("2019-01-01"),as.POSIXct("2019-12-31"))+
   ylim(0,7.5)+
   geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
@@ -81,18 +81,18 @@ sd_eems$Location <- paste(sd_eems$Station,sd_eems$Depth)
 
 # Plots
 m_eems_50 <- m_eems %>% 
-  filter(Station == "50" | Station == "100" | Station == "200") %>% 
+  filter(Station == "50" | Station == "100") %>% 
   filter(Depth == "0.1"|Depth == "9") %>% 
   filter(Date > as.POSIXct("2019-05-20") & Date < as.POSIXct("2019-11-21"))
 
 sd_eems_50 <- sd_eems %>% 
-  filter(Station == "50" | Station == "100" | Station == "200") %>% 
+  filter(Station == "50" | Station == "100") %>% 
   filter(Depth == "0.1"|Depth == "9") %>% 
   filter(Date > as.POSIXct("2019-05-20") & Date < as.POSIXct("2019-11-21"))
 
-ggplot(m_eems_50,mapping=aes(x=Date,y=C,color=(as.factor(Location))))+
+peakc <- ggplot(m_eems_50,mapping=aes(x=Date,y=C,color=(as.factor(Location))))+
   geom_line(size=1)+
-  geom_point(size=3)+
+  geom_point(size=4)+
   geom_errorbar(sd_eems_50,mapping=aes(ymin=m_eems_50$C-C,ymax=m_eems_50$C+C))+
   geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
   geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
@@ -105,7 +105,7 @@ ggplot(m_eems_50,mapping=aes(x=Date,y=C,color=(as.factor(Location))))+
   ylim(0,0.36)+
   xlab("Date")+
   ylab("Peak C (RFU)")+
-  scale_color_manual(breaks=c('50 0.1','50 9','100 0.1','200 0.1'),values=c("#7EBDC2","#393E41","#F0B670","#FE5F55"),labels=c("Site 50 0.1m","Site 50 9m","Inflow","Wetlands"))+
+  scale_color_manual(breaks=c('50 0.1','50 9','100 0.1'),values=c("#7EBDC2","#393E41","#F0B670"),labels=c("Site 50 0.1m","Site 50 9m","Inflow"))+
   annotate("text",x=c(as.POSIXct("2019-05-23"),as.POSIXct("2019-06-10"),as.POSIXct("2019-06-27"),
                       as.POSIXct("2019-07-14"),as.POSIXct("2019-07-27"),as.POSIXct("2019-08-12"),
                       as.POSIXct("2019-08-27"),as.POSIXct("2019-09-12"),as.POSIXct("2019-11-05")),
@@ -165,9 +165,11 @@ m_suva <- m_suva %>%
 
 m_suva <- completeFun(m_suva,"suva")
 
-ggplot(m_suva,mapping=aes(x=Date,y=suva,color=(as.factor(Location))))+
+m_suva_lim <- m_suva %>% filter(Station == "50"|Station == "100")
+
+suva <- ggplot(m_suva_lim,mapping=aes(x=Date,y=suva,color=(as.factor(Location))))+
   geom_line(size=1)+
-  geom_point(size=3)+
+  geom_point(size=4)+
   geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
   geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
   geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
@@ -180,10 +182,12 @@ ggplot(m_suva,mapping=aes(x=Date,y=suva,color=(as.factor(Location))))+
   ylab("SUVA")+
   ylim(0,10)+
   xlim(as.POSIXct("2019-04-01"),as.POSIXct("2019-11-30"))+
-  scale_color_manual(breaks=c('50 0.1','50 9','100 0.1','200 0.1'),values=c("#7EBDC2","#393E41","#F0B670","#FE5F55"),labels=c("Site 50 0.1m","Site 50 9m","Inflow","Wetlands"))+
+  scale_color_manual(breaks=c('50 0.1','50 9','100 0.1'),values=c("#7EBDC2","#393E41","#F0B670"),labels=c("Site 50 0.1m","Site 50 9m","Inflow"))+
   annotate("text",x=c(as.POSIXct("2019-05-23"),as.POSIXct("2019-06-10"),as.POSIXct("2019-06-27"),
                       as.POSIXct("2019-07-14"),as.POSIXct("2019-07-27"),as.POSIXct("2019-08-12"),
                       as.POSIXct("2019-08-27"),as.POSIXct("2019-09-12"),as.POSIXct("2019-11-05")),
            y=10,label=c("Off","On","Off","On","Off","On","Off","On","Turnover"),size=5.5)+
   theme_classic(base_size=15)+
   theme(legend.title=element_blank())
+
+ggarrange(peakc,suva,ncol=1,nrow=2,common.legend = TRUE)
