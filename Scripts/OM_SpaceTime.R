@@ -7,7 +7,7 @@ setwd("C:/Users/ahoun/Desktop/ResFDOM")
 # Load in libraries
 pacman::p_load(tidyverse,ggplot2,ggpubr)
 
-### Load in fluorescence data (as fluorescent indicators, Peak C)
+### Load in fluorescence data (as fluorescent indicators, Peak C, Peak T)
 eems <- read_csv("./Data/20201103_ResultsFiles_ResEEMs2019.csv")
 
 # Select FCR data for station 50, 100, 200
@@ -22,7 +22,7 @@ m_eems$Location <- paste(m_eems$Station,m_eems$Depth)
 sd_eems$Location <- paste(sd_eems$Station,sd_eems$Depth)
 
 # Plots
-ggplot(m_eems,mapping=aes(x=Date,y=C,color=(as.factor(Location))))+
+peakc <- ggplot(m_eems,mapping=aes(x=Date,y=C,color=(as.factor(Location))))+
   geom_line(size=1)+
   geom_point(size=4)+
   geom_errorbar(sd_eems,mapping=aes(ymin=m_eems$C-C,ymax=m_eems$C+C))+
@@ -37,7 +37,7 @@ ggplot(m_eems,mapping=aes(x=Date,y=C,color=(as.factor(Location))))+
   ylim(0,0.36)+
   xlab("Date")+
   ylab("Peak C (RFU)")+
-  scale_color_manual(breaks=c('20 0.1','30 0.1','45 0.1','50 0.1','50 5','50 9','100 0.1','200 0.1'),values=c("#F4D35E","#7FC6A4","#BFACC8","#7EBDC2","#5C7E82","#393E41","#EEAA55","#E7804B"))+
+  scale_color_manual(breaks=c('100 0.1','200 0.1','20 0.1','30 0.1','45 0.1','50 0.1','50 5','50 9'),values=c("#DA2C38","#E7804B","#EEAA55","#F4D35E","#7FC6A4","#7EBDC2","#5C7E82","#393E41"))+
   annotate("text",x=c(as.POSIXct("2019-05-23"),as.POSIXct("2019-06-10"),as.POSIXct("2019-06-27"),
                       as.POSIXct("2019-07-14"),as.POSIXct("2019-07-27"),as.POSIXct("2019-08-12"),
                       as.POSIXct("2019-08-27"),as.POSIXct("2019-09-12"),as.POSIXct("2019-11-05")),
@@ -45,8 +45,81 @@ ggplot(m_eems,mapping=aes(x=Date,y=C,color=(as.factor(Location))))+
   theme_classic(base_size=15)+
   theme(legend.title=element_blank())
 
+peakt <- ggplot(m_eems,mapping=aes(x=Date,y=T,color=(as.factor(Location))))+
+  geom_line(size=1)+
+  geom_point(size=4)+
+  geom_errorbar(sd_eems,mapping=aes(ymin=m_eems$T-T,ymax=m_eems$T+T))+
+  geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-07-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-08-05"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-08-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-09-02"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
+  ylim(0,0.46)+
+  xlab("Date")+
+  ylab("Peak T (RFU)")+
+  scale_color_manual(breaks=c('100 0.1','200 0.1','20 0.1','30 0.1','45 0.1','50 0.1','50 5','50 9'),values=c("#DA2C38","#E7804B","#EEAA55","#F4D35E","#7FC6A4","#7EBDC2","#5C7E82","#393E41"))+
+  annotate("text",x=c(as.POSIXct("2019-05-23"),as.POSIXct("2019-06-10"),as.POSIXct("2019-06-27"),
+                      as.POSIXct("2019-07-14"),as.POSIXct("2019-07-27"),as.POSIXct("2019-08-12"),
+                      as.POSIXct("2019-08-27"),as.POSIXct("2019-09-12"),as.POSIXct("2019-11-05")),
+           y=0.45,label=c("Off","On","Off","On","Off","On","Off","On","Turnover"),size=5.5)+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
 
-values=c("#BFACC8","#393E41","#5C7E82","#7EBDC2","#7FC6A4","#F4D35E","#EEAA55","#E7804B","#DA2C38","#7DAF4B")
+ggarrange(peakc,peakt,ncol=1,nrow=2)
+
+hix <- ggplot(m_eems,mapping=aes(x=Date,y=HIX,color=(as.factor(Location))))+
+  geom_line(size=1)+
+  geom_point(size=4)+
+  geom_errorbar(sd_eems,mapping=aes(ymin=m_eems$HIX-HIX,ymax=m_eems$HIX+HIX))+
+  geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-07-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-08-05"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-08-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-09-02"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
+  ylim(0,10)+
+  xlab("Date")+
+  ylab("HIX")+
+  scale_color_manual(breaks=c('100 0.1','200 0.1','20 0.1','30 0.1','45 0.1','50 0.1','50 5','50 9'),values=c("#DA2C38","#E7804B","#EEAA55","#F4D35E","#7FC6A4","#7EBDC2","#5C7E82","#393E41"))+
+  annotate("text",x=c(as.POSIXct("2019-05-23"),as.POSIXct("2019-06-10"),as.POSIXct("2019-06-27"),
+                      as.POSIXct("2019-07-14"),as.POSIXct("2019-07-27"),as.POSIXct("2019-08-12"),
+                      as.POSIXct("2019-08-27"),as.POSIXct("2019-09-12"),as.POSIXct("2019-11-05")),
+           y=9.8,label=c("Off","On","Off","On","Off","On","Off","On","Turnover"),size=5.5)+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+
+bix <- ggplot(m_eems,mapping=aes(x=Date,y=BIX,color=(as.factor(Location))))+
+  geom_line(size=1)+
+  geom_point(size=4)+
+  geom_errorbar(sd_eems,mapping=aes(ymin=m_eems$BIX-BIX,ymax=m_eems$BIX+BIX))+
+  geom_vline(xintercept = as.POSIXct("2019-06-03"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-06-17"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-07-08"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-07-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-08-05"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-08-19"), color="black",linetype="dashed")+ # Oxygen off
+  geom_vline(xintercept = as.POSIXct("2019-09-02"), color="black")+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2019-11-02"), color="black",linetype="dashed")+ # Turnover
+  ylim(0,0.9)+
+  xlab("Date")+
+  ylab("BIX")+
+  scale_color_manual(breaks=c('100 0.1','200 0.1','20 0.1','30 0.1','45 0.1','50 0.1','50 5','50 9'),values=c("#DA2C38","#E7804B","#EEAA55","#F4D35E","#7FC6A4","#7EBDC2","#5C7E82","#393E41"))+
+  annotate("text",x=c(as.POSIXct("2019-05-23"),as.POSIXct("2019-06-10"),as.POSIXct("2019-06-27"),
+                      as.POSIXct("2019-07-14"),as.POSIXct("2019-07-27"),as.POSIXct("2019-08-12"),
+                      as.POSIXct("2019-08-27"),as.POSIXct("2019-09-12"),as.POSIXct("2019-11-05")),
+           y=0.89,label=c("Off","On","Off","On","Off","On","Off","On","Turnover"),size=5.5)+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+
+ggarrange(hix,bix,ncol=1,nrow=2)
+
+### Load in PARAFAC model results
+
 
 ### Calculate SUVA using abs values and DO)C
 # Load in abs data
