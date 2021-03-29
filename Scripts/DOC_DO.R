@@ -1,0 +1,372 @@
+### Script to explore long-term DOC patterns and loading to FCR ###
+# 29 Mar 2021, A Hounshell
+
+# Load libraries
+pacman::p_load(tidyverse,ggplot2,ggpubr,lubridate,zoo)
+
+# Load data: long-term DOC; weir discharge; temperature/DO casts
+# DOC data from EDI
+inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/199/7/da174082a3d924e989d3151924f9ef98" 
+infile1 <- paste0(getwd(),"/Data/chem.csv")
+download.file(inUrl1,infile1,method="curl")
+
+chem <- read.csv("./Data/chem.csv", header=T) %>%
+  select(Reservoir:DIC_mgL) %>%
+  dplyr::filter(Reservoir=="FCR") %>%
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST")))
+
+### Separate and calculate hypo mass (and change in mass/time)
+chem_50 <- chem %>% 
+  filter(Site==50) %>% 
+  filter(Depth_m %in% c(0.1,1.6,3.8,5.0,6.2,8.0,9.0)) %>% 
+  rename(time = DateTime,depth = Depth_m)
+chem_50 <- chem_50[!is.na(chem_50$DOC_mgL),]
+
+chem_50_hypo <- chem %>%
+  filter(Site==50) %>% 
+  filter(Depth_m %in% c(8.0,9.0)) %>% 
+  rename(time = DateTime,depth = Depth_m) %>% 
+  select(time,depth,DOC_mgL) %>% 
+  group_by(time,depth) %>% 
+  summarize_all(funs(mean),na.rm=TRUE) %>% 
+  mutate(DOC_mgL = ifelse(DOC_mgL > 12.0, NA, DOC_mgL)) %>% # Remove outlier at 8 m (12 mg/L!!!)
+  mutate(depth = ifelse(depth == 8, 'depth_8',
+                        ifelse(depth == 9, 'depth_9', NA)))
+chem_50_hypo <- chem_50_hypo[!is.na(chem_50_hypo$DOC_mgL),]
+
+chem_50_hypo_long <- chem_50_hypo %>% 
+  pivot_wider(names_from = depth, values_from = DOC_mgL)
+
+# Create dataframe with daily time step from 2015-01-01 to 2019-12-31
+chem_50_hypo_full <- as.data.frame(seq(as.POSIXct("2014-01-01",tz="EST"),as.POSIXct("2019-12-31",tz="EST"),by="days"))
+chem_50_hypo_full <- chem_50_hypo_full %>% 
+  rename(time = `seq(as.POSIXct("2014-01-01", tz = "EST"), as.POSIXct("2019-12-31", tz = "EST"), by = "days")`)
+chem_50_hypo_full <- left_join(chem_50_hypo_full,chem_50_hypo_long,by="time")
+
+# Extrapolate and constrain to 2015-2019 data
+chem_50_hypo_full <- chem_50_hypo_full %>% 
+  mutate(depth_9 = na.fill(na.approx(depth_9,na.rm=FALSE),"extend")) %>% 
+  mutate(depth_8 = na.fill(na.approx(depth_8,na.rm=FALSE),"extend"))
+
+### NOTE: NEED TO INCOPORATE 'ENTRIANMENT' - not included now!!!!
+# Calculate hypo mass: 8m x vol + 9m x vol
+# Use same volumes as in L&O-L MS
+chem_50_hypo_full <- chem_50_hypo_full %>% 
+  mutate(hypo_mg = (depth_8*1.41*10^4*1000)+(depth_9*1.95*10^3*1000)) %>% 
+  mutate(dMdt_mgs = NA)
+
+# Calculate dM/dt (mg/s)
+for(i in 2:length(chem_50_hypo_full$time)){
+  chem_50_hypo_full$dMdt_mgs[i] = (chem_50_hypo_full$hypo_mg[i]-chem_50_hypo_full$hypo_mg[i-1])/(24*60*60)
+}
+
+# Plot to check - change in DOC in mg/s
+ggplot(chem_50_hypo_full,mapping=aes(time,dMdt_mgs))+
+  geom_line()
+
+# Start 'final' datasheet for calculations
+box_data <- chem_50_hypo_full %>% 
+  select(time,dMdt_mgs)
+
+### Separate out thermocline concentration for 'outflow' calculation
+chem_50_therm <- chem %>% 
+  filter(Site==50) %>% 
+  filter(Depth_m %in% c(6.2)) %>% 
+  rename(time = DateTime,depth = Depth_m) %>% 
+  select(time,DOC_mgL) %>% 
+  rename(DOC_mgL_therm = DOC_mgL)
+
+# Add to box_data data sheet and interpolate
+box_data <- left_join(box_data,chem_50_therm,by="time")
+box_data <- box_data %>% 
+  mutate(DOC_mgL_therm = na.fill(na.approx(DOC_mgL_therm,na.rm=FALSE),"extend"))
+
+# Filter and add data from 100
+chem_100 <- chem %>% 
+  filter(Site==100) %>% 
+  rename(time = DateTime, depth = Depth_m) %>% 
+  select(time,DOC_mgL) %>% 
+  rename(DOC_mgL_100 = DOC_mgL)
+
+box_data <- left_join(box_data,chem_100,by="time")
+box_data <- box_data %>% 
+  mutate(DOC_mgL_100 = na.fill(na.approx(DOC_mgL_100,na.rm=FALSE),"extend"))
+
+# Weir discharge/temperature
+inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/202/7/f5fa5de4b49bae8373f6e7c1773b026e" 
+infile1 <- paste0(getwd(),"/Data/inflow_for_EDI_2013_10Jan2021.csv")
+download.file(inUrl1,infile1,method="curl")
+
+inflow <- read.csv("./Data/inflow_for_EDI_2013_10Jan2021.csv",header=T) %>% 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) %>% 
+  select(Reservoir:VT_Temp_C)
+
+# Average inflow by day
+inflow_daily <- inflow %>% 
+  group_by(DateTime) %>% 
+  summarize_all(funs(mean))
+
+### Add together inflow and box data
+inflow_box <- inflow_daily %>% 
+  select(DateTime,WVWA_Flow_cms) %>% 
+  rename(time = DateTime)
+
+box_data <- left_join(box_data,inflow_box,by="time")
+box_data <- box_data %>% 
+  mutate(WVWA_Flow_cms = na.fill(na.approx(WVWA_Flow_cms,na.rm=FALSE),"extend"))
+
+# Plot flow data to check
+ggplot(box_data,mapping=aes(x=time,y=WVWA_Flow_cms))+
+  geom_line()
+
+### Calculate 'sink/source' term following Gerling et al. 2016; Kruger et al. 2020
+box_data <- box_data %>% 
+  mutate(j_mgs = dMdt_mgs-(WVWA_Flow_cms*DOC_mgL_100*1000)+(WVWA_Flow_cms*DOC_mgL_therm*1000)) %>% 
+  mutate(j_kgd = j_mgs*60*60*24/1000/1000)
+
+# Select for 2015-2019 during the stratified period
+box_data_sel <- box_data %>% 
+  filter(time>as.POSIXct("2015-06-01")&time<as.POSIXct("2019-11-01")) %>% 
+  mutate(month = month(time)) %>% 
+  filter(month %in% c(6,7,8))
+
+# Plot?
+ggplot()+
+  annotate(geom="rect",xmin = as.POSIXct("2015-05-05"), xmax = as.POSIXct("2015-06-01"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2015-06-08"), xmax = as.POSIXct("2015-10-20"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2016-04-18"), xmax = as.POSIXct("2016-09-16"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2017-04-18"), xmax = as.POSIXct("2017-12-28"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2018-04-23"), xmax = as.POSIXct("2018-07-30"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-06-03"), xmax = as.POSIXct("2019-06-17"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-07-08"),xmax = as.POSIXct("2019-07-19"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-08-05"),xmax = as.POSIXct("2019-08-19"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-09-02"), xmax = as.POSIXct("2019-12-01"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2016-10-07"),linetype="dashed")+ #Turnover FCR
+  geom_vline(xintercept = as.POSIXct("2017-10-30"),linetype="dashed")+ #Turnover FCR
+  geom_vline(xintercept = as.POSIXct("2018-10-21"),linetype="dashed")+ #Turnover FCR
+  geom_line(box_data,mapping=aes(x=time,y=dMdt_mgs*60*60*24/1000/1000,color="dMdt_kgd"))+
+  geom_point(box_data,mapping=aes(x=time,y=dMdt_mgs*60*60*24/1000/1000,color="dMdt_kgd"))+
+  geom_line(box_data,mapping=aes(x=time,y=WVWA_Flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000,color="Inflow_kgd"))+
+  geom_point(box_data,mapping=aes(x=time,y=WVWA_Flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000,color="Inflow_kgd"))+
+  geom_line(box_data,mapping=aes(x=time,y=WVWA_Flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000,color="Outflow_kgd"))+
+  geom_point(box_data,mapping=aes(x=time,y=WVWA_Flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000,color="Outflow_kgd"))+
+  geom_line(box_data,mapping=aes(x=time,y=j_kgd,color="j_kgd"))+
+  geom_point(box_data,mapping=aes(x=time,y=j_kgd,color="j_kgd"))+
+  xlim(as.POSIXct("2015-04-01"),as.POSIXct("2019-12-01"))+
+  theme_classic(base_size=15)
+
+ggplot(box_data_sel,mapping=aes(x=time,y=j_kgd))+
+  annotate(geom="rect",xmin = as.POSIXct("2015-05-05"), xmax = as.POSIXct("2015-06-01"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2015-06-08"), xmax = as.POSIXct("2015-10-20"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2016-04-18"), xmax = as.POSIXct("2016-09-16"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2017-04-18"), xmax = as.POSIXct("2017-12-28"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2018-04-23"), xmax = as.POSIXct("2018-07-30"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-06-03"), xmax = as.POSIXct("2019-06-17"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-07-08"),xmax = as.POSIXct("2019-07-19"), ymin=-Inf, ymax=Inf,alpha=0.2)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-08-05"),xmax = as.POSIXct("2019-08-19"),ymin=-Inf,ymax=Inf,alpha=0.2)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-09-02"), xmax = as.POSIXct("2019-12-01"),ymin=-Inf,ymax=Inf,alpha=0.2)+ # Oxygen on
+  geom_line(size=1)+
+  geom_point(size=3)+
+  geom_hline(yintercept = 0,linetype="dashed")+
+  xlab("Date")+
+  ylab(expression(paste("DOC Flux (kg d"^-1*")")))+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+  
+# CTD and YSI casts - combine together for most complete time-period
+#need to import CTD observations from EDI
+inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/200/11/d771f5e9956304424c3bc0a39298a5ce" 
+infile1 <- paste0(getwd(),"/CTD_final_2013_2020.csv")
+download.file(inUrl1,infile1,method="curl")
+
+ctd <- read_csv('CTD_final_2013_2020.csv') %>% #read in observed CTD data, which has multiple casts on the same day (problematic for comparison)
+  filter(Reservoir=="FCR") %>%
+  mutate(Date = as.POSIXct(strptime(Date, "%Y-%m-%d", tz="EST"))) %>% 
+  select(Reservoir:PAR_umolm2s)
+
+ctd_50 <- ctd %>% 
+  filter(Site==50) %>% 
+  rename(time = Date)
+
+# Import YSI observations from EDI
+inUrl1 <- "https://pasta.lternet.edu/package/data/eml/edi/198/8/07ba1430528e01041435afc4c65fbeb6"
+infile1 <- paste0(getwd(),"/YSI_PAR_profiles_2013-2020.csv")
+download.file(inUrl1,infile1,method="curl")
+
+ysi <- read_csv('YSI_PAR_profiles_2013-2020.csv') %>% 
+  filter(Reservoir=="FCR") %>% 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d",tz='EST'))) %>% 
+  select(Reservoir:pH)
+
+ysi_50 <- ysi %>% 
+  filter(Site==50) %>% 
+  rename(time = DateTime)
+
+# Combine CTD and YSI data for site 50
+# Select unique dates from both CTD and YSI casts
+ysi_date_list <- as.data.frame(unique(as.Date(ysi_50$time)))
+names(ysi_date_list)[1] <- "time"
+ysi_date_list$ysi_fcr <- rep(-99,length(ysi_date_list$time))
+
+ctd_date_list <- as.data.frame(unique(as.Date(ctd_50$time)))
+names(ctd_date_list)[1] <- "time"
+ctd_date_list$ctd_fcr <- rep(-99,length(ctd_date_list$time))
+
+# Combine Unique dates list by date
+fcr_dates <- merge(ysi_date_list, ctd_date_list, by="time", all.x=TRUE, all.y=TRUE)
+
+### Merge data CTD and YSI datasets for FCR
+fcr_merge <- merge(ctd_50, ysi_50, by="time", all.x=TRUE, all.y=TRUE)
+
+# Find where there are Na values in the CTD data: need to do it for each column
+ctd_fcr_na <- is.na(fcr_merge$Depth_m.x)
+fcr_merge$Depth_m.x[ctd_fcr_na] <- fcr_merge$Depth_m.y[ctd_fcr_na]
+
+ctd_fcr_na <- is.na(fcr_merge$Temp_C.x)
+fcr_merge$Temp_C.x[ctd_fcr_na] <- fcr_merge$Temp_C.y[ctd_fcr_na]
+
+ctd_fcr_na <- is.na(fcr_merge$DO_mgL.x)
+fcr_merge$DO_mgL.x[ctd_fcr_na] <- fcr_merge$DO_mgL.y[ctd_fcr_na]
+
+ctd_fcr_na <- is.na(fcr_merge$DO_pSat)
+fcr_merge$DO_pSat[ctd_fcr_na] <- fcr_merge$DOSat[ctd_fcr_na]
+
+ctd_fcr_na <- is.na(fcr_merge$Cond_uScm.x)
+fcr_merge$Cond_uScm.x[ctd_fcr_na] <- fcr_merge$Cond_uScm.y[ctd_fcr_na]
+
+ctd_fcr_na <- is.na(fcr_merge$PAR_umolm2s.x)
+fcr_merge$PAR_umolm2s.x[ctd_fcr_na] <- fcr_merge$PAR_umolm2s.y[ctd_fcr_na]
+
+ctd_fcr_na <- is.na(fcr_merge$ORP_mV.x)
+fcr_merge$ORP_mV.x[ctd_fcr_na] <- fcr_merge$ORP_mV.y[ctd_fcr_na]
+
+ctd_fcr_na <- is.na(fcr_merge$pH.x)
+fcr_merge$pH.x[ctd_fcr_na] <- fcr_merge$pH.y[ctd_fcr_na]
+
+fcr_all <- fcr_merge %>% 
+  select(time,Depth_m.x,Temp_C.x,DO_mgL.x,DO_pSat,Cond_uScm.x,Chla_ugL,Turb_NTU,pH.x,ORP_mV.x,PAR_umolm2s.x) %>% 
+  rename(depth=Depth_m.x,Temp_C=Temp_C.x,DO_mgL=DO_mgL.x,Cond_uScm=Cond_uScm.x,pH=pH.x,ORP_mV=ORP_mV.x,PAR_umolm2s=PAR_umolm2s.x)
+
+fcr_date_list <- as.data.frame(unique(as.Date(fcr_all$time)))
+
+## Average across date and depth
+fcr_all <- fcr_all %>% group_by(time,depth) %>% summarize_all(funs(mean),na.rm=TRUE)
+
+### Create a dataframe for CTD/YSI parameters at each sampling depth
+depths<- c(0.1, 1.6, 3.8, 5.0, 6.2, 8.0, 9.0) 
+
+#Initialize an empty matrix with the correct number of rows and columns 
+temp<-matrix(data=NA, ncol=ncol(fcr_all), nrow=length(depths)) #of cols in CTD data, and then nrows = # of layers produced
+super_final<-matrix(data=NA, ncol=1, nrow=0)
+dates<-unique(fcr_all$time)
+
+#create a function to chose the matching depth closest to our focal depths
+closest<-function(xv, sv){
+  xv[which.min(abs(xv-sv))]}
+
+library(plyr) #only use plyr for this for loop, then detach!
+
+#For loop to retrieve CTD depth with the closest function and fill in matrix
+for (i in 1:length(dates)){
+  j=dates[i]
+  q <- subset(fcr_all, fcr_all$time == j)
+  
+  layer1 <- q[q[, "depth"] == closest(q$depth,0.1),][1,]
+  layer2<- q[q[, "depth"] == closest(q$depth,1.6),][1,]
+  layer3<- q[q[, "depth"] == closest(q$depth,3.8),][1,]
+  layer4<- q[q[, "depth"] == closest(q$depth,5.0),][1,]
+  layer5<- q[q[, "depth"] == closest(q$depth,6.2),][1,]
+  layer6<- q[q[, "depth"] == closest(q$depth,8.0),][1,]
+  layer7<- q[q[, "depth"] == closest(q$depth,9.0),][1,]
+  
+  temp<-rbind(layer1,layer2,layer3,layer4,layer5,layer6,layer7)
+  temp[,((ncol(fcr_all))+1)] <- depths
+  colnames(temp)[((ncol(fcr_all))+1)]<-"new_depth"
+  final <- temp
+  final <- data.frame(final)
+  super_final <- rbind.fill.matrix(super_final,final)
+}
+
+detach(package:plyr)#to prevent issues with dplyr vs plyr not playing well together!
+
+#now need to clean up the data frame and make all factors numeric
+ctd_50_depths <- as.data.frame(super_final) %>%
+  select(-c(1,depth)) %>%
+  rename(depth = new_depth) %>%
+  mutate(time = as.POSIXct(strptime(time, "%Y-%m-%d", tz="EST")))
+
+ctd_50_depths$Temp_C <- as.numeric(ctd_50_depths$Temp_C)
+ctd_50_depths$depth <- as.numeric(ctd_50_depths$depth)
+
+# Combine Chem and CTD data into one data frame (by depth)
+data_depth <- full_join(ctd_50_depths,chem_50,by=c("time","depth"))
+
+data_depth$DO_mgL <- as.numeric(data_depth$DO_mgL)
+
+data_hypo <- data_depth %>% 
+  filter(depth %in% c(8.0,9.0))
+
+# Select for days with DOC data
+data_hypo_doc <- data_hypo[!is.na(data_hypo$DOC_mgL),]
+
+# Categorize data as: oxic (>3 mg/L); hypoxic (3>DO>0); anoxic (DO = 0)
+data_hypo_doc <- data_hypo_doc %>% 
+  mutate(oxy = ifelse(DO_mgL >= 2, 'Oxic',
+                      ifelse(DO_mgL < 2 & DO_mgL >= 0.7, 'Hypoxic',
+                             ifelse(DO_mgL < 0.7, 'Anoxic', NA))))
+
+# Remove outlier at 12 mg/L DOC for 8 m
+data_hypo_doc <- data_hypo_doc %>% 
+  mutate(DOC_mgL = ifelse(DOC_mgL > 12.0, NA, DOC_mgL))
+
+# Also should select for summer stratified period: for now, Jun 01 to Oct 31
+data_hypo_doc <- data_hypo_doc %>% 
+  mutate(month = month(time)) %>% 
+  filter(month %in% c(6,7,8,9,10))
+
+#############
+# Plot temp at depth at 50 + inflow temp
+# Where does the inflow go?
+# Not convinced it's going to the hypo - looks like temp is between 1.6 and 3.8 m (meaning the
+# inflow water likely stays in the epi?)
+ggplot()+
+  geom_line(ctd_50_depths,mapping=aes(x=time,y=Temp_C,color=as.factor(depth)))+
+  geom_line(inflow_daily,mapping=aes(x=DateTime,y=WVWA_Temp_C))+
+  theme_classic(base_size=15)
+
+# Plot DOC vs. DO for all depths
+ggplot(data_depth,mapping=aes(x=DO_mgL,y=DOC_mgL,color=as.factor(depth)))+
+  geom_point()+
+  theme_classic(base_size=15)
+
+ggplot(data_hypo,mapping=aes(x=DO_mgL,y=DOC_mgL,color=as.factor(depth)))+
+  geom_point()+
+  theme_classic(base_size=15)
+
+# Plot long-term DOC (add in oxygenation schedule?)
+ggplot(data_hypo_doc,mapping=aes(x=time,y=DOC_mgL,color=as.factor(depth)))+
+  annotate(geom="rect",xmin = as.POSIXct("2014-05-06"), xmax = as.POSIXct("2014-06-03"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2014-06-29"), xmax = as.POSIXct("2014-07-29"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2014-08-18"), xmax = as.POSIXct("2014-11-10"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2015-05-05"), xmax = as.POSIXct("2015-06-01"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2015-06-08"), xmax = as.POSIXct("2015-10-20"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2016-04-18"), xmax = as.POSIXct("2016-09-16"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2017-04-18"), xmax = as.POSIXct("2017-12-28"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2018-04-23"), xmax = as.POSIXct("2018-07-30"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-06-03"), xmax = as.POSIXct("2019-06-17"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-07-08"),xmax = as.POSIXct("2019-07-19"), ymin=-Inf, ymax=Inf,alpha=0.2)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-08-05"),xmax = as.POSIXct("2019-08-19"),ymin=-Inf,ymax=Inf,alpha=0.2)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-09-02"), xmax = as.POSIXct("2019-12-01"),ymin=-Inf,ymax=Inf,alpha=0.2)+ # Oxygen on
+  geom_line(size=1)+
+  geom_point(size=3)+
+  xlab("Date")+
+  ylab(expression(paste("DOC (mg L"^-1*")")))+
+  ylim(0,8)+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+
+# Plot boxplots of DOC in oxic, hypoxic, anoxic conditions for stratified period
+ggplot(data_hypo_doc,mapping=aes(oxy,DOC_mgL))+
+  geom_boxplot(outlier.shape=NA)+
+  geom_jitter(width=0.2)+
+  theme_classic(base_size=15)
