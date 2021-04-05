@@ -1,5 +1,8 @@
 ### Script to explore long-term DOC patterns and loading to FCR ###
 # 29 Mar 2021, A Hounshell
+# Updated: 5 Apr 2021, A Hounshell
+# Following CCC thoughts: constrain hypo to 9 m (assume 8m = outflow concentration)
+# Don't worry about 'entrainment' - should be included in the outflow variable
 
 # Load libraries
 pacman::p_load(tidyverse,ggplot2,ggpubr,lubridate,zoo)
@@ -24,35 +27,28 @@ chem_50 <- chem_50[!is.na(chem_50$DOC_mgL),]
 
 chem_50_hypo <- chem %>%
   filter(Site==50) %>% 
-  filter(Depth_m %in% c(8.0,9.0)) %>% 
+  filter(Depth_m == 9.0) %>% 
   rename(time = DateTime,depth = Depth_m) %>% 
   select(time,depth,DOC_mgL) %>% 
   group_by(time,depth) %>% 
-  summarize_all(funs(mean),na.rm=TRUE) %>% 
-  mutate(DOC_mgL = ifelse(DOC_mgL > 12.0, NA, DOC_mgL)) %>% # Remove outlier at 8 m (12 mg/L!!!)
-  mutate(depth = ifelse(depth == 8, 'depth_8',
-                        ifelse(depth == 9, 'depth_9', NA)))
+  summarize_all(funs(mean),na.rm=TRUE)
 chem_50_hypo <- chem_50_hypo[!is.na(chem_50_hypo$DOC_mgL),]
-
-chem_50_hypo_long <- chem_50_hypo %>% 
-  pivot_wider(names_from = depth, values_from = DOC_mgL)
 
 # Create dataframe with daily time step from 2015-01-01 to 2019-12-31
 chem_50_hypo_full <- as.data.frame(seq(as.POSIXct("2014-01-01",tz="EST"),as.POSIXct("2019-12-31",tz="EST"),by="days"))
 chem_50_hypo_full <- chem_50_hypo_full %>% 
   rename(time = `seq(as.POSIXct("2014-01-01", tz = "EST"), as.POSIXct("2019-12-31", tz = "EST"), by = "days")`)
-chem_50_hypo_full <- left_join(chem_50_hypo_full,chem_50_hypo_long,by="time")
+chem_50_hypo_full <- left_join(chem_50_hypo_full,chem_50_hypo,by="time")
 
 # Extrapolate and constrain to 2015-2019 data
 chem_50_hypo_full <- chem_50_hypo_full %>% 
-  mutate(depth_9 = na.fill(na.approx(depth_9,na.rm=FALSE),"extend")) %>% 
-  mutate(depth_8 = na.fill(na.approx(depth_8,na.rm=FALSE),"extend"))
+  mutate(DOC_mgL = na.fill(na.approx(DOC_mgL,na.rm=FALSE),"extend")) %>% 
+  select(-depth)
 
-### NOTE: NEED TO INCOPORATE 'ENTRIANMENT' - not included now!!!!
-# Calculate hypo mass: 8m x vol + 9m x vol
+# Calculate hypo mass: 9m x vol
 # Use same volumes as in L&O-L MS
 chem_50_hypo_full <- chem_50_hypo_full %>% 
-  mutate(hypo_mg = (depth_8*1.41*10^4*1000)+(depth_9*1.95*10^3*1000)) %>% 
+  mutate(hypo_mg = (DOC_mgL*1.95*10^3*1000)) %>% 
   mutate(dMdt_mgs = NA)
 
 # Calculate dM/dt (mg/s)
@@ -71,10 +67,11 @@ box_data <- chem_50_hypo_full %>%
 ### Separate out thermocline concentration for 'outflow' calculation
 chem_50_therm <- chem %>% 
   filter(Site==50) %>% 
-  filter(Depth_m %in% c(6.2)) %>% 
+  filter(Depth_m %in% c(8.0)) %>% 
   rename(time = DateTime,depth = Depth_m) %>% 
   select(time,DOC_mgL) %>% 
-  rename(DOC_mgL_therm = DOC_mgL)
+  rename(DOC_mgL_therm = DOC_mgL) %>% 
+  mutate(DOC_mgL_therm = ifelse(DOC_mgL_therm > 12.0, NA, DOC_mgL_therm)) # Remove outlier at 8 m (12 mg/L!!!)
 
 # Add to box_data data sheet and interpolate
 box_data <- left_join(box_data,chem_50_therm,by="time")
@@ -172,6 +169,37 @@ ggplot(box_data_sel,mapping=aes(x=time,y=j_kgd))+
   ylab(expression(paste("DOC Flux (kg d"^-1*")")))+
   theme_classic(base_size=15)+
   theme(legend.title=element_blank())
+
+# Plot [DOC] at 8, and 9 m + 100 from 2015-2020
+chem_doc <- chem %>% 
+  filter(Site %in% c(100) | Site==50 & Depth_m %in% c(8.0,9.0)) %>% 
+  mutate(Loc = ifelse(Site == 100, "Sta 100",
+                      ifelse(Site ==50 & Depth_m == 8.0, "Sta 50 8.0",
+                             ifelse(Site == 50 & Depth_m == 9.0, "Sta 50 9.0", NA)))) %>% 
+  mutate(DOC_mgL = ifelse(DOC_mgL > 12.0, NA, DOC_mgL))
+
+chem_doc <- chem_doc[!is.na(chem_doc$DOC_mgL),]
+
+ggplot(chem_doc,mapping=aes(x=DateTime,y=DOC_mgL,color=Loc))+
+  annotate(geom="rect",xmin = as.POSIXct("2015-05-05"), xmax = as.POSIXct("2015-06-01"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2015-06-08"), xmax = as.POSIXct("2015-10-20"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2016-04-18"), xmax = as.POSIXct("2016-09-16"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2017-04-18"), xmax = as.POSIXct("2017-12-28"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2018-04-23"), xmax = as.POSIXct("2018-07-30"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-06-03"), xmax = as.POSIXct("2019-06-17"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-07-08"),xmax = as.POSIXct("2019-07-19"), ymin=-Inf, ymax=Inf,alpha=0.2)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-08-05"),xmax = as.POSIXct("2019-08-19"),ymin=-Inf,ymax=Inf,alpha=0.2)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-09-02"), xmax = as.POSIXct("2019-12-01"),ymin=-Inf,ymax=Inf,alpha=0.2)+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2016-10-07"),linetype="dashed")+ #Turnover FCR
+  geom_vline(xintercept = as.POSIXct("2017-10-30"),linetype="dashed")+ #Turnover FCR
+  geom_vline(xintercept = as.POSIXct("2018-10-21"),linetype="dashed")+ #Turnover FCR
+  geom_line(size=0.9)+
+  geom_point(size=2)+
+  xlim(as.POSIXct("2015-05-01"),as.POSIXct("2019-12-01"))+
+  xlab("Date")+
+  ylab(expression(paste("DOC (mg L"^-1*")")))+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
   
 # CTD and YSI casts - combine together for most complete time-period
 #need to import CTD observations from EDI
@@ -179,7 +207,7 @@ inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/200/11/d771f5e9956304
 infile1 <- paste0(getwd(),"/CTD_final_2013_2020.csv")
 download.file(inUrl1,infile1,method="curl")
 
-ctd <- read_csv('CTD_final_2013_2020.csv') %>% #read in observed CTD data, which has multiple casts on the same day (problematic for comparison)
+ctd <- read.csv('CTD_final_2013_2020.csv') %>% #read in observed CTD data, which has multiple casts on the same day (problematic for comparison)
   filter(Reservoir=="FCR") %>%
   mutate(Date = as.POSIXct(strptime(Date, "%Y-%m-%d", tz="EST"))) %>% 
   select(Reservoir:PAR_umolm2s)
@@ -304,25 +332,44 @@ data_depth <- full_join(ctd_50_depths,chem_50,by=c("time","depth"))
 data_depth$DO_mgL <- as.numeric(data_depth$DO_mgL)
 
 data_hypo <- data_depth %>% 
-  filter(depth %in% c(8.0,9.0))
+  filter(depth %in% c(9.0))
+
+# Combine box model data w/ DO data
+do_9m <- ctd_50_depths %>% 
+  filter(depth == 9.0)
+do_9m <- do_9m[!is.na(do_9m$DO_mgL),]
+
+hypo_do_box <- left_join(do_9m,box_data,by="time")
+hypo_do_box$DO_mgL <- as.numeric(hypo_do_box$DO_mgL)
+
+hypo_do_box <- hypo_do_box %>% 
+  mutate(month = month(time)) %>% 
+  filter(month %in% c(6,7,8,9)) %>% 
+  mutate(oxy = ifelse(DO_mgL >= 0.7, 'Oxic',
+                      ifelse(DO_mgL < 0.7, 'Anoxic', NA)))
+
+# Plot DO vs. source/sink term
+ggplot(hypo_do_box,mapping=aes(x=DO_mgL,y=j_kgd))+
+  geom_point()+
+  theme_classic(base_size=15)
+
+ggplot(hypo_do_box,mapping=aes(oxy,j_kgd))+
+  geom_boxplot(outlier.shape=NA)+
+  geom_jitter(width=0.2)+
+  theme_classic(base_size=15)
 
 # Select for days with DOC data
 data_hypo_doc <- data_hypo[!is.na(data_hypo$DOC_mgL),]
 
 # Categorize data as: oxic (>3 mg/L); hypoxic (3>DO>0); anoxic (DO = 0)
 data_hypo_doc <- data_hypo_doc %>% 
-  mutate(oxy = ifelse(DO_mgL >= 2, 'Oxic',
-                      ifelse(DO_mgL < 2 & DO_mgL >= 0.7, 'Hypoxic',
-                             ifelse(DO_mgL < 0.7, 'Anoxic', NA))))
-
-# Remove outlier at 12 mg/L DOC for 8 m
-data_hypo_doc <- data_hypo_doc %>% 
-  mutate(DOC_mgL = ifelse(DOC_mgL > 12.0, NA, DOC_mgL))
+  mutate(oxy = ifelse(DO_mgL >= 0.7, 'Oxic',
+                             ifelse(DO_mgL < 0.7, 'Anoxic', NA)))
 
 # Also should select for summer stratified period: for now, Jun 01 to Oct 31
 data_hypo_doc <- data_hypo_doc %>% 
   mutate(month = month(time)) %>% 
-  filter(month %in% c(6,7,8,9,10))
+  filter(month %in% c(6,7,8,9))
 
 #############
 # Plot temp at depth at 50 + inflow temp
