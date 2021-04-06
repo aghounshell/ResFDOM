@@ -19,11 +19,43 @@ chem <- read.csv("./Data/chem.csv", header=T) %>%
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST")))
 
 ### Separate and calculate hypo mass (and change in mass/time)
-chem_50 <- chem %>% 
-  filter(Site==50) %>% 
-  filter(Depth_m %in% c(0.1,1.6,3.8,5.0,6.2,8.0,9.0)) %>% 
-  rename(time = DateTime,depth = Depth_m)
-chem_50 <- chem_50[!is.na(chem_50$DOC_mgL),]
+chem_inputs <- chem %>% 
+  filter(Site==50 & Depth_m %in% c(8.0,9.0) | Site==100) %>% 
+  filter(DateTime >= as.POSIXct("2015-03-31")) %>% 
+  rename(time = DateTime,depth = Depth_m) %>% 
+  mutate(loc = ifelse(Site==50 & depth==8.0, "50 8m",
+                      ifelse(Site==50 & depth==9.0, "50 9m",
+                             ifelse(Site==100, "100",NA)))) %>% 
+  mutate(DOC_mgL = ifelse(DOC_mgL > 12.0, NA, DOC_mgL)) # Remove outlier at 8 m (12 mg/L!!!)
+
+chem_inputs <- chem_inputs[!is.na(chem_inputs$DOC_mgL),]
+
+# Figure 3 - [DOC] timeseries for 8m, 9m, 100 from 2015-03-31 to 2019-11-20
+ggplot()+
+  annotate(geom="rect",xmin = as.POSIXct("2015-05-05"), xmax = as.POSIXct("2015-06-01"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2015-06-08"), xmax = as.POSIXct("2015-10-20"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2016-04-18"), xmax = as.POSIXct("2016-09-16"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2017-04-18"), xmax = as.POSIXct("2017-12-28"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2018-04-23"), xmax = as.POSIXct("2018-07-30"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-06-03"), xmax = as.POSIXct("2019-06-17"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-07-08"),xmax = as.POSIXct("2019-07-19"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-08-05"),xmax = as.POSIXct("2019-08-19"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-09-02"), xmax = as.POSIXct("2019-11-20"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on (technically turned-off on 2019-12-01)
+  geom_vline(xintercept = as.POSIXct("2015-10-05"),linetype="dashed")+ #Turnover FCR
+  geom_vline(xintercept = as.POSIXct("2016-10-07"),linetype="dashed")+ #Turnover FCR
+  geom_vline(xintercept = as.POSIXct("2017-10-30"),linetype="dashed")+ #Turnover FCR
+  geom_vline(xintercept = as.POSIXct("2018-10-21"),linetype="dashed")+ #Turnover FCR
+  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed")+ #Turnover FCR
+  geom_line(chem_inputs,mapping=aes(x=time,y=DOC_mgL,color=as.factor(loc)),size=1)+
+  geom_point(chem_inputs,mapping=aes(x=time,y=DOC_mgL,color=as.factor(loc)),size=3)+
+  ylab(expression(paste("DOC (mg L"^-1*")")))+
+  xlab("Time")+
+  scale_color_manual(breaks=c('50 8m','50 9m','100'),values=c("#7EBDC2","#393E41","#F0B670"),labels=c("Site 50 8m","Site 50 9m","Inflow"))+
+  xlim(as.POSIXct("2015-03-31"),as.POSIXct("2019-11-20"))+
+  theme_classic(base_size = 15)+
+  theme(legend.title=element_blank())
+
+ggsave("./Fig_Output/Fig3.jpg",width=10,height=4,units="in",dpi=320)
 
 chem_50_hypo <- chem %>%
   filter(Site==50) %>% 
@@ -61,8 +93,7 @@ ggplot(chem_50_hypo_full,mapping=aes(time,dMdt_mgs))+
   geom_line()
 
 # Start 'final' datasheet for calculations
-box_data <- chem_50_hypo_full %>% 
-  select(time,dMdt_mgs)
+box_data <- chem_50_hypo_full
 
 ### Separate out thermocline concentration for 'outflow' calculation
 chem_50_therm <- chem %>% 
@@ -123,11 +154,11 @@ box_data <- box_data %>%
 
 # Select for 2015-2019 during the stratified period
 box_data_sel <- box_data %>% 
-  filter(time>as.POSIXct("2015-06-01")&time<as.POSIXct("2019-11-01")) %>% 
+  filter(time>as.POSIXct("2015-03-31")&time<as.POSIXct("2019-11-20")) %>% 
   mutate(month = month(time)) %>% 
-  filter(month %in% c(6,7,8))
+  filter(month %in% c(5,6,7,8,9,10))
 
-# Plot?
+# Plot - Figure 4: DOC Box model results
 ggplot()+
   annotate(geom="rect",xmin = as.POSIXct("2015-05-05"), xmax = as.POSIXct("2015-06-01"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
   annotate(geom="rect",xmin = as.POSIXct("2015-06-08"), xmax = as.POSIXct("2015-10-20"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
@@ -137,22 +168,57 @@ ggplot()+
   annotate(geom="rect",xmin = as.POSIXct("2019-06-03"), xmax = as.POSIXct("2019-06-17"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
   annotate(geom="rect",xmin = as.POSIXct("2019-07-08"),xmax = as.POSIXct("2019-07-19"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
   annotate(geom="rect",xmin = as.POSIXct("2019-08-05"),xmax = as.POSIXct("2019-08-19"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on
-  annotate(geom="rect",xmin = as.POSIXct("2019-09-02"), xmax = as.POSIXct("2019-12-01"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-09-02"), xmax = as.POSIXct("2019-11-20"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on (technically turned-off on 2019-12-01)
+  geom_vline(xintercept = as.POSIXct("2015-10-05"),linetype="dashed")+ #Turnover FCR
   geom_vline(xintercept = as.POSIXct("2016-10-07"),linetype="dashed")+ #Turnover FCR
   geom_vline(xintercept = as.POSIXct("2017-10-30"),linetype="dashed")+ #Turnover FCR
   geom_vline(xintercept = as.POSIXct("2018-10-21"),linetype="dashed")+ #Turnover FCR
-  geom_line(box_data,mapping=aes(x=time,y=dMdt_mgs*60*60*24/1000/1000,color="dMdt_kgd"))+
-  geom_point(box_data,mapping=aes(x=time,y=dMdt_mgs*60*60*24/1000/1000,color="dMdt_kgd"))+
-  geom_line(box_data,mapping=aes(x=time,y=WVWA_Flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000,color="Inflow_kgd"))+
-  geom_point(box_data,mapping=aes(x=time,y=WVWA_Flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000,color="Inflow_kgd"))+
-  geom_line(box_data,mapping=aes(x=time,y=WVWA_Flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000,color="Outflow_kgd"))+
-  geom_point(box_data,mapping=aes(x=time,y=WVWA_Flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000,color="Outflow_kgd"))+
-  geom_line(box_data,mapping=aes(x=time,y=j_kgd,color="j_kgd"))+
-  geom_point(box_data,mapping=aes(x=time,y=j_kgd,color="j_kgd"))+
-  xlim(as.POSIXct("2015-04-01"),as.POSIXct("2019-12-01"))+
+  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed")+ #Turnover FCR
+  geom_hline(yintercept = 0,linetype="dashed")+
+  geom_line(box_data,mapping=aes(x=time,y=dMdt_mgs*60*60*24/1000/1000,color="dMdt_kgd"),size=1)+
+  geom_point(box_data,mapping=aes(x=time,y=dMdt_mgs*60*60*24/1000/1000,color="dMdt_kgd"),size=2)+
+  geom_line(box_data,mapping=aes(x=time,y=WVWA_Flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000,color="Inflow_kgd"),size=1)+
+  geom_point(box_data,mapping=aes(x=time,y=WVWA_Flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000,color="Inflow_kgd"),size=2)+
+  geom_line(box_data,mapping=aes(x=time,y=WVWA_Flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000,color="Outflow_kgd"),size=1)+
+  geom_point(box_data,mapping=aes(x=time,y=WVWA_Flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000,color="Outflow_kgd"),size=2)+
+  geom_line(box_data,mapping=aes(x=time,y=j_kgd,color="j_kgd"),size=1)+
+  geom_point(box_data,mapping=aes(x=time,y=j_kgd,color="j_kgd"),size=2)+
+  ylab(expression(paste("(kg d"^-1*")")))+
+  xlab("Time")+
+  scale_color_manual(breaks=c('Outflow_kgd','dMdt_kgd','Inflow_kgd','j_kgd'),values=c("#7EBDC2","#393E41","#F0B670","#E7804B"),labels=c("Outflow","dM/dt","Inflow","Source/Sink"))+
+  xlim(as.POSIXct("2015-03-31"),as.POSIXct("2019-11-20"))+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+
+ggsave("./Fig_Output/Fig4.jpg",width=10,height=4,units="in",dpi=320)
+
+ggplot()+
+  annotate(geom="rect",xmin = as.POSIXct("2015-05-05"), xmax = as.POSIXct("2015-06-01"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2015-06-08"), xmax = as.POSIXct("2015-10-20"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2016-04-18"), xmax = as.POSIXct("2016-09-16"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2017-04-18"), xmax = as.POSIXct("2017-12-28"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2018-04-23"), xmax = as.POSIXct("2018-07-30"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-06-03"), xmax = as.POSIXct("2019-06-17"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-07-08"),xmax = as.POSIXct("2019-07-19"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-08-05"),xmax = as.POSIXct("2019-08-19"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-09-02"), xmax = as.POSIXct("2019-11-20"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on (technically turned-off on 2019-12-01)
+  geom_vline(xintercept = as.POSIXct("2015-10-05"),linetype="dashed")+ #Turnover FCR
+  geom_vline(xintercept = as.POSIXct("2016-10-07"),linetype="dashed")+ #Turnover FCR
+  geom_vline(xintercept = as.POSIXct("2017-10-30"),linetype="dashed")+ #Turnover FCR
+  geom_vline(xintercept = as.POSIXct("2018-10-21"),linetype="dashed")+ #Turnover FCR
+  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed")+ #Turnover FCR
+  geom_line(box_data_sel,mapping=aes(x=time,y=dMdt_mgs*60*60*24/1000/1000,color="dMdt_kgd"))+
+  geom_point(box_data_sel,mapping=aes(x=time,y=dMdt_mgs*60*60*24/1000/1000,color="dMdt_kgd"))+
+  geom_line(box_data_sel,mapping=aes(x=time,y=WVWA_Flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000,color="Inflow_kgd"))+
+  geom_point(box_data_sel,mapping=aes(x=time,y=WVWA_Flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000,color="Inflow_kgd"))+
+  geom_line(box_data_sel,mapping=aes(x=time,y=WVWA_Flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000,color="Outflow_kgd"))+
+  geom_point(box_data_sel,mapping=aes(x=time,y=WVWA_Flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000,color="Outflow_kgd"))+
+  geom_line(box_data_sel,mapping=aes(x=time,y=j_kgd,color="j_kgd"))+
+  geom_point(box_data_sel,mapping=aes(x=time,y=j_kgd,color="j_kgd"))+
+  xlim(as.POSIXct("2015-03-31"),as.POSIXct("2019-11-20"))+
   theme_classic(base_size=15)
 
-ggplot(box_data_sel,mapping=aes(x=time,y=j_kgd))+
+ggplot(box_data,mapping=aes(x=time,y=j_kgd))+
   annotate(geom="rect",xmin = as.POSIXct("2015-05-05"), xmax = as.POSIXct("2015-06-01"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
   annotate(geom="rect",xmin = as.POSIXct("2015-06-08"), xmax = as.POSIXct("2015-10-20"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
   annotate(geom="rect",xmin = as.POSIXct("2016-04-18"), xmax = as.POSIXct("2016-09-16"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
@@ -167,37 +233,7 @@ ggplot(box_data_sel,mapping=aes(x=time,y=j_kgd))+
   geom_hline(yintercept = 0,linetype="dashed")+
   xlab("Date")+
   ylab(expression(paste("DOC Flux (kg d"^-1*")")))+
-  theme_classic(base_size=15)+
-  theme(legend.title=element_blank())
-
-# Plot [DOC] at 8, and 9 m + 100 from 2015-2020
-chem_doc <- chem %>% 
-  filter(Site %in% c(100) | Site==50 & Depth_m %in% c(8.0,9.0)) %>% 
-  mutate(Loc = ifelse(Site == 100, "Sta 100",
-                      ifelse(Site ==50 & Depth_m == 8.0, "Sta 50 8.0",
-                             ifelse(Site == 50 & Depth_m == 9.0, "Sta 50 9.0", NA)))) %>% 
-  mutate(DOC_mgL = ifelse(DOC_mgL > 12.0, NA, DOC_mgL))
-
-chem_doc <- chem_doc[!is.na(chem_doc$DOC_mgL),]
-
-ggplot(chem_doc,mapping=aes(x=DateTime,y=DOC_mgL,color=Loc))+
-  annotate(geom="rect",xmin = as.POSIXct("2015-05-05"), xmax = as.POSIXct("2015-06-01"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
-  annotate(geom="rect",xmin = as.POSIXct("2015-06-08"), xmax = as.POSIXct("2015-10-20"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
-  annotate(geom="rect",xmin = as.POSIXct("2016-04-18"), xmax = as.POSIXct("2016-09-16"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
-  annotate(geom="rect",xmin = as.POSIXct("2017-04-18"), xmax = as.POSIXct("2017-12-28"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
-  annotate(geom="rect",xmin = as.POSIXct("2018-04-23"), xmax = as.POSIXct("2018-07-30"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
-  annotate(geom="rect",xmin = as.POSIXct("2019-06-03"), xmax = as.POSIXct("2019-06-17"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
-  annotate(geom="rect",xmin = as.POSIXct("2019-07-08"),xmax = as.POSIXct("2019-07-19"), ymin=-Inf, ymax=Inf,alpha=0.2)+ # Oxygen on
-  annotate(geom="rect",xmin = as.POSIXct("2019-08-05"),xmax = as.POSIXct("2019-08-19"),ymin=-Inf,ymax=Inf,alpha=0.2)+ # Oxygen on
-  annotate(geom="rect",xmin = as.POSIXct("2019-09-02"), xmax = as.POSIXct("2019-12-01"),ymin=-Inf,ymax=Inf,alpha=0.2)+ # Oxygen on
-  geom_vline(xintercept = as.POSIXct("2016-10-07"),linetype="dashed")+ #Turnover FCR
-  geom_vline(xintercept = as.POSIXct("2017-10-30"),linetype="dashed")+ #Turnover FCR
-  geom_vline(xintercept = as.POSIXct("2018-10-21"),linetype="dashed")+ #Turnover FCR
-  geom_line(size=0.9)+
-  geom_point(size=2)+
-  xlim(as.POSIXct("2015-05-01"),as.POSIXct("2019-12-01"))+
-  xlab("Date")+
-  ylab(expression(paste("DOC (mg L"^-1*")")))+
+  xlim(as.POSIXct("2015-03-31"),as.POSIXct("2019-11-20"))+
   theme_classic(base_size=15)+
   theme(legend.title=element_blank())
   
@@ -326,34 +362,136 @@ ctd_50_depths <- as.data.frame(super_final) %>%
 ctd_50_depths$Temp_C <- as.numeric(ctd_50_depths$Temp_C)
 ctd_50_depths$depth <- as.numeric(ctd_50_depths$depth)
 
-# Combine Chem and CTD data into one data frame (by depth)
-data_depth <- full_join(ctd_50_depths,chem_50,by=c("time","depth"))
+ctd_50_hypo <- ctd_50_depths %>% 
+  filter(depth == 9.0)
 
-data_depth$DO_mgL <- as.numeric(data_depth$DO_mgL)
-
-data_hypo <- data_depth %>% 
-  filter(depth %in% c(9.0))
+ctd_50_hypo$DO_mgL <- as.numeric(ctd_50_hypo$DO_mgL)
 
 # Combine box model data w/ DO data
-do_9m <- ctd_50_depths %>% 
-  filter(depth == 9.0)
-do_9m <- do_9m[!is.na(do_9m$DO_mgL),]
-
-hypo_do_box <- left_join(do_9m,box_data,by="time")
+hypo_do_box <- left_join(ctd_50_hypo,box_data,by="time")
 hypo_do_box$DO_mgL <- as.numeric(hypo_do_box$DO_mgL)
 
 hypo_do_box <- hypo_do_box %>% 
+  filter(time >= as.POSIXct("2015-01-01") & time <= as.POSIXct("2019-11-20")) %>% 
   mutate(month = month(time)) %>% 
-  filter(month %in% c(6,7,8,9)) %>% 
+  filter(month %in% c(6,7,8,9,10)) %>% 
   mutate(oxy = ifelse(DO_mgL >= 0.7, 'Oxic',
-                      ifelse(DO_mgL < 0.7, 'Anoxic', NA)))
+                      ifelse(DO_mgL < 0.7, 'Anoxic',
+                             NA))) %>% 
+  filter(time != as.POSIXct("2017-07-06",tz="EST")) %>% # Time point in 2017 where it *shouldn't* be anoxic
+  mutate(year = ifelse(time >= as.POSIXct("2015-01-01") & time <= as.POSIXct("2015-12-31"), "2015",
+                       ifelse(time >= as.POSIXct("2016-01-01") & time <= as.POSIXct("2016-12-31"), "2016",
+                              ifelse(time >= as.POSIXct("2017-01-01") & time <= as.POSIXct("2017-12-31"), "2017",
+                                     ifelse(time >= as.POSIXct("2018-01-01") & time <= as.POSIXct("2018-12-31"), "2018",
+                                            ifelse(time >= as.POSIXct("2019-01-01") & time <= as.POSIXct("2019-12-31"), "2019",
+                                                   NA))))))
 
-# Plot DO vs. source/sink term
-ggplot(hypo_do_box,mapping=aes(x=DO_mgL,y=j_kgd))+
+hypo_do_box <- hypo_do_box[!is.na(hypo_do_box$DO_mgL),]
+
+# FIg. 5: Plot DOC and DOC source/sink term by oxic vs. anoxic
+# [DOC]
+doc <- ggplot(hypo_do_box,mapping=aes(year,DOC_mgL,colour=oxy))+
+  geom_boxplot()+
+  scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
+  ylab(expression(paste("DOC (mg L"^-1*")")))+
+  xlab("Year")+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+
+# Source/sink term
+jterm <- ggplot(hypo_do_box,mapping=aes(year,j_kgd,colour=oxy))+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_boxplot()+
+  scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
+  ylab(expression(paste("Source/sink term (kg d"^-1*")")))+
+  xlab("Year")+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+
+ggarrange(doc,jterm,ncol=2,nrow=1,common.legend=TRUE)
+
+ggsave("./Fig_Output/Fig5.jpg",width=10,height=4,units="in",dpi=320)
+
+### OLD CODE ###
+# Plot DO and DOC concentration together w/ color blocking
+ggplot()+
+  annotate(geom="rect",xmin = as.POSIXct("2015-05-05"), xmax = as.POSIXct("2015-06-01"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2015-06-08"), xmax = as.POSIXct("2015-10-20"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2016-04-18"), xmax = as.POSIXct("2016-09-16"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2017-04-18"), xmax = as.POSIXct("2017-12-28"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2018-04-23"), xmax = as.POSIXct("2018-07-30"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-06-03"), xmax = as.POSIXct("2019-06-17"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-07-08"),xmax = as.POSIXct("2019-07-19"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-08-05"),xmax = as.POSIXct("2019-08-19"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-09-02"), xmax = as.POSIXct("2019-11-20"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on (technically turned-off on 2019-12-01)
+  geom_vline(xintercept = as.POSIXct("2015-10-05"),linetype="dashed")+ #Turnover FCR
+  geom_vline(xintercept = as.POSIXct("2016-10-07"),linetype="dashed")+ #Turnover FCR
+  geom_vline(xintercept = as.POSIXct("2017-10-30"),linetype="dashed")+ #Turnover FCR
+  geom_vline(xintercept = as.POSIXct("2018-10-21"),linetype="dashed")+ #Turnover FCR
+  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed")+ #Turnover FCR
+  geom_line(ctd_50_hypo,mapping=aes(x=time,y=DO_mgL,color="DO"))+
+  geom_point(ctd_50_hypo,mapping=aes(x=time,y=DO_mgL,color="DO"))+
+  xlim(as.POSIXct("2015-03-31"),as.POSIXct("2019-11-20"))+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+
+# Plot DO and DOC by year (2015-2019)
+chem_50_hypo_time <- chem_50_hypo %>% 
+  filter(time >= as.POSIXct("2015-01-01")) %>% 
+  mutate(year = ifelse(time >= as.POSIXct("2015-01-01") & time <= as.POSIXct("2015-12-31"), "2015",
+                       ifelse(time >= as.POSIXct("2016-01-01") & time <= as.POSIXct("2016-12-31"), "2016",
+                              ifelse(time >= as.POSIXct("2017-01-01") & time <= as.POSIXct("2017-12-31"), "2017",
+                                     ifelse(time >= as.POSIXct("2018-01-01") & time <= as.POSIXct("2018-12-31"), "2018",
+                                            ifelse(time >= as.POSIXct("2019-01-01") & time <= as.POSIXct("2019-12-31"), "2019",
+                                                   NA))))))
+
+ggplot(chem_50_hypo_time,mapping=aes(x=time,y=DOC_mgL))+
   geom_point()+
+  geom_line()+
+  facet_grid(~year)
+
+ctd_50_hypo_time <- ctd_50_hypo %>% 
+  filter(time >= as.POSIXct("2015-01-01")) %>% 
+    mutate(year = ifelse(time >= as.POSIXct("2015-01-01") & time <= as.POSIXct("2015-12-31"), "2015",
+                       ifelse(time >= as.POSIXct("2016-01-01") & time <= as.POSIXct("2016-12-31"), "2016",
+                              ifelse(time >= as.POSIXct("2017-01-01") & time <= as.POSIXct("2017-12-31"), "2017",
+                                     ifelse(time >= as.POSIXct("2018-01-01") & time <= as.POSIXct("2018-12-31"), "2018",
+                                            ifelse(time >= as.POSIXct("2019-01-01") & time <= as.POSIXct("2019-12-31"), "2019",
+                                                   NA))))))
+
+ggplot(ctd_50_hypo_time,mapping=aes(x=time,y=DO_mgL))+
+  geom_point()+
+  geom_line()+
+  facet_grid(~year)
+
+# Separate code source/sink term for different oxygen conditions/year
+box_data_full <- left_join(box_data,data_hypo,by="time")
+
+box_data_full <- box_data_full %>% 
+  mutate(hox = ifelse(time > as.POSIXct("2015-06-01") & time <= as.POSIXct("2015-06-08"), "2015_off_1",
+                      ifelse(time > as.POSIXct("2015-06-08") & time <= as.POSIXct("2015-10-05"), "2015_on_1",
+                             ifelse(time >= as.POSIXct("2016-06-01") & time <= as.POSIXct("2016-09-16"), "2016_on_1",
+                                    ifelse(time > as.POSIXct("2016-09-16") & time <= as.POSIXct("2016-10-07"),"2016_off_1",
+                                           ifelse(time >= as.POSIXct("2017-06-01") & time <= as.POSIXct("2017-10-30"),"2017_on_1",
+                                                  ifelse(time >= as.POSIXct("2018-06-01") & time <= as.POSIXct("2018-07-30"),"2018_on_1",
+                                                         ifelse(time > as.POSIXct("2018-07-30") & time <= as.POSIXct("2018-10-21"),"2018_off_1",
+                                                                ifelse(time >= as.POSIXct("2019-06-01") & time <= as.POSIXct("2019-06-03"), "2019_off_1",
+                                                                       ifelse(time > as.POSIXct("2019-06-03") & time <=as.POSIXct("2019-06-17"),"2019_on_1",
+                                                                              ifelse(time > as.POSIXct("2019-06-17") & time <= as.POSIXct("2019-07-08"),"2019_off_1",
+                                                                                     ifelse(time > as.POSIXct("2019-07-08") & time <= as.POSIXct("2019-07-19"),"2019_on_2",
+                                                                                            ifelse(time > as.POSIXct("2019-07-19") & time <= as.POSIXct("2019-08-05"),"2019_off_2",
+                                                                                                   ifelse(time > as.POSIXct("2019-08-05") & time <= as.POSIXct("2019-08-19"),"2019_on_3",
+                                                                                                          ifelse(time > as.POSIXct("2019-08-19") & time <= as.POSIXct("2019-09-02"),"2019_off_3",
+                                                                                                                 ifelse(time > as.POSIXct("2019-09-02") & time <= as.POSIXct("2019-10-23"),"2019_on_4",
+                                                                                                                        NA))))))))))))))))
+
+# Plot by on/off schedule?
+ggplot(box_data_full,mapping=aes(x=hox,y=DOC_mgL.y))+
+  geom_boxplot(outlier.shape=NA)+
+  geom_jitter(width=0.2)+
   theme_classic(base_size=15)
 
-ggplot(hypo_do_box,mapping=aes(oxy,j_kgd))+
+ggplot(box_data_full,mapping=aes(x=hox,y=DO_mgL))+
   geom_boxplot(outlier.shape=NA)+
   geom_jitter(width=0.2)+
   theme_classic(base_size=15)
@@ -364,7 +502,14 @@ data_hypo_doc <- data_hypo[!is.na(data_hypo$DOC_mgL),]
 # Categorize data as: oxic (>3 mg/L); hypoxic (3>DO>0); anoxic (DO = 0)
 data_hypo_doc <- data_hypo_doc %>% 
   mutate(oxy = ifelse(DO_mgL >= 0.7, 'Oxic',
-                             ifelse(DO_mgL < 0.7, 'Anoxic', NA)))
+                             ifelse(DO_mgL < 0.7, 'Anoxic', NA))) %>% 
+  mutate(year = ifelse(time >= as.POSIXct("2015-01-01") & time <= as.POSIXct("2015-12-31"), "2015",
+                       ifelse(time >= as.POSIXct("2016-01-01") & time <= as.POSIXct("2016-12-31"), "2016",
+                              ifelse(time >= as.POSIXct("2017-01-01") & time <= as.POSIXct("2017-12-31"), "2017",
+                                     ifelse(time >= as.POSIXct("2018-01-01") & time <= as.POSIXct("2018-12-31"), "2018",
+                                            ifelse(time >= as.POSIXct("2019-01-01") & time <= as.POSIXct("2019-12-31"), "2019",
+                                                   NA)))))) %>% 
+  filter(time >= as.POSIXct("2015-01-01"))
 
 # Also should select for summer stratified period: for now, Jun 01 to Oct 31
 data_hypo_doc <- data_hypo_doc %>% 
@@ -413,7 +558,6 @@ ggplot(data_hypo_doc,mapping=aes(x=time,y=DOC_mgL,color=as.factor(depth)))+
   theme(legend.title=element_blank())
 
 # Plot boxplots of DOC in oxic, hypoxic, anoxic conditions for stratified period
-ggplot(data_hypo_doc,mapping=aes(oxy,DOC_mgL))+
-  geom_boxplot(outlier.shape=NA)+
-  geom_jitter(width=0.2)+
+ggplot(data_hypo_doc,mapping=aes(year,DOC_mgL,color=oxy))+
+  geom_boxplot()+
   theme_classic(base_size=15)
