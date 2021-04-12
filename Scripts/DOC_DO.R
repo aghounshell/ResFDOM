@@ -8,10 +8,10 @@
 pacman::p_load(tidyverse,ggplot2,ggpubr,lubridate,zoo)
 
 # Load data: long-term DOC; weir discharge; temperature/DO casts
-# DOC data from EDI
-inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/199/7/da174082a3d924e989d3151924f9ef98" 
-infile1 <- paste0(getwd(),"/Data/chem.csv")
-download.file(inUrl1,infile1,method="curl")
+# DOC data from EDI - NOTE: May want to update for 2020 data??
+#inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/199/7/da174082a3d924e989d3151924f9ef98" 
+#infile1 <- paste0(getwd(),"/Data/chem.csv")
+#download.file(inUrl1,infile1,method="curl")
 
 chem <- read.csv("./Data/chem.csv", header=T) %>%
   select(Reservoir:DIC_mgL) %>%
@@ -121,9 +121,9 @@ box_data <- box_data %>%
   mutate(DOC_mgL_100 = na.fill(na.approx(DOC_mgL_100,na.rm=FALSE),"extend"))
 
 # Weir discharge/temperature
-inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/202/7/f5fa5de4b49bae8373f6e7c1773b026e" 
-infile1 <- paste0(getwd(),"/Data/inflow_for_EDI_2013_10Jan2021.csv")
-download.file(inUrl1,infile1,method="curl")
+#inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/202/7/f5fa5de4b49bae8373f6e7c1773b026e" 
+#infile1 <- paste0(getwd(),"/Data/inflow_for_EDI_2013_10Jan2021.csv")
+#download.file(inUrl1,infile1,method="curl")
 
 inflow <- read.csv("./Data/inflow_for_EDI_2013_10Jan2021.csv",header=T) %>% 
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) %>% 
@@ -239,9 +239,9 @@ ggplot(box_data,mapping=aes(x=time,y=j_kgd))+
   
 # CTD and YSI casts - combine together for most complete time-period
 #need to import CTD observations from EDI
-inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/200/11/d771f5e9956304424c3bc0a39298a5ce" 
-infile1 <- paste0(getwd(),"/CTD_final_2013_2020.csv")
-download.file(inUrl1,infile1,method="curl")
+#inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/200/11/d771f5e9956304424c3bc0a39298a5ce" 
+#infile1 <- paste0(getwd(),"/CTD_final_2013_2020.csv")
+#download.file(inUrl1,infile1,method="curl")
 
 ctd <- read.csv('CTD_final_2013_2020.csv') %>% #read in observed CTD data, which has multiple casts on the same day (problematic for comparison)
   filter(Reservoir=="FCR") %>%
@@ -253,9 +253,9 @@ ctd_50 <- ctd %>%
   rename(time = Date)
 
 # Import YSI observations from EDI
-inUrl1 <- "https://pasta.lternet.edu/package/data/eml/edi/198/8/07ba1430528e01041435afc4c65fbeb6"
-infile1 <- paste0(getwd(),"/YSI_PAR_profiles_2013-2020.csv")
-download.file(inUrl1,infile1,method="curl")
+#inUrl1 <- "https://pasta.lternet.edu/package/data/eml/edi/198/8/07ba1430528e01041435afc4c65fbeb6"
+#infile1 <- paste0(getwd(),"/YSI_PAR_profiles_2013-2020.csv")
+#download.file(inUrl1,infile1,method="curl")
 
 ysi <- read_csv('YSI_PAR_profiles_2013-2020.csv') %>% 
   filter(Reservoir=="FCR") %>% 
@@ -388,7 +388,7 @@ hypo_do_box <- hypo_do_box %>%
 
 hypo_do_box <- hypo_do_box[!is.na(hypo_do_box$DO_mgL),]
 
-# FIg. 5: Plot DOC and DOC source/sink term by oxic vs. anoxic
+# Fig. 5: Plot DOC and DOC source/sink term by oxic vs. anoxic
 # [DOC]
 doc <- ggplot(hypo_do_box,mapping=aes(year,DOC_mgL,colour=oxy))+
   geom_boxplot()+
@@ -411,6 +411,182 @@ jterm <- ggplot(hypo_do_box,mapping=aes(year,j_kgd,colour=oxy))+
 ggarrange(doc,jterm,ncol=2,nrow=1,common.legend=TRUE)
 
 ggsave("./Fig_Output/Fig5.jpg",width=10,height=4,units="in",dpi=320)
+
+### Let's start thinking about DOM quality - what metrics to use?
+# a254? HIX? BIX? Peak C? Peak T? PARAFAC?
+# Load in data
+fdom <- read_csv("./Data/20210210_ResultsFiles_ResEEMs2019_RAW.csv") %>% 
+  filter(Reservoir == "FCR" & Dilution %in% c(1,2)) %>% 
+  mutate(Date = as.POSIXct(strptime(Date, "%m/%d/%Y", tz="EST")))
+
+fdom_hypo <- fdom %>% 
+  filter(Depth == 9.0) %>% 
+  group_by(Date,Depth) %>% 
+  summarize_all(funs(mean))
+
+fdom_hypo_sd <- fdom %>% 
+  filter(Depth == 9.0) %>% 
+  group_by(Date,Depth) %>% 
+  summarize_all(funs(sd))
+  
+cdom <- read_csv("./Data/20200930_ResultsFiles_Abs2019.csv") %>% 
+  filter(Reservoir == "FCR" & Dilution %in% c(1)) %>% 
+  mutate(Date = as.POSIXct(strptime(Date, "%m/%d/%Y", tz="EST")))
+
+cdom_hypo <- cdom %>% 
+  filter(Depth == 9.0) %>% 
+  group_by(Date,Depth) %>% 
+  summarize_all(funs(mean))
+
+cdom_hypo_sd <- cdom %>% 
+  filter(Depth == 9.0) %>% 
+  group_by(Date,Depth) %>% 
+  summarize_all(funs(sd))
+
+# Plot various parameters for Hypo
+ggplot()+
+  annotate(geom="rect",xmin = as.POSIXct("2019-06-03"), xmax = as.POSIXct("2019-06-17"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-07-08"),xmax = as.POSIXct("2019-07-19"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-08-05"),xmax = as.POSIXct("2019-08-19"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-09-02"), xmax = as.POSIXct("2019-11-20"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on (technically turned-off on 2019-12-01)
+  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed")+ #Turnover FCR
+  geom_line(cdom_hypo,mapping=aes(x=Date,y=a254))+
+  geom_point(cdom_hypo,mapping=aes(x=Date,y=a254))+
+  geom_errorbar(cdom_hypo,mapping=aes(x=Date,y=a254,ymin=a254-cdom_hypo_sd$a254,ymax=a254+cdom_hypo_sd$a254))+
+  ylim(0,80)+
+  theme_classic(base_size=15)
+
+ggplot()+
+  annotate(geom="rect",xmin = as.POSIXct("2019-06-03"), xmax = as.POSIXct("2019-06-17"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-07-08"),xmax = as.POSIXct("2019-07-19"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-08-05"),xmax = as.POSIXct("2019-08-19"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-09-02"), xmax = as.POSIXct("2019-11-20"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on (technically turned-off on 2019-12-01)
+  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed")+ #Turnover FCR
+  geom_line(cdom_hypo,mapping=aes(x=Date,y=a350))+
+  geom_point(cdom_hypo,mapping=aes(x=Date,y=a350))+
+  geom_errorbar(cdom_hypo,mapping=aes(x=Date,y=a350,ymin=a350-cdom_hypo_sd$a350,ymax=a350+cdom_hypo_sd$a350))+
+  theme_classic(base_size=15)
+
+ggplot()+
+  annotate(geom="rect",xmin = as.POSIXct("2019-06-03"), xmax = as.POSIXct("2019-06-17"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-07-08"),xmax = as.POSIXct("2019-07-19"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-08-05"),xmax = as.POSIXct("2019-08-19"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-09-02"), xmax = as.POSIXct("2019-11-20"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on (technically turned-off on 2019-12-01)
+  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed")+ #Turnover FCR
+  geom_line(cdom_hypo,mapping=aes(x=Date,y=Sr))+
+  geom_point(cdom_hypo,mapping=aes(x=Date,y=Sr))+
+  geom_errorbar(cdom_hypo,mapping=aes(x=Date,y=Sr,ymin=Sr-cdom_hypo_sd$Sr,ymax=Sr+cdom_hypo_sd$Sr))+
+  theme_classic(base_size=15)
+
+fdom_hypo_2 <- fdom_hypo %>% 
+  rename(time = Date,PeakT=T,PeakA=A)
+
+cdom_hypo_2 <- cdom_hypo %>% 
+  rename(time = Date)
+
+# Combine with DO data
+hypo_do_box_2 <- left_join(hypo_do_box,cdom_hypo_2,by="time")
+hypo_do_box_2 <- left_join(hypo_do_box_2,fdom_hypo_2,by="time")
+
+hypo_do_box_2 <- hypo_do_box_2 %>% 
+  filter(time >= as.POSIXct("2019-01-01"))
+
+# Plot boxplots of various FDOM/CDOM parameters by oxic/anoxic
+peakt_time <- ggplot()+
+  annotate(geom="rect",xmin = as.POSIXct("2019-06-03"), xmax = as.POSIXct("2019-06-17"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-07-08"),xmax = as.POSIXct("2019-07-19"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-08-05"),xmax = as.POSIXct("2019-08-19"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-09-02"), xmax = as.POSIXct("2019-11-20"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on (technically turned-off on 2019-12-01)
+  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed")+ #Turnover FCR
+  geom_line(fdom_hypo,mapping=aes(x=Date,y=T))+
+  geom_point(fdom_hypo,mapping=aes(x=Date,y=T))+
+  geom_errorbar(fdom_hypo,mapping=aes(x=Date,y=T,ymin=T-fdom_hypo_sd$T,ymax=T+fdom_hypo_sd$T))+
+  ylim(0,0.25)+
+  theme_classic(base_size=15)
+
+peakt_box <- ggplot(hypo_do_box_2,mapping=aes(x=year,y=PeakT,colour=oxy))+
+  geom_boxplot()+
+  scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
+  ylab("Peak T")+
+  xlab("Year")+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+
+ggarrange(peakt_time,peakt_box)
+
+ggsave("./Fig_Output/PeakT_oxy.jpg",width=10,height=4,units="in",dpi=320)
+
+peaka_time <- ggplot()+
+  annotate(geom="rect",xmin = as.POSIXct("2019-06-03"), xmax = as.POSIXct("2019-06-17"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-07-08"),xmax = as.POSIXct("2019-07-19"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-08-05"),xmax = as.POSIXct("2019-08-19"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-09-02"), xmax = as.POSIXct("2019-11-20"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on (technically turned-off on 2019-12-01)
+  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed")+ #Turnover FCR
+  geom_line(fdom_hypo,mapping=aes(x=Date,y=A))+
+  geom_point(fdom_hypo,mapping=aes(x=Date,y=A))+
+  geom_errorbar(fdom_hypo,mapping=aes(x=Date,y=A,ymin=A-fdom_hypo_sd$A,ymax=A+fdom_hypo_sd$A))+
+  ylim(0,0.35)+
+  theme_classic(base_size=15)
+
+peaka_box <- ggplot(hypo_do_box_2,mapping=aes(x=year,y=PeakA,colour=oxy))+
+  geom_boxplot()+
+  scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
+  ylab("Peak A")+
+  xlab("Year")+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+
+ggarrange(peaka_time,peaka_box)
+
+ggsave("./Fig_Output/PeakA_oxy.jpg",width=10,height=4,units="in",dpi=320)
+
+hix_time <- ggplot()+
+  annotate(geom="rect",xmin = as.POSIXct("2019-06-03"), xmax = as.POSIXct("2019-06-17"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-07-08"),xmax = as.POSIXct("2019-07-19"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-08-05"),xmax = as.POSIXct("2019-08-19"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-09-02"), xmax = as.POSIXct("2019-11-20"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on (technically turned-off on 2019-12-01)
+  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed")+ #Turnover FCR
+  geom_line(fdom_hypo,mapping=aes(x=Date,y=HIX))+
+  geom_point(fdom_hypo,mapping=aes(x=Date,y=HIX))+
+  geom_errorbar(fdom_hypo,mapping=aes(x=Date,y=HIX,ymin=HIX-fdom_hypo_sd$HIX,ymax=HIX+fdom_hypo_sd$HIX))+
+  ylim(0,6)+
+  theme_classic(base_size=15)
+
+hix_box <- ggplot(hypo_do_box_2,mapping=aes(x=year,y=HIX,colour=oxy))+
+  geom_boxplot()+
+  scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
+  ylab("HIX")+
+  xlab("Year")+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+
+ggarrange(hix_time,hix_box)
+
+ggsave("./Fig_Output/HIX_oxy.jpg",width=10,height=4,units="in",dpi=320)
+
+bix_time <- ggplot()+
+  annotate(geom="rect",xmin = as.POSIXct("2019-06-03"), xmax = as.POSIXct("2019-06-17"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-07-08"),xmax = as.POSIXct("2019-07-19"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-08-05"),xmax = as.POSIXct("2019-08-19"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-09-02"), xmax = as.POSIXct("2019-11-20"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on (technically turned-off on 2019-12-01)
+  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed")+ #Turnover FCR
+  geom_line(fdom_hypo,mapping=aes(x=Date,y=BIX))+
+  geom_point(fdom_hypo,mapping=aes(x=Date,y=BIX))+
+  geom_errorbar(fdom_hypo,mapping=aes(x=Date,y=BIX,ymin=BIX-fdom_hypo_sd$BIX,ymax=BIX+fdom_hypo_sd$BIX))+
+  ylim(0,0.9)+
+  theme_classic(base_size=15)
+
+bix_box <- ggplot(hypo_do_box_2,mapping=aes(x=year,y=BIX,colour=oxy))+
+  geom_boxplot()+
+  scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
+  ylab("BIX")+
+  xlab("Year")+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+
+ggarrange(bix_time,bix_box)
+
+ggsave("./Fig_Output/BIX_oxy.jpg",width=10,height=4,units="in",dpi=320)
 
 ### OLD CODE ###
 # Plot DO and DOC concentration together w/ color blocking
