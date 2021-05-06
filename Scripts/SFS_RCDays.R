@@ -13,9 +13,25 @@ rc_days <- read_csv("./Data/continuum_ww.csv") %>%
                                ifelse(Reservoir == "BVR" & Site == "1", "30",
                                       Site)))) %>% 
   select(Reservoir,Site,DateTime,TN_ugL,TP_ugL,NH4_ugL,NO3NO2_ugL,SRP_ugL,DOC_mgL,Chla_ugL,Flow_cms,Site2) %>% 
-  mutate(N_load_gd = Flow_cms*NO3NO2_ugL*1000*60*60*24/(1*10^6)) %>% 
+  mutate(N_load_gd = Flow_cms*(NO3NO2_ugL+NH4_ugL)*1000*60*60*24/(1*10^6)) %>% 
   mutate(P_load_gd = Flow_cms*SRP_ugL*1000*60*60*24/(1*10^6)) %>% 
   mutate(C_load_kgd = Flow_cms*DOC_mgL*60*60*24/1000)
+
+# Load in YSI data (mainly looking at Temp)
+#inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/198/8/07ba1430528e01041435afc4c65fbeb6" 
+#infile1 <- paste0(getwd(),"/Data/YSI_PAR_profiles_2013-2020.csv")
+#download.file(inUrl1,infile1,method="curl")
+
+ysi <- read.csv("./Data/YSI_PAR_profiles_2013-2020.csv") %>% 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) %>% 
+  mutate(Site2 = ifelse(Reservoir == "BVR" & Site == "20", "20_L",
+                        ifelse(Reservoir == "BVR" & Site == "30", "20_R",
+                               ifelse(Reservoir == "BVR" & Site == "1", "30",
+                                      Site)))) %>% 
+  filter(Depth_m==0.1) %>% 
+  select(Reservoir,Site,DateTime,Temp_C,DO_mgL,DOSat,Cond_uScm,pH,Site2) %>% 
+  filter(DateTime > as.POSIXct("2019-04-28") & DateTime < as.POSIXct("2019-10-05")) 
+  
   
 # Fluorescence (HIX, BIX) 
 fl <- read_csv("./Data/20210210_ResultsFiles_ResEEMs2019_RAW.csv") %>% 
@@ -37,7 +53,9 @@ fl_bvr <- fl %>%
 fl_all_res <- rbind(fl_fcr,fl_bvr)
 
 # Combine w/ RC days data
-all_data <- left_join(rc_days,fl_all_res,by=c("Reservoir","DateTime","Site"))
+all_data_1 <- left_join(rc_days,fl_all_res,by=c("Reservoir","DateTime","Site"))
+
+all_data <- left_join(all_data_1,ysi,by=c("Reservoir","DateTime","Site","Site2"))
 
 all_data$Site2 <- factor(all_data$Site2, levels=c("100","200","20_L","20_R","20","30","45","50"))
 
@@ -98,7 +116,7 @@ n_load <- ggplot(all_data_inflow,mapping=aes(as.factor(Site2),N_load_gd,color=Re
   scale_color_manual(breaks=c('BVR','FCR'),
                      values=c("#43AA8B","#0F4C5C"))+
   xlab("Site")+
-  ylab(expression(paste("NO"[3]^-1*" Loading (g d"^-1*")")))+
+  ylab(expression(paste("DIN Loading (g d"^-1*")")))+
   theme_classic(base_size=15)+
   theme(legend.position = "none")
 
@@ -124,10 +142,24 @@ ggarrange(n_load,p_load,c_load,nrow=1,ncol=3)
 
 ggsave("./Fig_Output/SFS_Loads.png",width=12.5,height=3.5,units="in",dpi=320)
 
+## Plot Temp too
+ggplot(all_data_sel,mapping=aes(as.factor(Site2),Temp_C,color=Reservoir))+
+  geom_boxplot()+
+  scale_color_manual(breaks=c('BVR','FCR'),
+                     values=c("#43AA8B","#0F4C5C"))+
+  xlab("Site")+
+  ylab(expression(paste("Temp (C"^o*")")))+
+  theme_classic(base_size=15)+
+  theme(legend.position = "none")
+
 # PCA ----
 pca_data <- all_data %>% 
   filter(Site2 %in% c("20","20_L","20_R","30","45","50","100","200")) %>% 
-  select(Reservoir,DateTime,TN_ugL,TP_ugL,NH4_ugL,NO3NO2_ugL,SRP_ugL,DOC_mgL,Chla_ugL,Site2,T,A,HIX,BIX) %>% 
+  select(Reservoir,DateTime,TN_ugL,TP_ugL,NH4_ugL,NO3NO2_ugL,SRP_ugL,DOC_mgL,Chla_ugL,Site2,T,A,HIX,BIX,Temp_C) %>% 
+  mutate(DIN_ugL = NH4_ugL + NO3NO2_ugL) %>% 
+  mutate(DIN_ugL = na.fill(na.approx(DIN_ugL,na.rm=FALSE),"extend")) %>% 
+  mutate(SRP_ugL = na.fill(na.approx(SRP_ugL,na.rm=FALSE),"extend")) %>%
+  mutate(Temp_C = na.fill(na.approx(Temp_C,na.rm=FALSE),"extend")) %>%
   mutate(DOC_mgL = na.fill(na.approx(DOC_mgL,na.rm=FALSE),"extend")) %>% 
   mutate(Chla_ugL = na.fill(na.approx(Chla_ugL,na.rm=FALSE),"extend")) %>%
   mutate(TN_ugL = na.fill(na.approx(TN_ugL,na.rm=FALSE),"extend")) %>% 
@@ -141,7 +173,7 @@ pca_data_scale <- scale(pca_data_num)
 chart.Correlation(pca_data_scale,histogram=TRUE,method=c("pearson"))
 
 pca_data_scale_sel <- pca_data_num %>% 
-  select(Chla_ugL,DOC_mgL,T,A)
+  select(Chla_ugL,DOC_mgL,T,A,Temp_C,DIN_ugL,SRP_ugL)
 
 pca_data_scale_sel <- scale(pca_data_scale_sel)
 
@@ -164,21 +196,24 @@ colvec<-c("#3F88C5","#0F4C5C","#FB8B24","#E36414","#DC042C","#5F0F40","#43AA8B",
           "#3F88C5","#0F4C5C","#FB8B24","#DC042C","#5F0F40","#43AA8B")
 sq<-c(22,22,22,22,22,22,22,21,21,21,21,21,21)
 
-png("SFS_Loads_wLegend.png",width=6,height=6,units="in",res=320)
+png("SFS_Loads.png",width=6,height=6,units="in",res=320)
 
-plot(data_pca,type="n",scaling=2,xlab="PC1 (73% var. explained)",ylab="PC2 (18% var. explained)",cex.axis=1.5,
-     cex.lab=1.4,xlim=range(-10,3),ylim=range(20,-3))
+plot(data_pca,type="n",scaling=2,xlab="PC1 (46% var. explained)",ylab="PC2 (22% var. explained)",cex.axis=1.5,
+     cex.lab=1.4)
 with(pca_data,points(data_pca,display="sites",col=c("black","black","black","black"),scaling=2,pch=sq[loc],
                  bg=colvec[loc],cex=1.4))
-with(pca_data,legend("topleft",legend=levels(loc),bty="n",col=c("black","black","black","black"),
-                 pch=c(22,22,22,22,22,22,22,21,21,21,21,21,21),pt.bg=colvec,cex=1.3,xpd=TRUE))
+#with(pca_data,legend("topleft",legend=levels(loc),bty="n",col=c("black","black","black","black"),
+#                 pch=c(22,22,22,22,22,22,22,21,21,21,21,21,21),pt.bg=colvec,cex=1.3,xpd=TRUE))
 arrows(0, 0, spe_sc2[,1], spe_sc2[,2], angle=20, col="black")
-text(data_pca, display = "species",labels=c("","","",""), scaling=2, cex = 0.8,
+text(data_pca, display = "species",labels=c("","","","","","",""), scaling=2, cex = 0.8,
      col = "black")
-text(2,-1,labels="DOC",cex=1.1,col="black")
-text(2.2,-0.2,labels="Chla",cex=1.1,col="black")
-text(2.3,0,labels="Peak T",cex=1.1,col="black")
-text(1.8,1.5,labels="Peak A",cex=1.1,col="black")
+text(1.9,-0.1,labels="Chla",cex=1.1,col="black")
+text(1.6,-0.7,labels="DOC",cex=1.1,col="black")
+text(1.9,0.1,labels="Peak T",cex=1.1,col="black")
+text(1.5,1,labels="Peak A",cex=1.1,col="black")
+text(1,-0.8,labels="Temp",cex=1.1,col="black")
+text(-0.2,1.75,labels="DIN",cex=1.1,col="black")
+text(0.9,0.9,labels="SRP",cex=1.1,col="black")
 
 dev.off()
 
