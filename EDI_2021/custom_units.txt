@@ -1,0 +1,3 @@
+id	unitType	parentSI	multiplierToSI	description
+perMeter	absorbance			absorbance in per meter
+relativeFluorescenceUnites	fluorescence			fluorescence units standardized to the Raman scan of Nanopure water

@@ -1,6 +1,7 @@
 % Script to follow PARAFAC modeling (w/ notes!)
 % NOTE: This is ALL samples (both reservoirs; all sites) for samples with a
 % 1 OR 2 dilution
+% 11 May 2021, A Hounshell
 
 % Load in samples w/ pfileloader
 % DO NOT: divide by fluorescence - will do this later one!
