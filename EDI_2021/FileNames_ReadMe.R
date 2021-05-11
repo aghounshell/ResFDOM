@@ -11,11 +11,11 @@ pacman::p_load(tidyverse)
 files <- list.files("./EDI_2021/EEMs_pfiles",full.names=TRUE)
 files
 
-strings <- files %>% str_replace(".*p", "p")
+strings <- files %>% str_replace(".*/p", "p")
 
 strings <- as.data.frame(strings)
 
-write_csv(strings,"./EDI_2021/EEMs_pfiles_readme.csv")
+write_csv(strings,"./EDI_2021/EEMs_pfiles_readme_2.csv")
 
 # Load Abs file names
 abs_files <- list.files("./EDI_2021/CDOM Correction",full.names=TRUE)

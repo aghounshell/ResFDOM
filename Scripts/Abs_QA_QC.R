@@ -160,7 +160,7 @@ abs_join <- abs_r %>% select(-Sample.Name,-Date.analyzed)
 #Filter eems data for dilution of 1,2 in FCR,BVR
 eems_d <- eems %>% filter(Dilution<=2)
 eems_r <- eems_d %>% filter(Reservoir%in%c("FCR","BVR"))
-eems_join <- eems_r %>% select(-Sample.Name,-Date.analyzed)
+eems_join <- eems_r %>% select(-Sample.Name,-Date.analyzed,-a254,-a350,-Sr)
 
 #Filter parafac data for dilution of 1,2 in FCR,BVR
 parafac_d <- parafac %>% filter(Dilution<=2)
@@ -174,13 +174,13 @@ abs_eems <- full_join(abs_join,eems_join,by=c("Reservoir","Date","Station","Dept
 abs_eems_parafac <- full_join(abs_eems,parafac_join,by=c("Reservoir","Date","Station","Depth","Rep","Dilution"))
 
 #Adjust full dataset column order and names
-abs.eems.parafac <- abs_eems_parafac %>% arrange(Date,Reservoir,Station,Depth,Rep)
+abs.eems.parafac <- abs_eems_parafac %>% arrange(Date,Reservoir,Station,Depth,Rep,Dilution)
 abs.eems.parafac <- abs.eems.parafac %>% rename(Site=Station,DateTime=Date,Depth_m=Depth)
 abs.eems.parafac <- abs.eems.parafac[,c(1,3,2,4:36)]
 abs.eems.parafac <- abs.eems.parafac %>% rename(a254_m=a254,a350_m=a350,S275_295=S275.295)
 abs.eems.parafac <- abs.eems.parafac %>% rename(S350_400=S350.400,Max_Fl_Ex=Max.Fl.Ex,Max_Fl_Em=Max.Fl.Em)
 abs.eems.parafac <- abs.eems.parafac %>% rename(Max_Fl=Max.Fl)
-abs.eems.parafac <- abs.eems.parafac %>% rename(TB=T.B,TM=T.M,TN=T.N,TC=T.C,AT=A.T,AC=A.C,AM=A.M,MC=M.C,CN=C.N)
+abs.eems.parafac <- abs.eems.parafac %>% rename(T_B=T.B,T_M=T.M,T_N=T.N,T_C=T.C,A_T=A.T,A_C=A.C,A_M=A.M,M_C=M.C,C_N=C.N)
 
 #Calculate mean and sd for a254, similar to QA/QC for absorbance data, based on full dataset
 a254_alldata <- abs.eems.parafac %>% select(DateTime,Site,Depth_m,a254_m)
@@ -224,4 +224,21 @@ ggplot(peakA_sd,mapping=aes(x=DateTime,y=A,color=Location))+geom_line()+geom_poi
 ggplot(peakT_sd,mapping=aes(x=DateTime,y=T,color=Location))+geom_line()+geom_point()+theme_classic(base_size=15)
 
 #Export full dataset as .csv file
-write.csv(abs.eems.parafac,"C:/Users/rospi/OneDrive/Desktop/Virginia Tech Spring 2021/CDOM RStudio Work/ResFDOM/Data/abs.eems.parafac.csv")
+write.csv(abs.eems.parafac,"./Data/20210511_abs_eems_parafac.csv")
+
+### Add in flags for absorbance and fluorescence data
+#Absorbance data
+# 0 = Data good!
+# 1 = Absorbance not collected
+# 2 = Low absorbance values; use with caution
+abs_eems_parafac_flags <- abs.eems.parafac %>% 
+  mutate(abs_Flag = ifelse(is.na(Sr) & is.na(a254_m), 1,
+                           ifelse(is.na(Sr), 2, 
+                                  0)))
+#Fluorescence data
+# 1 = Fluorescence not collected
+abs_eems_parafac_flags <- abs_eems_parafac_flags %>% 
+  mutate(fl_Flag = ifelse(is.na(Max_Fl_Ex),1,0))
+
+#Export out file w/ flags for EDI!
+write.csv(abs_eems_parafac_flags,"./EDI_2021/20210511_OpticalData.csv")
