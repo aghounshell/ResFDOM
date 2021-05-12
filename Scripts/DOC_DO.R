@@ -453,15 +453,6 @@ ggplot(hypo_do_box,mapping=aes(oxy,dMdt_mgs*60*60*24/1000/1000,colour=oxy))+
   theme_classic(base_size=15)+
   theme(legend.title=element_blank())
 
-ggplot(hypo_do_box,mapping=aes(year,dMdt_mgs*60*60*24/1000/1000,colour=oxy))+
-  geom_hline(yintercept = 0, linetype="dashed")+
-  geom_boxplot()+
-  scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
-  ylab(expression(paste("dM/dt (kg d"^-1*")")))+
-  xlab("Year")+
-  theme_classic(base_size=15)+
-  theme(legend.title=element_blank())
-
 ggarrange(doc_full, jterm_full, doc,jterm,ncol=2,nrow=2,common.legend=TRUE)
 
 ggsave("./Fig_Output/Fig5.jpg",width=10,height=8,units="in",dpi=320)
@@ -474,6 +465,50 @@ ggplot(hypo_do_box,mapping=aes(year,Temp_C,colour=oxy))+
   xlab("Year")+
   theme_classic(base_size=15)+
   theme(legend.title=element_blank())
+
+ggsave("./Fig_OutPut/Temp_Year.jpg",width=9,height=6,units="in",dpi=320)
+
+#Plot Inflow and dM/dt by year
+dm_dt <- ggplot(hypo_do_box,mapping=aes(year,dMdt_mgs*60*60*24/1000/1000,colour=oxy))+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_boxplot()+
+  scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
+  ylab(expression(paste("dM/dt (kg d"^-1*")")))+
+  xlab("Year")+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+
+inflow <- ggplot(hypo_do_box,mapping=aes(year,WVWA_Flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000,colour=oxy))+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_boxplot()+
+  scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
+  ylab(expression(paste("Inflow (kg d"^-1*")")))+
+  xlab("Year")+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+
+outflow <- ggplot(hypo_do_box,mapping=aes(year,WVWA_Flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000,colour=oxy))+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_boxplot()+
+  scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
+  ylab(expression(paste("Outflow (kg d"^-1*")")))+
+  xlab("Year")+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+
+jterm <- ggplot(hypo_do_box,mapping=aes(year,j_kgd,colour=oxy))+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_boxplot()+
+  scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
+  ylab(expression(paste("Source/sink term (kg d"^-1*")")))+
+  xlab("Year")+
+  ylim(-15,10)+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+
+ggarrange(inflow,outflow,dm_dt,jterm,nrow=2,ncol=2,common.legend = TRUE)
+
+ggsave("./Fig_Output/dmtodt_inflow.jpg",width=10,height=8,units="in",dpi=320)
 
 ### Let's start thinking about DOM quality - what metrics to use?
 # a254? HIX? BIX? Peak C? Peak T? PARAFAC?
