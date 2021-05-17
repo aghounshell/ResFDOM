@@ -141,8 +141,25 @@ ctd_all <- ctd_all %>% group_by(time,depth) %>% summarise_each(funs(mean))
 # Select and make each CTD variable a separate dataframe
 temp <- select(ctd_all, time, depth, Temp_C)
 temp <- na.omit(temp)
+temp <- arrange(temp,depth)
 do <- select(ctd_all, time, depth, DO_mgL)
 do <- na.omit(do)
+do <- arrange(do,depth)
+
+# Formatting for Matlab ----
+# Go from long to wide format
+temp_wide <- temp %>% 
+  pivot_wider(names_from = depth,values_from = Temp_C,names_prefix = "Depth_",values_fn = mean) %>% 
+  arrange(time)
+
+do_wide <- do %>% 
+  pivot_wider(names_from = depth,values_from = DO_mgL,names_prefix = "Depth_",values_fn = mean) %>% 
+  arrange(time)
+
+write_csv(temp_wide,"./Data/Heatmap_Temp.csv")
+write_csv(do_wide,"./Data/Heatmap_DO.csv")
+
+# Ignore for now: heatmaps in R ----
 
 # Interpolate Temp
 interp_temp_rough <- interp(x=temp$time, y = temp$depth, z = temp$Temp_C,
