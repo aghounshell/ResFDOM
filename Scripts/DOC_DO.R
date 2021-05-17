@@ -404,6 +404,18 @@ hypo_do_box <- hypo_do_box %>%
 
 hypo_do_box <- hypo_do_box[!is.na(hypo_do_box$DO_mgL),]
 
+# Remove and interpolate DO values that are clearly wonky (aka: show anoxic when oxic pre and post)
+# 2015-06-08
+hypo_do_box$DO_mgL[2] <- NA
+# 2017-07-06
+hypo_do_box$DO_mgL[82] <- NA
+# 2017-08-02
+hypo_do_box$DO_mgL[91] <- NA
+
+# Interpolate NA values
+hypo_do_box <- hypo_do_box %>% 
+  mutate(DO_mgL = na.fill(na.approx(DO_mgL,na.rm=FALSE),"extend"))
+
 # Fig. 5: Plot DOC and DOC source/sink term by oxic vs. anoxic
 # [DOC]
 doc_full <- ggplot(hypo_do_box,mapping=aes(oxy,DOC_mgL,colour=oxy))+
@@ -458,7 +470,7 @@ ggarrange(doc_full, jterm_full, doc,jterm,ncol=2,nrow=2,common.legend=TRUE)
 ggsave("./Fig_Output/Fig5.jpg",width=10,height=8,units="in",dpi=320)
 
 # Plot temp by year (as box plots?)
-ggplot(hypo_do_box,mapping=aes(year,Temp_C,colour=oxy))+
+temp_box <- ggplot(hypo_do_box,mapping=aes(year,Temp_C,colour=oxy))+
   geom_boxplot()+
   scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
   ylab(expression(paste("Temp (C"^o*")")))+
@@ -466,7 +478,33 @@ ggplot(hypo_do_box,mapping=aes(year,Temp_C,colour=oxy))+
   theme_classic(base_size=15)+
   theme(legend.title=element_blank())
 
-ggsave("./Fig_OutPut/Temp_Year.jpg",width=9,height=6,units="in",dpi=320)
+# Plot DO as box plots
+do_box <- ggplot(hypo_do_box,mapping=aes(year,DO_mgL,colour=oxy))+
+  geom_boxplot()+
+  scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
+  ylab(expression(paste("DO (mg"^-1*"L"^-1*")")))+
+  xlab("Year")+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+
+ggarrange(temp_box,do_box,ncol=2,nrow=1,common.legend=TRUE)
+
+ggsave("./Fig_OutPut/DO_temp_Year.jpg",width=10,height=5,units="in",dpi=320)
+
+all_med <- hypo_do_box %>% 
+  select(-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s) %>% 
+  group_by(year,oxy) %>% 
+  summarize_all(funs(median),na.rm=TRUE)
+
+year_med <- hypo_do_box %>% 
+  select(-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-oxy) %>% 
+  group_by(year) %>% 
+  summarize_all(funs(median),na.rm=TRUE)
+
+oxy_med <- hypo_do_box %>% 
+  select(-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-year) %>% 
+  group_by(oxy) %>% 
+  summarize_all(funs(median),na.rm=TRUE)
 
 #Plot Inflow and dM/dt by year
 dm_dt <- ggplot(hypo_do_box,mapping=aes(year,dMdt_mgs*60*60*24/1000/1000,colour=oxy))+

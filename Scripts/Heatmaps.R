@@ -150,11 +150,13 @@ do <- arrange(do,depth)
 # Go from long to wide format
 temp_wide <- temp %>% 
   pivot_wider(names_from = depth,values_from = Temp_C,names_prefix = "Depth_",values_fn = mean) %>% 
-  arrange(time)
+  arrange(time) %>% 
+  mutate(time = as.POSIXct(strptime(time, "%Y-%m-%d")))
 
 do_wide <- do %>% 
   pivot_wider(names_from = depth,values_from = DO_mgL,names_prefix = "Depth_",values_fn = mean) %>% 
-  arrange(time)
+  arrange(time)%>% 
+  mutate(time = as.POSIXct(strptime(time, "%Y-%m-%d")))
 
 write_csv(temp_wide,"./Data/Heatmap_Temp.csv")
 write_csv(do_wide,"./Data/Heatmap_DO.csv")
