@@ -135,7 +135,7 @@ ctd_all <- arrange(df.final, time)
 # Round each extracted depth to the nearest 10th. 
 ctd_all$depth <- round(as.numeric(ctd_all$depth), digits = 0.5)
 ctd_all <- ctd_all %>% group_by(time,depth) %>% summarise_each(funs(mean))
-ctd_all$DOY <- yday(ctd_all$time)
+#ctd_all$DOY <- yday(ctd_all$time)
 
 
 # Select and make each CTD variable a separate dataframe
@@ -146,13 +146,13 @@ do <- na.omit(do)
 
 # Interpolate Temp
 interp_temp_rough <- interp(x=temp$time, y = temp$depth, z = temp$Temp_C,
-                      xo = seq(min(temp$time), max(temp$time), by = 500), 
-                      yo = seq(0.1, 9.6, by = 0.5),
+                      xo = seq(min(temp$time), max(temp$time), by = 100), 
+                      yo = seq(0.1, 9.6, by = 0.3),
                       extrap = F, linear = T, duplicate = "strip")
 interp_temp_rough <- interp2xyz(interp_temp_rough, data.frame=T)
 
 # Plot
-interp_temp_rough$date <- as.Date(interp_temp_rough$x,origin="2015-02-05")
+interp_temp_rough$date <- as.POSIXct(interp_temp_rough$x)
 
 # Temp
 ggplot(interp_temp_rough, aes(x=date, y=y))+
