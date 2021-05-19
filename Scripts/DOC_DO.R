@@ -141,7 +141,38 @@ inflow_daily <- inflow %>%
 ### Add together inflow and box data
 inflow_box <- inflow_daily %>% 
   select(DateTime,WVWA_Flow_cms) %>% 
-  rename(time = DateTime)
+  rename(time = DateTime) %>% 
+  filter(time >= as.POSIXct("2015-01-01") & time <= as.POSIXct("2020-12-31")) %>% 
+  mutate(year = ifelse(time >= as.POSIXct("2015-01-01") & time <= as.POSIXct("2015-12-31"), "2015",
+                       ifelse(time >= as.POSIXct("2016-01-01") & time <= as.POSIXct("2016-12-31"), "2016",
+                              ifelse(time >= as.POSIXct("2017-01-01") & time <= as.POSIXct("2017-12-31"), "2017",
+                                     ifelse(time >= as.POSIXct("2018-01-01") & time <= as.POSIXct("2018-12-31"), "2018",
+                                            ifelse(time >= as.POSIXct("2019-01-01") & time <= as.POSIXct("2019-12-31"), "2019",
+                                                   ifelse(time >= as.POSIXct("2020-01-01") & time <= as.POSIXct("2020-12-31"), "2020",
+                                                          NA)))))))
+
+# Calculate median flow for each year
+year_inflow <- inflow_box %>% 
+  group_by(year) %>% 
+  summarize_all(funs(median),na.rm=TRUE)
+
+
+# Plot all inflow data for SI
+ggplot()+
+  geom_segment(aes(x = as.POSIXct("2015-03-31"),xend = as.POSIXct("2015-12-31"),y = year_inflow$WVWA_Flow_cms[1],yend = year_inflow$WVWA_Flow_cms[1]), linetype="dashed", color="firebrick", size=1)+
+  geom_segment(aes(x = as.POSIXct("2016-01-01"),xend = as.POSIXct("2016-12-31"),y = year_inflow$WVWA_Flow_cms[2],yend = year_inflow$WVWA_Flow_cms[2]), linetype="dashed", color="firebrick", size=1)+
+  geom_segment(aes(x = as.POSIXct("2017-01-01"),xend = as.POSIXct("2017-12-31"),y = year_inflow$WVWA_Flow_cms[3],yend = year_inflow$WVWA_Flow_cms[3]), linetype="dashed", color="firebrick", size=1)+
+  geom_segment(aes(x = as.POSIXct("2018-01-01"),xend = as.POSIXct("2018-12-31"),y = year_inflow$WVWA_Flow_cms[4],yend = year_inflow$WVWA_Flow_cms[4]), linetype="dashed", color="firebrick", size=1)+
+  geom_segment(aes(x = as.POSIXct("2019-01-01"),xend = as.POSIXct("2019-12-31"),y = year_inflow$WVWA_Flow_cms[5],yend = year_inflow$WVWA_Flow_cms[5]), linetype="dashed", color="firebrick", size=1)+
+  geom_segment(aes(x = as.POSIXct("2020-01-01"),xend = as.POSIXct("2020-12-02"),y = year_inflow$WVWA_Flow_cms[6],yend = year_inflow$WVWA_Flow_cms[6]), linetype="dashed", color="firebrick", size=1)+
+  geom_line(inflow_box,mapping=aes(x=time,y=WVWA_Flow_cms),size=1)+
+  ylab(expression(paste("Discharge (m"^3*"s"^-1*")")))+
+  xlab("Time")+
+  xlim(as.POSIXct("2015-03-31"),as.POSIXct("2020-12-02"))+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+
+ggsave("./Fig_Output/Discharge.jpg",width=10,height=4,units="in",dpi=320)
 
 box_data <- left_join(box_data,inflow_box,by="time")
 box_data <- box_data %>% 
@@ -248,7 +279,7 @@ ggplot(box_data,mapping=aes(x=time,y=j_kgd))+
   xlim(as.POSIXct("2015-03-31"),as.POSIXct("2020-12-02"))+
   theme_classic(base_size=15)+
   theme(legend.title=element_blank())
-  
+
 # CTD and YSI casts - combine together for most complete time-period
 #need to import CTD observations from EDI
 #inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/200/11/d771f5e9956304424c3bc0a39298a5ce" 
@@ -412,9 +443,13 @@ hypo_do_box$DO_mgL[82] <- NA
 # 2017-08-02
 hypo_do_box$DO_mgL[91] <- NA
 
+# Same with temp (one in 2017-07-06)
+hypo_do_box$Temp_C[82] <- NA
+
 # Interpolate NA values
 hypo_do_box <- hypo_do_box %>% 
-  mutate(DO_mgL = na.fill(na.approx(DO_mgL,na.rm=FALSE),"extend"))
+  mutate(DO_mgL = na.fill(na.approx(DO_mgL,na.rm=FALSE),"extend")) %>% 
+  mutate(Temp_C = na.fill(na.approx(Temp_C,na.rm=FALSE),"extend"))
 
 # Fig. 5: Plot DOC and DOC source/sink term by oxic vs. anoxic
 # [DOC]
@@ -465,7 +500,8 @@ ggplot(hypo_do_box,mapping=aes(oxy,dMdt_mgs*60*60*24/1000/1000,colour=oxy))+
   theme_classic(base_size=15)+
   theme(legend.title=element_blank())
 
-ggarrange(doc_full, jterm_full, doc,jterm,ncol=2,nrow=2,common.legend=TRUE)
+ggarrange(doc_full, jterm_full, doc,jterm,ncol=2,nrow=2,common.legend=TRUE,labels = c("A.", "B.", "C.", "D."),
+          font.label=list(face="plain",size=15))
 
 ggsave("./Fig_Output/Fig5.jpg",width=10,height=8,units="in",dpi=320)
 
@@ -482,29 +518,14 @@ temp_box <- ggplot(hypo_do_box,mapping=aes(year,Temp_C,colour=oxy))+
 do_box <- ggplot(hypo_do_box,mapping=aes(year,DO_mgL,colour=oxy))+
   geom_boxplot()+
   scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
-  ylab(expression(paste("DO (mg"^-1*"L"^-1*")")))+
+  ylab(expression(paste("DO (mg L"^-1*")")))+
   xlab("Year")+
   theme_classic(base_size=15)+
   theme(legend.title=element_blank())
 
-ggarrange(temp_box,do_box,ncol=2,nrow=1,common.legend=TRUE)
+ggarrange(temp_box,do_box,ncol=2,nrow=1,common.legend=TRUE,labels = c("A.","B."),font.label=list(face="plain",size=15))
 
 ggsave("./Fig_OutPut/DO_temp_Year.jpg",width=10,height=5,units="in",dpi=320)
-
-all_med <- hypo_do_box %>% 
-  select(-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s) %>% 
-  group_by(year,oxy) %>% 
-  summarize_all(funs(median),na.rm=TRUE)
-
-year_med <- hypo_do_box %>% 
-  select(-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-oxy) %>% 
-  group_by(year) %>% 
-  summarize_all(funs(median),na.rm=TRUE)
-
-oxy_med <- hypo_do_box %>% 
-  select(-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-year) %>% 
-  group_by(oxy) %>% 
-  summarize_all(funs(median),na.rm=TRUE)
 
 #Plot Inflow and dM/dt by year
 dm_dt <- ggplot(hypo_do_box,mapping=aes(year,dMdt_mgs*60*60*24/1000/1000,colour=oxy))+
@@ -521,7 +542,7 @@ inflow <- ggplot(hypo_do_box,mapping=aes(year,WVWA_Flow_cms*DOC_mgL_100*1000*60*
   geom_boxplot()+
   scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
   ylab(expression(paste("Inflow (kg d"^-1*")")))+
-  xlab("Year")+
+  xlab("")+
   theme_classic(base_size=15)+
   theme(legend.title=element_blank())
 
@@ -530,7 +551,7 @@ outflow <- ggplot(hypo_do_box,mapping=aes(year,WVWA_Flow_cms*DOC_mgL_therm*1000*
   geom_boxplot()+
   scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
   ylab(expression(paste("Outflow (kg d"^-1*")")))+
-  xlab("Year")+
+  xlab("")+
   theme_classic(base_size=15)+
   theme(legend.title=element_blank())
 
@@ -544,27 +565,392 @@ jterm <- ggplot(hypo_do_box,mapping=aes(year,j_kgd,colour=oxy))+
   theme_classic(base_size=15)+
   theme(legend.title=element_blank())
 
-ggarrange(inflow,outflow,dm_dt,jterm,nrow=2,ncol=2,common.legend = TRUE)
+ggarrange(inflow,outflow,dm_dt,jterm,nrow=2,ncol=2,common.legend = TRUE,labels = c("A.", "B.", "C.", "D."),
+          font.label=list(face="plain",size=15))
 
 ggsave("./Fig_Output/dmtodt_inflow.jpg",width=10,height=8,units="in",dpi=320)
 
 ### Let's start thinking about DOM quality - what metrics to use?
 # a254? HIX? BIX? Peak C? Peak T? PARAFAC?
 # Load in data
-fdom <- read_csv("./Data/20210210_ResultsFiles_ResEEMs2019_RAW.csv") %>% 
+fdom <- read_csv("./EDI_2021/20210511_OpticalData.csv") %>% 
   filter(Reservoir == "FCR" & Dilution %in% c(1,2)) %>% 
-  mutate(Date = as.POSIXct(strptime(Date, "%m/%d/%Y", tz="EST")))
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) %>% 
+  na.omit(fdom)
 
 fdom_hypo <- fdom %>% 
-  filter(Depth == 9.0) %>% 
-  group_by(Date,Depth) %>% 
-  summarize_all(funs(mean))
+  filter(Depth_m == 9.0) %>% 
+  group_by(DateTime,Depth_m) %>% 
+  summarize_all(funs(mean(.,na.rm=TRUE)))
 
 fdom_hypo_sd <- fdom %>% 
-  filter(Depth == 9.0) %>% 
-  group_by(Date,Depth) %>% 
-  summarize_all(funs(sd))
+  filter(Depth_m == 9.0) %>% 
+  group_by(DateTime,Depth_m) %>% 
+  summarize_all(funs(sd(.,na.rm=TRUE)))
   
+fdom_hypo_2 <- fdom_hypo %>% 
+  rename(time = DateTime,PeakT=T,PeakA=A)
+
+# Combine with DO data
+hypo_do_box_2 <- left_join(hypo_do_box,fdom_hypo_2,by="time")
+
+hypo_do_box_2 <- hypo_do_box_2 %>% 
+  filter(time >= as.POSIXct("2019-01-01")&time<=as.POSIXct("2019-12-31"))
+
+# Plot boxplots of various FDOM/CDOM parameters by oxic/anoxic
+peakt_time <- ggplot()+
+  annotate(geom="rect",xmin = as.POSIXct("2019-06-03"), xmax = as.POSIXct("2019-06-17"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-07-08"),xmax = as.POSIXct("2019-07-19"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-08-05"),xmax = as.POSIXct("2019-08-19"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-09-02"), xmax = as.POSIXct("2019-11-20"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on (technically turned-off on 2019-12-01)
+  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed")+ #Turnover FCR
+  geom_line(fdom_hypo,mapping=aes(x=DateTime,y=T))+
+  geom_point(fdom_hypo,mapping=aes(x=DateTime,y=T))+
+  geom_errorbar(fdom_hypo,mapping=aes(x=DateTime,y=T,ymin=T-fdom_hypo_sd$T,ymax=T+fdom_hypo_sd$T))+
+  ylim(0,0.25)+
+  ylab("Peak T (R.F.U.)")+
+  theme_classic(base_size=15)
+
+peakt_box <- ggplot(hypo_do_box_2,mapping=aes(x=year,y=PeakT,colour=oxy))+
+  geom_boxplot()+
+  scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
+  ylab("Peak T (R.F.U.)")+
+  xlab("Year")+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+
+peaka_time <- ggplot()+
+  annotate(geom="rect",xmin = as.POSIXct("2019-06-03"), xmax = as.POSIXct("2019-06-17"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-07-08"),xmax = as.POSIXct("2019-07-19"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-08-05"),xmax = as.POSIXct("2019-08-19"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-09-02"), xmax = as.POSIXct("2019-11-20"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on (technically turned-off on 2019-12-01)
+  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed")+ #Turnover FCR
+  geom_line(fdom_hypo,mapping=aes(x=DateTime,y=A))+
+  geom_point(fdom_hypo,mapping=aes(x=DateTime,y=A))+
+  geom_errorbar(fdom_hypo,mapping=aes(x=DateTime,y=A,ymin=A-fdom_hypo_sd$A,ymax=A+fdom_hypo_sd$A))+
+  ylim(0,0.35)+
+  xlab("")+
+  ylab("Peak A (R.F.U.)")+
+  theme_classic(base_size=15)
+
+peaka_box <- ggplot(hypo_do_box_2,mapping=aes(x=year,y=PeakA,colour=oxy))+
+  geom_boxplot()+
+  scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
+  ylab("Peak A (R.F.U.)")+
+  xlab("")+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+
+ggarrange(peaka_time,peaka_box,peakt_time,peakt_box,common.legend=TRUE,nrow=2,ncol=2,labels = c("A.", "B.", "C.", "D."),
+          font.label=list(face="plain",size=15))
+
+ggsave("./Fig_Output/Fig6.jpg",width=10,height=8,units="in",dpi=320)
+
+# Calculate median for various groups of data ----
+all_med <- hypo_do_box %>% 
+  mutate(outflow_kgd = WVWA_Flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000) %>% 
+  mutate(inflow_kgd = WVWA_Flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000) %>% 
+  mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
+  select(-time,-depth,-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-hypo_mg,-DOC_mgL_therm,
+         -DOC_mgL_100,-WVWA_Flow_cms,-j_mgs,-month,-dMdt_mgs) %>% 
+  group_by(year,oxy) %>% 
+  summarize_all(funs(median),na.rm=TRUE)
+
+col_order <- c("year","oxy","Temp_C","DO_mgL","DOC_mgL","j_kgd","inflow_kgd","outflow_kgd","dMdt_kgd")
+
+all_med <- all_med[,col_order]
+
+all_med_fdom <- hypo_do_box_2 %>% 
+  select(year,oxy,PeakA,PeakT) %>% 
+  group_by(year,oxy) %>% 
+  summarize_all(funs(median),na.rm=TRUE)
+
+all_med <- left_join(all_med,all_med_fdom,by=c("year","oxy"))
+
+year_med <- hypo_do_box %>% 
+  mutate(outflow_kgd = WVWA_Flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000) %>% 
+  mutate(inflow_kgd = WVWA_Flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000) %>% 
+  mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
+  select(-time,-depth,-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-hypo_mg,-DOC_mgL_therm,
+         -DOC_mgL_100,-WVWA_Flow_cms,-j_mgs,-month,-dMdt_mgs,-oxy) %>% 
+  group_by(year) %>% 
+  summarize_all(funs(median),na.rm=TRUE) %>% 
+  mutate(oxy = "All")
+
+year_med <- year_med[,col_order]
+
+year_med_fdom <- hypo_do_box_2 %>% 
+  select(year,PeakA,PeakT) %>% 
+  group_by(year) %>% 
+  summarize_all(funs(median),na.rm=TRUE) %>% 
+  mutate(oxy = "All")
+
+year_med <- left_join(year_med,year_med_fdom,by=c("year","oxy"))
+
+oxy_med <- hypo_do_box %>% 
+  mutate(outflow_kgd = WVWA_Flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000) %>% 
+  mutate(inflow_kgd = WVWA_Flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000) %>% 
+  mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
+  select(-time,-depth,-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-hypo_mg,-DOC_mgL_therm,
+         -DOC_mgL_100,-WVWA_Flow_cms,-j_mgs,-month,-dMdt_mgs,-year) %>% 
+  group_by(oxy) %>% 
+  summarize_all(funs(median),na.rm=TRUE) %>% 
+  mutate(year = "All")
+
+oxy_med <- oxy_med[,col_order]
+
+oxy_med_fdom <- hypo_do_box_2 %>% 
+  select(oxy,PeakA,PeakT) %>% 
+  group_by(oxy) %>% 
+  summarize_all(funs(median),na.rm=TRUE) %>% 
+  mutate(year = "All")
+
+oxy_med <- left_join(oxy_med,oxy_med_fdom,by=c("year","oxy"))
+
+all_year_med <- hypo_do_box %>% 
+  mutate(outflow_kgd = WVWA_Flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000) %>% 
+  mutate(inflow_kgd = WVWA_Flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000) %>% 
+  mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
+  select(-time,-depth,-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-hypo_mg,-DOC_mgL_therm,
+         -DOC_mgL_100,-WVWA_Flow_cms,-j_mgs,-month,-dMdt_mgs,-oxy,-year) %>% 
+  summarize_all(funs(median),na.rm=TRUE) %>% 
+  mutate(oxy = "All") %>% 
+  mutate(year = "All")
+
+all_year_med <- all_year_med[,col_order]
+
+all_year_med_fdom <- hypo_do_box_2 %>% 
+  select(PeakA,PeakT) %>% 
+  summarize_all(funs(median)) %>% 
+  mutate(oxy = "All") %>% 
+  mutate(year = "All")
+
+all_year_med <- left_join(all_year_med,all_year_med_fdom,by=c("year","oxy"))
+
+all_all_med <- rbind(all_year_med,oxy_med,year_med,all_med)
+
+all_all_med <- all_all_med %>% 
+  arrange(year,oxy)
+
+all_all_med$PeakA[17] <- NA
+all_all_med$PeakT[17] <- NA
+all_all_med$PeakA[18] <- NA
+all_all_med$PeakT[18] <- NA
+
+# Calculate 25th percentile for various groups of data
+all_quan_25 <- hypo_do_box %>% 
+  mutate(outflow_kgd = WVWA_Flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000) %>% 
+  mutate(inflow_kgd = WVWA_Flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000) %>% 
+  mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
+  select(-time,-depth,-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-hypo_mg,-DOC_mgL_therm,
+         -DOC_mgL_100,-WVWA_Flow_cms,-j_mgs,-month,-dMdt_mgs) %>% 
+  group_by(year,oxy) %>% 
+  summarize_all(funs(quantile(.,.25,na.rm=TRUE)))
+
+col_order <- c("year","oxy","Temp_C","DO_mgL","DOC_mgL","j_kgd","inflow_kgd","outflow_kgd","dMdt_kgd")
+
+all_quan_25 <- all_quan_25[,col_order]
+
+all_quan_25_fdom <- hypo_do_box_2 %>% 
+  select(year,oxy,PeakA,PeakT) %>% 
+  group_by(year,oxy) %>% 
+  summarize_all(funs(quantile(.,.25,na.rm=TRUE)))
+
+all_quan_25 <- left_join(all_quan_25,all_quan_25_fdom,by=c("year","oxy"))
+
+year_quan_25 <- hypo_do_box %>% 
+  mutate(outflow_kgd = WVWA_Flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000) %>% 
+  mutate(inflow_kgd = WVWA_Flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000) %>% 
+  mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
+  select(-time,-depth,-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-hypo_mg,-DOC_mgL_therm,
+         -DOC_mgL_100,-WVWA_Flow_cms,-j_mgs,-month,-dMdt_mgs,-oxy) %>% 
+  group_by(year) %>% 
+  summarize_all(funs(quantile(.,.25,na.rm=TRUE))) %>% 
+  mutate(oxy = "All")
+
+year_quan_25 <- year_quan_25[,col_order]
+
+year_quan_25_fdom <- hypo_do_box_2 %>% 
+  select(year,PeakA,PeakT) %>% 
+  group_by(year) %>% 
+  summarize_all(funs(quantile(.,.25,na.rm=TRUE))) %>%  
+  mutate(oxy = "All")
+
+year_quan_25 <- left_join(year_quan_25,year_quan_25_fdom,by=c("year","oxy"))
+
+oxy_quan_25 <- hypo_do_box %>% 
+  mutate(outflow_kgd = WVWA_Flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000) %>% 
+  mutate(inflow_kgd = WVWA_Flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000) %>% 
+  mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
+  select(-time,-depth,-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-hypo_mg,-DOC_mgL_therm,
+         -DOC_mgL_100,-WVWA_Flow_cms,-j_mgs,-month,-dMdt_mgs,-year) %>% 
+  group_by(oxy) %>% 
+  summarize_all(funs(quantile(.,.25,na.rm=TRUE))) %>% 
+  mutate(year = "All")
+
+oxy_quan_25 <- oxy_quan_25[,col_order]
+
+oxy_quan_25_fdom <- hypo_do_box_2 %>% 
+  select(oxy,PeakA,PeakT) %>% 
+  group_by(oxy) %>% 
+  summarize_all(funs(quantile(.,.25,na.rm=TRUE))) %>% 
+  mutate(year = "All")
+
+oxy_quan_25 <- left_join(oxy_quan_25,oxy_quan_25_fdom,by=c("year","oxy"))
+
+all_year_quan_25 <- hypo_do_box %>% 
+  mutate(outflow_kgd = WVWA_Flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000) %>% 
+  mutate(inflow_kgd = WVWA_Flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000) %>% 
+  mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
+  select(-time,-depth,-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-hypo_mg,-DOC_mgL_therm,
+         -DOC_mgL_100,-WVWA_Flow_cms,-j_mgs,-month,-dMdt_mgs,-oxy,-year) %>% 
+  summarize_all(funs(quantile(.,.25,na.rm=TRUE))) %>% 
+  mutate(oxy = "All") %>% 
+  mutate(year = "All")
+
+all_year_quan_25 <- all_year_quan_25[,col_order]
+
+all_year_quan_25_fdom <- hypo_do_box_2 %>% 
+  select(PeakA,PeakT) %>% 
+  summarize_all(funs(quantile(.,.25,na.rm=TRUE))) %>% 
+  mutate(oxy = "All") %>% 
+  mutate(year = "All")
+
+all_year_quan_25 <- left_join(all_year_quan_25,all_year_quan_25_fdom,by=c("year","oxy"))
+
+all_all_quan_25 <- rbind(all_year_quan_25,oxy_quan_25,year_quan_25,all_quan_25)
+
+all_all_quan_25 <- all_all_quan_25 %>% 
+  arrange(year,oxy)
+
+all_all_quan_25$PeakA[17] <- NA
+all_all_quan_25$PeakT[17] <- NA
+all_all_quan_25$PeakA[18] <- NA
+all_all_quan_25$PeakT[18] <- NA
+
+# Calculate 75th percentile for various groups of data
+all_quan_75 <- hypo_do_box %>% 
+  mutate(outflow_kgd = WVWA_Flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000) %>% 
+  mutate(inflow_kgd = WVWA_Flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000) %>% 
+  mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
+  select(-time,-depth,-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-hypo_mg,-DOC_mgL_therm,
+         -DOC_mgL_100,-WVWA_Flow_cms,-j_mgs,-month,-dMdt_mgs) %>% 
+  group_by(year,oxy) %>% 
+  summarize_all(funs(quantile(.,.75,na.rm=TRUE)))
+
+col_order <- c("year","oxy","Temp_C","DO_mgL","DOC_mgL","j_kgd","inflow_kgd","outflow_kgd","dMdt_kgd")
+
+all_quan_75 <- all_quan_75[,col_order]
+
+all_quan_75_fdom <- hypo_do_box_2 %>% 
+  select(year,oxy,PeakA,PeakT) %>% 
+  group_by(year,oxy) %>% 
+  summarize_all(funs(quantile(.,.75,na.rm=TRUE)))
+
+all_quan_75 <- left_join(all_quan_75,all_quan_75_fdom,by=c("year","oxy"))
+
+year_quan_75 <- hypo_do_box %>% 
+  mutate(outflow_kgd = WVWA_Flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000) %>% 
+  mutate(inflow_kgd = WVWA_Flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000) %>% 
+  mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
+  select(-time,-depth,-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-hypo_mg,-DOC_mgL_therm,
+         -DOC_mgL_100,-WVWA_Flow_cms,-j_mgs,-month,-dMdt_mgs,-oxy) %>% 
+  group_by(year) %>% 
+  summarize_all(funs(quantile(.,.75,na.rm=TRUE))) %>% 
+  mutate(oxy = "All")
+
+year_quan_75 <- year_quan_75[,col_order]
+
+year_quan_75_fdom <- hypo_do_box_2 %>% 
+  select(year,PeakA,PeakT) %>% 
+  group_by(year) %>% 
+  summarize_all(funs(quantile(.,.75,na.rm=TRUE))) %>%  
+  mutate(oxy = "All")
+
+year_quan_75 <- left_join(year_quan_75,year_quan_75_fdom,by=c("year","oxy"))
+
+oxy_quan_75 <- hypo_do_box %>% 
+  mutate(outflow_kgd = WVWA_Flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000) %>% 
+  mutate(inflow_kgd = WVWA_Flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000) %>% 
+  mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
+  select(-time,-depth,-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-hypo_mg,-DOC_mgL_therm,
+         -DOC_mgL_100,-WVWA_Flow_cms,-j_mgs,-month,-dMdt_mgs,-year) %>% 
+  group_by(oxy) %>% 
+  summarize_all(funs(quantile(.,.75,na.rm=TRUE))) %>% 
+  mutate(year = "All")
+
+oxy_quan_75 <- oxy_quan_75[,col_order]
+
+oxy_quan_75_fdom <- hypo_do_box_2 %>% 
+  select(oxy,PeakA,PeakT) %>% 
+  group_by(oxy) %>% 
+  summarize_all(funs(quantile(.,.75,na.rm=TRUE))) %>% 
+  mutate(year = "All")
+
+oxy_quan_75 <- left_join(oxy_quan_75,oxy_quan_75_fdom,by=c("year","oxy"))
+
+all_year_quan_75 <- hypo_do_box %>% 
+  mutate(outflow_kgd = WVWA_Flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000) %>% 
+  mutate(inflow_kgd = WVWA_Flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000) %>% 
+  mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
+  select(-time,-depth,-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-hypo_mg,-DOC_mgL_therm,
+         -DOC_mgL_100,-WVWA_Flow_cms,-j_mgs,-month,-dMdt_mgs,-oxy,-year) %>% 
+  summarize_all(funs(quantile(.,.75,na.rm=TRUE))) %>% 
+  mutate(oxy = "All") %>% 
+  mutate(year = "All")
+
+all_year_quan_75 <- all_year_quan_75[,col_order]
+
+all_year_quan_75_fdom <- hypo_do_box_2 %>% 
+  select(PeakA,PeakT) %>% 
+  summarize_all(funs(quantile(.,.75,na.rm=TRUE))) %>% 
+  mutate(oxy = "All") %>% 
+  mutate(year = "All")
+
+all_year_quan_75 <- left_join(all_year_quan_75,all_year_quan_75_fdom,by=c("year","oxy"))
+
+all_all_quan_75 <- rbind(all_year_quan_75,oxy_quan_75,year_quan_75,all_quan_75)
+
+all_all_quan_75 <- all_all_quan_75 %>% 
+  arrange(year,oxy)
+
+all_all_quan_75$PeakA[17] <- NA
+all_all_quan_75$PeakT[17] <- NA
+all_all_quan_75$PeakA[18] <- NA
+all_all_quan_75$PeakT[18] <- NA
+
+really_all <- left_join(all_all_med,all_all_quan_25,by=c("year","oxy"))
+
+really_all <- left_join(really_all,all_all_quan_75,by=c("year","oxy"))
+
+really_all_round <- really_all %>% 
+  select(-year,-oxy) %>% 
+  round(.,digits=2)
+
+really_all_round$Temp_med <- paste(really_all_round$Temp_C.x,really_all_round$Temp_C.y,really_all_round$Temp_C,sep=";")
+really_all_round$DO_med <- paste(really_all_round$DO_mgL.x,really_all_round$DO_mgL.y,really_all_round$DO_mgL,sep=";")
+really_all_round$DOC_med <- paste(really_all_round$DOC_mgL.x,really_all_round$DOC_mgL.y,really_all_round$DOC_mgL,sep=";")
+really_all_round$j_med <- paste(really_all_round$j_kgd.x,really_all_round$j_kgd.y,really_all_round$j_kgd,sep=";")
+really_all_round$inflow_med <- paste(really_all_round$inflow_kgd.x,really_all_round$inflow_kgd.y,really_all_round$inflow_kgd,sep=";")
+really_all_round$outflow_med <- paste(really_all_round$outflow_kgd.x,really_all_round$outflow_kgd.y,really_all_round$outflow_kgd,sep=";")
+really_all_round$dMdt_med <- paste(really_all_round$dMdt_kgd.x,really_all_round$dMdt_kgd.y,really_all_round$dMdt_kgd,sep=";")
+really_all_round$PeakA_med <- paste(really_all_round$PeakA.x,really_all_round$PeakA.y,really_all_round$PeakA,sep=";")
+really_all_round$PeakT_med <- paste(really_all_round$PeakT.x,really_all_round$PeakT.y,really_all_round$PeakT,sep=";")
+
+really_all <- really_all %>% 
+  select(year,oxy)
+
+really_all_round <- really_all_round %>% 
+  select(Temp_med,DO_med,DOC_med,j_med,inflow_med,outflow_med,dMdt_med,PeakA_med,PeakT_med)
+
+really_all <- cbind(really_all,really_all_round)
+
+# Export out and format as a table in excel
+write_csv(really_all,"./Fig_Output/20210519_Table2_quantiles.csv")
+
+
+### OLD CODE ----
+# Loading in and plotting various FDOM/CDOM parameters (using non-EDI data!)
 cdom <- read_csv("./Data/20200930_ResultsFiles_Abs2019.csv") %>% 
   filter(Reservoir == "FCR" & Dilution %in% c(1)) %>% 
   mutate(Date = as.POSIXct(strptime(Date, "%m/%d/%Y", tz="EST")))
@@ -578,6 +964,9 @@ cdom_hypo_sd <- cdom %>%
   filter(Depth == 9.0) %>% 
   group_by(Date,Depth) %>% 
   summarize_all(funs(sd))
+
+cdom_hypo_2 <- cdom_hypo %>% 
+  rename(time = Date)
 
 # Plot various parameters for Hypo
 ggplot()+
@@ -613,68 +1002,6 @@ ggplot()+
   geom_point(cdom_hypo,mapping=aes(x=Date,y=Sr))+
   geom_errorbar(cdom_hypo,mapping=aes(x=Date,y=Sr,ymin=Sr-cdom_hypo_sd$Sr,ymax=Sr+cdom_hypo_sd$Sr))+
   theme_classic(base_size=15)
-
-fdom_hypo_2 <- fdom_hypo %>% 
-  rename(time = Date,PeakT=T,PeakA=A)
-
-cdom_hypo_2 <- cdom_hypo %>% 
-  rename(time = Date)
-
-# Combine with DO data
-hypo_do_box_2 <- left_join(hypo_do_box,cdom_hypo_2,by="time")
-hypo_do_box_2 <- left_join(hypo_do_box_2,fdom_hypo_2,by="time")
-
-hypo_do_box_2 <- hypo_do_box_2 %>% 
-  filter(time >= as.POSIXct("2019-01-01"))
-
-# Plot boxplots of various FDOM/CDOM parameters by oxic/anoxic
-peakt_time <- ggplot()+
-  annotate(geom="rect",xmin = as.POSIXct("2019-06-03"), xmax = as.POSIXct("2019-06-17"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
-  annotate(geom="rect",xmin = as.POSIXct("2019-07-08"),xmax = as.POSIXct("2019-07-19"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
-  annotate(geom="rect",xmin = as.POSIXct("2019-08-05"),xmax = as.POSIXct("2019-08-19"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on
-  annotate(geom="rect",xmin = as.POSIXct("2019-09-02"), xmax = as.POSIXct("2019-11-20"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on (technically turned-off on 2019-12-01)
-  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed")+ #Turnover FCR
-  geom_line(fdom_hypo,mapping=aes(x=Date,y=T))+
-  geom_point(fdom_hypo,mapping=aes(x=Date,y=T))+
-  geom_errorbar(fdom_hypo,mapping=aes(x=Date,y=T,ymin=T-fdom_hypo_sd$T,ymax=T+fdom_hypo_sd$T))+
-  ylim(0,0.25)+
-  theme_classic(base_size=15)
-
-peakt_box <- ggplot(hypo_do_box_2,mapping=aes(x=year,y=PeakT,colour=oxy))+
-  geom_boxplot()+
-  scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
-  ylab("Peak T")+
-  xlab("Year")+
-  theme_classic(base_size=15)+
-  theme(legend.title=element_blank())
-
-ggarrange(peakt_time,peakt_box)
-
-ggsave("./Fig_Output/PeakT_oxy.jpg",width=10,height=4,units="in",dpi=320)
-
-peaka_time <- ggplot()+
-  annotate(geom="rect",xmin = as.POSIXct("2019-06-03"), xmax = as.POSIXct("2019-06-17"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
-  annotate(geom="rect",xmin = as.POSIXct("2019-07-08"),xmax = as.POSIXct("2019-07-19"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
-  annotate(geom="rect",xmin = as.POSIXct("2019-08-05"),xmax = as.POSIXct("2019-08-19"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on
-  annotate(geom="rect",xmin = as.POSIXct("2019-09-02"), xmax = as.POSIXct("2019-11-20"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on (technically turned-off on 2019-12-01)
-  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed")+ #Turnover FCR
-  geom_line(fdom_hypo,mapping=aes(x=Date,y=A))+
-  geom_point(fdom_hypo,mapping=aes(x=Date,y=A))+
-  geom_errorbar(fdom_hypo,mapping=aes(x=Date,y=A,ymin=A-fdom_hypo_sd$A,ymax=A+fdom_hypo_sd$A))+
-  ylim(0,0.35)+
-  theme_classic(base_size=15)
-
-peaka_box <- ggplot(hypo_do_box_2,mapping=aes(x=year,y=PeakA,colour=oxy))+
-  geom_boxplot()+
-  scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
-  ylab("Peak A")+
-  xlab("Year")+
-  theme_classic(base_size=15)+
-  theme(legend.title=element_blank())
-
-ggarrange(peaka_time,peaka_box)
-
-ggsave("./Fig_Output/PeakA_oxy.jpg",width=10,height=4,units="in",dpi=320)
 
 hix_time <- ggplot()+
   annotate(geom="rect",xmin = as.POSIXct("2019-06-03"), xmax = as.POSIXct("2019-06-17"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
@@ -724,7 +1051,6 @@ ggarrange(bix_time,bix_box)
 
 ggsave("./Fig_Output/BIX_oxy.jpg",width=10,height=4,units="in",dpi=320)
 
-### OLD CODE ###
 # Plot DO and DOC concentration together w/ color blocking
 ggplot()+
   annotate(geom="rect",xmin = as.POSIXct("2015-05-05"), xmax = as.POSIXct("2015-06-01"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on

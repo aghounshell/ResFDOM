@@ -139,39 +139,21 @@ ctd_all <- ctd_all %>% group_by(time,depth) %>% summarise_each(funs(mean))
 
 
 # Select and make each CTD variable a separate dataframe
-temp <- select(ctd_all, time, depth, Temp_C)
-temp <- na.omit(temp)
-temp <- arrange(temp,depth)
-do <- select(ctd_all, time, depth, DO_mgL)
-do <- na.omit(do)
-do <- arrange(do,depth)
-
-# Formatting for Matlab ----
-# Go from long to wide format
-temp_wide <- temp %>% 
-  pivot_wider(names_from = depth,values_from = Temp_C,names_prefix = "Depth_",values_fn = mean) %>% 
-  arrange(time) %>% 
-  mutate(time = as.POSIXct(strptime(time, "%Y-%m-%d")))
-
-do_wide <- do %>% 
-  pivot_wider(names_from = depth,values_from = DO_mgL,names_prefix = "Depth_",values_fn = mean) %>% 
-  arrange(time)%>% 
-  mutate(time = as.POSIXct(strptime(time, "%Y-%m-%d")))
-
-write_csv(temp_wide,"./Data/Heatmap_Temp.csv")
-write_csv(do_wide,"./Data/Heatmap_DO.csv")
-
-# Ignore for now: heatmaps in R ----
+temp_15 <- ctd_all %>% 
+  select(time, depth, Temp_C) %>% 
+  filter(time >= as.POSIXct("2015-01-01") & time <= as.POSIXct("2015-12-31"))
+  arrange(temp,depth)
+temp_15 <- na.omit(temp_15)
 
 # Interpolate Temp
-interp_temp_rough <- interp(x=temp$time, y = temp$depth, z = temp$Temp_C,
-                      xo = seq(min(temp$time), max(temp$time), by = 100), 
-                      yo = seq(0.1, 9.6, by = 0.3),
-                      extrap = F, linear = T, duplicate = "strip")
-interp_temp_rough <- interp2xyz(interp_temp_rough, data.frame=T)
+interp_temp_15 <- interp(x=temp_15$time, y = temp_15$depth, z = temp_15$Temp_C,
+                            xo = seq(min(temp_15$time), max(temp_15$time), by = 10), 
+                            yo = seq(0.1, 9.6, by = 0.1),
+                            extrap = F, linear = T, duplicate = "strip")
+interp_temp_15 <- interp2xyz(interp_temp_15, data.frame=T)
 
 # Plot
-interp_temp_rough$date <- as.POSIXct(interp_temp_rough$x)
+interp_temp_15$date <- as.POSIXct(interp_temp_15$x)
 
 # Temp
 ggplot(interp_temp_rough, aes(x=date, y=y))+
@@ -188,9 +170,32 @@ ggplot(interp_temp_rough, aes(x=date, y=y))+
   scale_fill_gradientn(colours = blue2green2red(60), na.value="gray")+
   theme_classic()
 
+do <- select(ctd_all, time, depth, DO_mgL)
+do <- na.omit(do)
+do <- arrange(do,depth)
+
+# Heatmaps in R ----
+
+
+
 # When ready for 'fine' interpolation
 #interp_temp <- interp(x=temp$DOY, y = temp$Depth_m, z = temp$Temp_C,
 #                      xo = seq(min(temp$DOY), max(temp$DOY), by = .1), 
 #                      yo = seq(0.1, 9.6, by = 0.01),
 #                      extrap = F, linear = T, duplicate = "strip")
 #interp_temp <- interp2xyz(interp_temp, data.frame=T)
+
+# Formatting for Matlab ----
+# Go from long to wide format
+temp_wide <- temp %>% 
+  pivot_wider(names_from = depth,values_from = Temp_C,names_prefix = "Depth_",values_fn = mean) %>% 
+  arrange(time) %>% 
+  mutate(time = as.POSIXct(strptime(time, "%Y-%m-%d")))
+
+do_wide <- do %>% 
+  pivot_wider(names_from = depth,values_from = DO_mgL,names_prefix = "Depth_",values_fn = mean) %>% 
+  arrange(time)%>% 
+  mutate(time = as.POSIXct(strptime(time, "%Y-%m-%d")))
+
+write_csv(temp_wide,"./Data/Heatmap_Temp.csv")
+write_csv(do_wide,"./Data/Heatmap_DO.csv")
