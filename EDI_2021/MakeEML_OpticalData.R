@@ -143,7 +143,7 @@ make_eml(
                                See README file for file types and descriptions."),
   user.id = 'ccarey',
   user.domain = 'EDI',
-  package.id = 'edi.217.2')
+  package.id = 'edi.217.4')
 
 ## Step 8: Check your data product! ####
 # Return to the EDI staging environment (https://portal-s.edirepository.org/nis/home.jsp),
@@ -161,3 +161,37 @@ make_eml(
 # Note that each revision results in the xml file increasing one value 
 # (e.g., edi.270.1, edi.270.2, etc). Re-upload your fixed files to complete the 
 # evaluation check again, until you receive a message with no errors.
+
+## Step 17: Obtain a package.id. ####
+# 
+
+make_eml(
+  path = "./EDI_2021",
+  data.path = "./EDI_2021",
+  eml.path = "./EDI_2021",
+  dataset.title = "Time series of optical measurements (absorbance, fluorescence) for Beaverdam and Falling Creek Reservoir in Southwestern Virginia, USA 2019-2020",
+  temporal.coverage = c("2019-04-29", "2020-03-30"),
+  maintenance.description = 'completed',
+  data.table = "20210511_OpticalData.csv",
+  data.table.description = "OpticalDataset",
+  other.entity= c('Abs_QA_QC.R','PARAFAC_Mod.m','EEMs_pfiles.zip','CDOM_Correction.zip'),
+  other.entity.description = c("R script for QA/QC of absorbance and fluorescence data",
+                               "Matlab code used to generate a PARAFAC model on the corrected EEMs data",
+                               "This zip folder contains corrected EEMs files ('p_ files') for all samples used in the PARAFAC model
+                               and the OpenFluor output used to identify PARAFAC components. See README file for file types and descriptions.",
+                               "This zip folder contains CSV files for absorbance corrections for all measured absorbance samples. 
+                               See README file for file types and descriptions."),
+  user.id = 'ccarey',
+  user.domain = 'EDI',
+  package.id = 'edi.841.1')
+
+## Step 18: Upload revision to EDI
+# Go to EDI website: https://portal.edirepository.org/nis/home.jsp and login with Carey Lab ID
+# Click: Tools then Evaluate/Upload Data Packages
+# Under EML Metadata File, select 'Choose File'
+# Select the .xml file of the last revision (i.e., edi.202.4)
+# Under Data Upload Options, select 'I want to manually upload the data by selecting...'
+# Click 'Upload'
+# Select text files and R file associated with the upload
+# Then click 'Upload': if everything works, there will be no errors and the dataset will be uploaded!
+# Check to make sure everything looks okay on EDI Website

@@ -1,7 +1,7 @@
 attributeName	attributeDefinition	class	unit	dateTimeFormatString	missingValueCode	missingValueCodeExplanation
 Reservoir	Three-letter code corresponding to sampled reservoir; FCR = Falling Creek Reservoir, BVR = Beaverdam Reservoir	character			NA	value is missing
-Site	Sampling site within each reservoir; 50=Deep hole or site nearest to dam in each reservoir, 45 = Upstream pelagic site nearest to the deep hole in each reservoir, 30 = Upstream pelagic site in transitional zone of the reservoir, 20=Different upstream pelagic site in transitional zone of the reservoir, 10=Furthest upstream pelagic site in transitional zone of the reservoir, 99 = Farthest downstream site on inflow stream to Falling Creek Reservoir (37.307613,-79.8360878); 100 = Inflow stream to Falling Creek Reservoir (37.30858,-79.83494) or Beaverdam Reservoir (37.31957,-79.82437); 101 = upstream site along inflow to Falling Creek Reservoir (37.309653,-79.830467); 102 = Furthest upstream site on inflow stream to Falling Creek Reservoir (37.311678,-79.827357); 200 = Secondary inflow (wetland) stream to Falling Creek Reservoir (37.30943,-79.83619) or right arm inflow to Beaverdam Reservoir (37.322851,-79.81721); 01 = Outflow site at spillway of Falling Creek Reservoir (37.30247,-79.83692) or Beaverdam Reservoir	numeric	dimensionless		NA	value is missing
-DateTime	Date of sampling. All data were collected in the eastern time zone of the U.S.A.	Date		YYYY-MM-DD	NA	value is missing
+Site	Sampling site within each reservoir; 50=Deep hole or site nearest to dam (Falling Creek Reservoir: 37.30325,-79.83726; Beaverdam Reservoir: 37.31288,-79.81593), 45=Upstream pelagic site nearest to the deep hole  (Falling Creek Reservoir: 37.30418,-79.83833; Beaverdam Reservoir: 37.314465,-79.818717), 30=Upstream pelagic site in transitional zone of the reservoir (Falling Creek Reservoir: 37.30534,-79.83825; Beaverdam Reservoir: 37.31921,-79.818226), 20=Different upstream pelagic site in transitional zone of the reservoir (Falling Creek Reservoir: 37.30769,-79.8371; Beaverdam Reservoir: 37.3170135,-79.8226419), 99=Farthest downstream site on inflow stream to Falling Creek Reservoir (37.307613,-79.8360878); 100=Inflow stream to Falling Creek Reservoir (Weir; 37.30858,-79.83494) or left arm inflow to Beaverdam Reservoir (37.31957,-79.82437); 101=upstream site along inflow to Falling Creek Reservoir (37.309653,-79.830467); 102=Furthest upstream site on inflow stream to Falling Creek Reservoir (37.311678,-79.827357); 200=Secondary inflow (wetland) stream to Falling Creek Reservoir (37.30943,-79.83619) or right arm inflow to Beaverdam Reservoir (37.322851,-79.81721); 01=Outflow site at spillway of Falling Creek Reservoir (37.30247,-79.83692) or the outflow pipe at Beaverdam Reservoir (37.314783,-79.820864)	numeric	dimensionless		NA	value is missing
+DateTime	Date of sampling. All data were collected in the eastern time zone of the U.S.A. with daylight savings observed	Date		YYYY-MM-DD	NA	value is missing
 Depth_m	The depth at which the sample was taken within the reservoir	numeric	meter		NA	value is missing
 Rep	Replicate sample number. Samples are coded as either 1 or 2 for the first and second replicate, respectively	numeric	dimensionless		NA	value is missing
 Dilution	Dilution factor for sample. Samples are labeled based on dilution factor (ex. 1,2)	numeric	dimensionless		NA	value is missing
@@ -10,9 +10,9 @@ a350_m	Napierian absorbance coefficient at 350 nm	numeric	perMeter		NA	value is 
 S275_295	Average slope calculated from the natural log of naperian absorbance coefficients from 275 nm to 295 nm	numeric	perMeter		NA	value is missing
 S350_400	Average slope calculated from the natural log of naperian absorbance coefficients from 350 nm to 400 nm	numeric	perMeter		NA	value is missing
 Sr	The slope ratio calculated as S275_295/S350_400	numeric	dimensionless		NA	value is missing
-Max_Fl_Ex	Excitation wavelength of maximum fluorescence	numeric	nanometer		NA	value is missing
-Max_Fl_Em	Emission wavelength of maximum fluorescence	numeric	nanometer		NA	value is missing
-Max_Fl	Maximum fluorescence intensity	numeric	relativeFluorescenceUnites		NA	value is missing
+Max_FL_Ex	Excitation wavelength of maximum fluorescence	numeric	nanometer		NA	value is missing
+Max_FL_Em	Emission wavelength of maximum fluorescence	numeric	nanometer		NA	value is missing
+Max_FL	Maximum fluorescence intensity	numeric	relativeFluorescenceUnites		NA	value is missing
 B	Peak B, Fluorescent intensity measured at Ex = 275 nm; Em = 305 nm	numeric	relativeFluorescenceUnites		NA	value is missing
 T	Peak T, Fluorescent intensity measured at Ex = 275 nm; Em = 340 nm	numeric	relativeFluorescenceUnites		NA	value is missing
 A	Peak A, Fluorescent intensity measured at Ex = 260 nm; Em = 400-460 nm	numeric	relativeFluorescenceUnites		NA	value is missing
@@ -36,4 +36,4 @@ Fmax2	Fluorescent intensity of Component 2 identified by PARAFAC	numeric	relativ
 Fmax3	Fluorescent intensity of Component 3 identified by PARAFAC	numeric	relativeFluorescenceUnites		NA	value is missing
 Fmax4	Fluorescent intensity of Component 4 identified by PARAFAC	numeric	relativeFluorescenceUnites		NA	value is missing
 abs_Flag	Flag for all absorbance parameters: 0 = Data are good; 1 = Absorbance not collected; 2 = Low absorbance values; use with caution	numeric	dimensionless		NA	value is missing
-fl_Flag	Flag for all fluorescene parameters: 0 = Data are good; 1 = Fluorescence not collected	numeric	dimensionless		NA	value is missing
+fl_Flag	Flag for all fluorescence parameters: 0 = Data are good; 1 = Fluorescence not collected	numeric	dimensionless		NA	value is missing

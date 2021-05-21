@@ -1,0 +1,1166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<eml:eml xmlns:eml="https://eml.ecoinformatics.org/eml-2.2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:stmml="http://www.xml-cml.org/schema/stmml-1.2" packageId="edi.841.1" xsi:schemaLocation="https://eml.ecoinformatics.org/eml-2.2.0  https://nis.lternet.edu/schemas/EML/eml-2.2.0/xsd/eml.xsd" system="edi">
+  <access authSystem="https://pasta.edirepository.org/authentication" order="allowFirst" scope="document">
+    <allow>
+      <principal>uid=ccarey,o=EDI,dc=edirepository,dc=org</principal>
+      <permission>all</permission>
+    </allow>
+    <allow>
+      <principal>public</principal>
+      <permission>read</permission>
+    </allow>
+  </access>
+  <dataset>
+    <title>Time series of optical measurements (absorbance, fluorescence) for Beaverdam and Falling Creek Reservoir in Southwestern Virginia, USA 2019-2020</title>
+    <creator>
+      <individualName>
+        <givenName>Alexandria</givenName>
+        <givenName>G.</givenName>
+        <surName>Hounshell</surName>
+      </individualName>
+      <organizationName>Virginia Tech</organizationName>
+      <electronicMailAddress>alexgh@vt.edu</electronicMailAddress>
+      <userId directory="https://orcid.org">https://orcid.org/0000-0003-1616-9399</userId>
+    </creator>
+    <creator>
+      <individualName>
+        <givenName>Rose</givenName>
+        <givenName>H.</givenName>
+        <surName>Thai</surName>
+      </individualName>
+      <organizationName>Virginia Tech</organizationName>
+      <electronicMailAddress>rosethai@vt.edu</electronicMailAddress>
+    </creator>
+    <creator>
+      <individualName>
+        <givenName>Kelly</givenName>
+        <givenName>A.</givenName>
+        <surName>Peeler</surName>
+      </individualName>
+      <organizationName>Virginia Tech</organizationName>
+      <electronicMailAddress>kpeeler@vt.edu</electronicMailAddress>
+    </creator>
+    <creator>
+      <individualName>
+        <givenName>Durelle</givenName>
+        <givenName>T.</givenName>
+        <surName>Scott</surName>
+      </individualName>
+      <organizationName>Virginia Tech</organizationName>
+      <electronicMailAddress>dscott@vt.edu</electronicMailAddress>
+      <userId directory="https://orcid.org">https://orcid.org/0000-0002-5792-789X</userId>
+    </creator>
+    <creator>
+      <individualName>
+        <givenName>Cayelan</givenName>
+        <givenName>C.</givenName>
+        <surName>Carey</surName>
+      </individualName>
+      <organizationName>Virginia Tech</organizationName>
+      <electronicMailAddress>Cayelan@vt.edu</electronicMailAddress>
+      <userId directory="https://orcid.org">https://orcid.org/0000-0001-8835-4476</userId>
+    </creator>
+    <pubDate>2021-05-21</pubDate>
+    <abstract>
+      <para>Depth profiles and surface dissolved samples analyzed for optical analyses (absorbance, fluorescence) were sampled from 2019 to 2020 in two drinking water reservoirs located in southwestern Virginia, USA including Beaverdam Reservoir (Vinton, Virginia) and Falling Creek Reservoir (Vinton, Virginia). Both reservoirs are owned and operated by the Western Virginia Water Authority as either primary or secondary drinking water sources for Roanoke, Virginia. The dataset consists of depth profiles for dissolved optical samples (absorbance, fluorescence) measured at the deepest site of each reservoir adjacent to the dam. In addition, surface water samples were collected at a gauged weir on Falling Creek Reservoir's primary inflow tributary as well as the inflow from a wetland located at the head of the reservoir. Surface samples were also collected from multiple upstream inflow and reservoir sites at Falling Creek Reservoir and Beaverdam Reservoir. Depth profiles, gauged weir, and wetland samples were collected approximately fortnightly throughout the summer stratified period (June 2019 - November 2019) and surface samples were collected approximately monthly from May 2019 to October 2019 and in March 2020. Absorbance was measured as colored dissolved organic matter (CDOM) using a spectrophotometer. Fluorescence was measured as fluorescent dissolved organic matter (fDOM) using a spectrofluorometer as excitation emission matrices (EEMs). Absorbance and fluorescence results are reported along with PARAFAC model results applied to the collected EEMs samples.</para>
+    </abstract>
+    <keywordSet>
+      <keyword>Carey Lab</keyword>
+      <keyword>Virginia Tech</keyword>
+      <keyword>Western Virginia Water Authority</keyword>
+      <keyword>Falling Creek Reservoir</keyword>
+      <keyword>Beaverdam Reservoir</keyword>
+      <keyword>Stream Team</keyword>
+      <keyword>Fluorescent dissolved organic matter</keyword>
+      <keywordThesaurus>carey lab controlled vocabulary</keywordThesaurus>
+    </keywordSet>
+    <keywordSet>
+      <keyword>Reservoir</keyword>
+      <keyword>Lake</keyword>
+      <keyword>colored dissolved organic matter</keyword>
+      <keyword>absorbance</keyword>
+      <keywordThesaurus>cuahsi controlled vocabulary</keywordThesaurus>
+    </keywordSet>
+    <keywordSet>
+      <keyword>Lakes</keyword>
+      <keyword>fluorescence</keyword>
+      <keyword>organic matter</keyword>
+      <keywordThesaurus>lter controlled vocabulary</keywordThesaurus>
+    </keywordSet>
+    <additionalInfo>
+      <para>In 2019, multiple whole-ecosystem manipulations were conducted at Falling Creek Reservoir. These manipulations include intermittent operation of hypolimnetic oxygenation. For a detailed description of the hypolimnetic oxygenation engineered system (HOx), see Gerling et al. (2014). In 2019, the HOx was activated during the following time periods: 3 June to 17 June; 8 July to 19 July; 5 August to 19 August; and 2 September to 1 December.</para>
+      <para>Gerling, A.B., Browne, R.G., Gantzer, P.A., Mobley, M.H., Little, J.C., and C.C. Carey. 2014. First report of the successful operation of a side stream supersaturation hypolimnetic oxygenation system in a eutrophic, shallow reservoir.  Water Research. 67: 129-143. doi: 10.1016/j.watres.2014.09.002&#13;
+</para>
+    </additionalInfo>
+    <intellectualRights>
+      <para>This information is released under the Creative Commons license - Attribution - CC BY (https://creativecommons.org/licenses/by/4.0/). The consumer of these data ("Data User" herein) is required to cite it appropriately in any publication that results from its use. The Data User should realize that these data may be actively used by others for ongoing research and that coordination may be necessary to prevent duplicate publication. The Data User is urged to contact the authors of these data if any questions about methodology or results occur. Where appropriate, the Data User is encouraged to consider collaboration or co-authorship with the authors. The Data User should realize that misinterpretation of data may occur if used out of context of the original study. While substantial efforts are made to ensure the accuracy of data and associated documentation, complete accuracy of data sets cannot be guaranteed. All data are made available "as is." The Data User should be aware, however, that data are updated periodically and it is the responsibility of the Data User to check for new versions of the data. The data authors and the repository where these data were obtained shall not be liable for damages resulting from any use or misinterpretation of the data. Thank you.
+</para>
+    </intellectualRights>
+    <coverage>
+      <geographicCoverage>
+        <geographicDescription>Beaverdam Reservoir is located in Vinton, Virginia, USA</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>-79.824834</westBoundingCoordinate>
+          <eastBoundingCoordinate>-79.813848</eastBoundingCoordinate>
+          <northBoundingCoordinate>37.322865</northBoundingCoordinate>
+          <southBoundingCoordinate>37.311961</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
+      <geographicCoverage>
+        <geographicDescription>Falling Creek Reservoir is located in Vinton, Virginia, USA</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>-79.839249</westBoundingCoordinate>
+          <eastBoundingCoordinate>-79.836009</eastBoundingCoordinate>
+          <northBoundingCoordinate>37.309589</northBoundingCoordinate>
+          <southBoundingCoordinate>37.30266</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
+      <temporalCoverage>
+        <rangeOfDates>
+          <beginDate>
+            <calendarDate>2019-04-29</calendarDate>
+          </beginDate>
+          <endDate>
+            <calendarDate>2020-03-30</calendarDate>
+          </endDate>
+        </rangeOfDates>
+      </temporalCoverage>
+    </coverage>
+    <maintenance>
+      <description>completed</description>
+    </maintenance>
+    <contact>
+      <individualName>
+        <givenName>Alexandria</givenName>
+        <givenName>G.</givenName>
+        <surName>Hounshell</surName>
+      </individualName>
+      <organizationName>Virginia Tech</organizationName>
+      <electronicMailAddress>alexgh@vt.edu</electronicMailAddress>
+      <userId directory="https://orcid.org">https://orcid.org/0000-0003-1616-9399</userId>
+    </contact>
+    <methods>
+      <methodStep>
+        <description>
+          <para>FIELD COLLECTION AND SAMPLE STORAGE</para>
+          <para>Routine depth samples collected for optical analyses (absorbance, fluorescence) were collected at specified depths at the deepest site of each reservoir located adjacent to the dam using a 4L Van Dorn water sampler (Wildco, Yulee, Florida, USA) and were immediately syringe filtered through a combusted (450 deg C, 4+ hours) 0.7 micron nominal poresize GF/F (glass fiber filter) into combusted (450 deg C, 4+ hours) 20 mL glass scintillation vial. Collected samples were immediately placed into a dark bag (covered in duct tape to prevent light infiltration) and stored on ice for transport to the lab (within 6 hours of collection). Surface samples were directly collected from the surface water and syringe filtered, stored, and transported as described for the depths samples above. Samples were stored frozen, on their side, for up to 12 months prior to analysis.</para>
+          <para>SAMPLE ANALYSIS</para>
+          <para>Prior to analysis, frozen samples were thawed to room temperature in a dark bag (covered in duct tape to prevent light infiltration) for up to 8 hours before absorbance and fluorescence analysis as described below. Both the spectrophotometer (absorbance) and spectrofluorometer (fluorescence) were allowed to 'warm-up' for at least 30 minutes prior to use at the beginning of each analysis day. Following warm-up, the spectrophotometer (Shimadzu UV-1800) was reset to baseline and autozeroed using Nanopure water. Samples were analyzed from 190 to 850 nm. A Nanopure blank was scanned at the beginning of each day (following baseline and auto zero corrections) and used as a blank correction. Samples with raw Absorbance greater than 0.4 at 240 nm were diluted to account for inner-filtering effects (Murphy et al. 2013).</para>
+          <para>Immediately following analysis on the spectrophotometer, samples were analyzed on a spectrofluorometer (Horiba FluoroMax-3) to measure fluorescent dissolved organic matter (fDOM) as excitation emission matrices (EEMs). Samples were scanned at 240 nm to 450 nm every 5 nm for the excitation spectrum and at 300 nm to 600 nm every 2 nm for the emission spectrum. At the beginning of each day, following instrument warm-up and prior to sample analysis, instrument checks were performed, including a Xenon Lamp check, Cuvette check, and Raman check. For the Xenon Lamp check, with an empty sample chamber, the spectrofluorometer scanned at 200 nm to 600 nm every 1 nm for the excitation spectrum and at 350 nm for the emission spectrum, looking for the highest peak to occur at 467 nm to ensure the lamp was operating appropriately. For the cuvette check, a cuvette filled with Nanopure water was placed in the sample chamber. The spectrofluorometer scanned at 240 nm for the excitation spectrum and 270 nm to 430 nm every 2 nm for the emission spectrum. The location of maximum intensity was recorded with an expected maximum intensity of ~50,000 counts per second (CPS) or less to check for any potential contamination on the quartz cuvette. For the Raman check, the spectrofluorometer scanned at 350 nm for the excitation spectrum and 365 to 450 nm every 1 nm for the emission spectrum using a Nanopure blank. The location of the peak and maximum intensity were recorded with an expected peak at 397 nm and a maximum intensity of ~400,000 CPS. The Raman check was also used in the data correction and processing as described below. Following the instrument checks, a Nanopure Blank was analyzed (Ex = 240 to 450 nm every 5 nm; Em = 300 to 600 nm every 2 nm) which was used as the blank correction. Samples were then analyzed immediately following analysis on the spectrophotometer as described above.</para>
+          <para>DATA CORRECTION AND PROCESSING</para>
+          <para>The absorbance data from the spectrophotometer were corrected for each sample by first, subtracting the daily Nanopure blank from each sample scan. Absorbance values (A254) were converted to naperian coefficients (a254) using  the equation: a254=2.303*A254/l where l is the cuvette pathlength (0.01 m, Stedmon and Nelson 2015). The value of a254 and a350 at wavelengths 254 and 350, respectively are reported. The natural log was taken for each naperian coefficient from wavelengths 190 to 850 nm. The natural log values between wavelengths 275 nm to 295 nm were averaged (S275_295), as well as the natural log values between wavelengths 350 nm and 400 nm (S350_400). The slope ratio (SR) was calculated by dividing the two previously calculated averages, 275-295/350-400 (Helms et al. 2008). All instances where replicates were collected and analyzed are reported in this dataset. CSV files used to correct the absorbance data are published with this data product in the Corrected_CDOM zipped folder.</para>
+          <para>Fluorescence samples were blank-corrected using a Nanopure blank collected on the same day as analysis. Instrument excitation and emission corrections were applied to each blank-corrected sample in addition to corrections for inner-filtering effects using the absorbance scan collected on the same day of analysis, and calibrated against the Raman signal of Nanopure water using an in-house Matlab script. Emission scans for each sample were concatenated into 151 x 43 excitation-emission matrices (EEMs). Peaks B (Ex: 275, Em: 305), T (Ex: 275, Em: 340), A (Ex: 260, Em: 400-460), C (Ex: 320-360, Em: 420-460), M (Ex:290-310 , Em: 370-410), and N (Ex: 280, Em: 370) were identified based on existing literature (Coble, 2007; Fellman et al. 2010, and references within). The fluorescence index (FI) was calculated as the ratio between emission wavelengths measured at 450 nm and 500 nm at an excitation of 370 nm (McKnight et al. 2001). BIX was calculated as the ratio between the beta (380 nm, Peak M) and alpha (430 nm, Peak C) regions of fluorescence measured at an excitation wavelength of 310 nm (Huguet et al. 2009). HIX was calculated as the ratio of the H (435-480 nm) and L (300-345 nm) regions of fluorescence measured at an excitation wavelength of 254 nm (Huguet et al. 2009). Peak ratios (T_B, T_M, T_N, T_C, A_T, A_C, A_M, M_C, C_N) were calculated by dividing the respective peak intensities. Samples with dilution 1 or 2 are reported in this dataset.</para>
+          <para>PARAFAC MODELING</para>
+          <para>Parallel Factor Analysis (PARAFAC) is a multiway, statistical decomposition technique that can be applied to a collection of EEMs to identify and track broad classes of fDOM, represented as linearly independent components having excitation and emission properties common to organic fluorophores. A PARAFAC model was fitted to a total of 250 samples collected from both reservoirs (Falling Creek Reservoir and Beaverdam Reservoir) at all stations and depths using the drEEM toolbox in Matlab (Murphy et al. 2013). EEMs were normalized to their total fluorescence prior to PARAFAC modeling. A 4-component PARAFAC model was fitted to the collected DOM samples. The model was split-half validated following Murphy et al. 2013. Samples were reverse-normalized and Fmax values for each component and sample were calculated by multiplying the maximum excitation loading and emission loading for each component by its model score (Murphy et al. 2013). Corrected EEMs files used in the PARAFAC model are included in the EEMs_pfiles zipped folder associated with this data publication. The matlab script used to fit the PARAFAC model is also included (PARAFAC_Mod.m).</para>
+          <para>Identified components were compared to previously published PARAFAC spectra on OpenFluor (Murphy et al. 2014). Component 1 (C1) matched with 19 other spectra on OpenFluor and was identified as ubiquitous, terrestrial, humic-like Peaks A and C (DeFrancesco and Gueguen, 2021; Catalan et al. 2020; Derrien et al. 2020). Component 2 (C2) matched with 22 other spectra on OpenFluor and was identified as humic-like, fulvic-acid, peak C (Yamashita et al. 2011; Goncalves-Araujo et al. 2015; Murphy et al. 2008). Component 3 (C3) matched with 1 other spectra on OpenFluor and was identified as humic-like DOM (humic-like DOM). FInally, component 4 (C4) matched with 17 other spectra and was identified as protein-like DOM (Zhou et al. 2019; Dainard et al. 2015; Wauthy et al. 2018). The output from OpenFluor is included in the data publication.</para>
+          <para>All data (absorbance, fluorescence, PARAFAC model results) were collated, QA/QC'd, and formatted for publication using the Abs_QA_QC.R script included in the publication.</para>
+          <para>References:</para>
+          <para>Catalan, N., Pastor, A., Borrego, C.M., Casas-Ruiz, J.P., Hawkes, J.A., Gutierrez, C., Schiller, D., Marce, R., 2021. The relevance of environment vs. composition on dissolved organic matter degradation in freshwaters. Limnology and Oceanography, 66, 306-320. https://doi.org/10.1002/lno.11606</para>
+          <para>Coble, P.G., 2007. Marine optical biogeochemistry: The chemistry of ocean color. Chemical Reviews 107, 402-418. https://doi.org/10.1021/cr050350</para>
+          <para>Dainard, P.G., Gueguen, C., Yamamoto-Kawai, M., Williams, W.J., Hutchings, J.K., 2019. Interannual Variability in the Absorption and Fluorescence Characteristics of Dissolved Organic Matter in the Canada Basin Polar Mixed Waters. Journal of Geophysical Research: Oceans 124, 5258-5269. https://doi.org/10.1029/2018JC014896</para>
+          <para>DeFrancesco, C., Gueguen, C., 2021. Long-term Trends in Dissolved Organic Matter Composition and Its Relation to Sea Ice in the Canada Basin, Arctic Ocean (2007-2017). Journal of Geophysical Research: Oceans 126. https://doi.org/10.1029/2020JC016578</para>
+          <para>Derrien, M., Lee, M.-H., Choi, K., Lee, K.-S., Hur, J., 2020. Tracking the evolution of particulate organic matter sources during summer storm events via end-member mixing analysis based on spectroscopic proxies. Chemosphere 252, 126445. https://doi.org/10.1016/j.chemosphere.2020.126445</para>
+          <para>Fellman, J.B., E. Hood, and R.G.M. Spencer. 2010. Fluorescence spectroscopy opens new windows into dissolved organic matter dynamics in freshwater ecosystems: A review. Limnology and Oceanography 55, 2452-2462. https://doi.org/10.4319/lo.2010.55.6.2452 </para>
+          <para>Goncalves-Araujo, R., Stedmon, C.A., Heim, B., Dubinenkov, I., Kraberg, A., Moiseev, D., Bracher, A., 2015. From Fresh to Marine Waters: Characterization and Fate of Dissolved Organic Matter in the Lena River Delta Region, Siberia. Frontiers in Marine Science 2. https://doi.org/10.3389/fmars.2015.00108</para>
+          <para>Helms, J.R., Stubbins, A., Ritchie, J.D., Minor, E.C., Kieber, D.J., and Mopper, K. 2008. Absorption spectral slopes and slope ratios as indicators of molecular weight, source, and photobleaching of chromophoric dissolved organic matter. Limnology and Oceanography 53, 955-969. https://doi.org/10.4319/lo.2008.53.3.0955</para>
+          <para>Huguet, A., L. Vacher, S. Relexans, S. Saubusse, J.M. Froidefond, and E. Parlanti. 2009. Properties of fluorescent dissolved organic matter in the Gironde Estuary. Organic Geochemistry 40, 706-719. https://doi.org/10.1016/j.orggeochem.2009.03.002</para>
+          <para>McKnight, D.M., E.W. Boyer, P.K. Westerhoff, P.T. Doran, T. Kulbe, and D.T. Anderson. 2001. Spectrofluorometric characterization of dissolved organic matter for indication of precursor organic material and aromaticity. Limnology and Oceanography 46, 38-48. https://doi.org/10.4319/lo.2001.46.1.0038 </para>
+          <para>Murphy, K.R., Stedmon, C.A., Waite, T.D., Ruiz, G.M., 2008. Distinguishing between terrestrial and autochthonous organic matter sources in marine environments using fluorescence spectroscopy. Marine Chemistry 108, 40-58. https://doi.org/10.1016/j.marchem.2007.10.003</para>
+          <para>Murphy, K.R., C.A. Stedmon, D. Graeber, and R. Bro. 2013. Fluorescence spectroscopy and multi-way techniques: PARAFAC. Analytical Methods. 5, 6557-6566. https://doi.org/10.1039/C3AY41160E </para>
+          <para>Murphy, K.R., Stedmon, C.A., Wenig, P., Bro, R., 2014. OpenFluor- an online spectral library of auto-fluorescence by organic compounds in the environment. Anal. Methods 6, 658-661. https://doi.org/10.1039/C3AY41935E </para>
+          <para>Stedmon, C., and Nelson, N. 2015. Chapter 10. The Optical Properties of DOM in the Ocean. Biogeochemistry of Marine Dissolved Organic Matter, 481-508. https://doi.org/10.1016/b978-0-12-405940-5.00010-8 </para>
+          <para>Wauthy, M., Rautio, M., Christoffersen, K.S., Forsstrom, L., Laurion, I., Mariash, H.L., Peura, S., Vincent, W.F., 2018. Increasing dominance of terrigenous organic matter in circumpolar freshwaters due to permafrost thaw: Increasing allochthony in arctic freshwaters. Limnology Oceanography 3, 186-198. https://doi.org/10.1002/lol2.10063</para>
+          <para>Yamashita, Y., Kloeppel, B.D., Knoepp, J., Zausen, G.L., Jaffe, R., 2011. Effects of Watershed History on Dissolved Organic Matter Characteristics in Headwater Streams. Ecosystems 14, 1110-1122. https://doi.org/10.1007/s10021-011-9469-z</para>
+          <para>Zhou, Y., Martin, P., Muller, M., 2019. Composition and cycling of dissolved organic matter from tropical peatlands of coastal Sarawak, Borneo, revealed by fluorescence spectroscopy and parallel factor analysis. Biogeosciences 16, 2733-2749. https://doi.org/10.5194/bg-16-2733-2019 </para>
+        </description>
+      </methodStep>
+    </methods>
+    <project>
+      <title>No project title to report</title>
+      <personnel>
+        <individualName>
+          <givenName>Cayelan</givenName>
+          <givenName>C.</givenName>
+          <surName>Carey</surName>
+        </individualName>
+        <organizationName>Virginia Tech</organizationName>
+        <electronicMailAddress>Cayelan@vt.edu</electronicMailAddress>
+        <userId directory="https://orcid.org">https://orcid.org/0000-0001-8835-4476</userId>
+        <role>Principal Investigator</role>
+      </personnel>
+      <funding>Western Virginia Water Authority</funding>
+      <relatedProject>
+        <title>Collaborative Research: Consequences of changing oxygen availability for carbon cycling in freshwater ecosystems</title>
+        <personnel>
+          <individualName>
+            <givenName>Cayelan</givenName>
+            <givenName>C.</givenName>
+            <surName>Carey</surName>
+          </individualName>
+          <organizationName>Virginia Tech</organizationName>
+          <electronicMailAddress>Cayelan@vt.edu</electronicMailAddress>
+          <userId directory="https://orcid.org">https://orcid.org/0000-0001-8835-4476</userId>
+          <role>Principal Investigator</role>
+        </personnel>
+        <funding>National Science Foundation 1753639</funding>
+      </relatedProject>
+    </project>
+    <dataTable>
+      <entityName>20210511_OpticalData.csv</entityName>
+      <entityDescription>OpticalDataset</entityDescription>
+      <physical>
+        <objectName>20210511_OpticalData.csv</objectName>
+        <size unit="bytes">107805</size>
+        <authentication method="MD5">a0f0edfcae71c442cfcb648c3ab7b9e8</authentication>
+        <dataFormat>
+          <textFormat>
+            <numHeaderLines>1</numHeaderLines>
+            <recordDelimiter>\r\n</recordDelimiter>
+            <attributeOrientation>column</attributeOrientation>
+            <simpleDelimited>
+              <fieldDelimiter>,</fieldDelimiter>
+            </simpleDelimited>
+          </textFormat>
+        </dataFormat>
+      </physical>
+      <attributeList>
+        <attribute>
+          <attributeName>Reservoir</attributeName>
+          <attributeDefinition>Three-letter code corresponding to sampled reservoir; FCR = Falling Creek Reservoir, BVR = Beaverdam Reservoir</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <textDomain>
+                  <definition>Three-letter code corresponding to sampled reservoir; FCR = Falling Creek Reservoir, BVR = Beaverdam Reservoir</definition>
+                </textDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>Site</attributeName>
+          <attributeDefinition>Sampling site within each reservoir; 50=Deep hole or site nearest to dam (Falling Creek Reservoir: 37.30325,-79.83726; Beaverdam Reservoir: 37.31288,-79.81593), 45=Upstream pelagic site nearest to the deep hole  (Falling Creek Reservoir: 37.30418,-79.83833; Beaverdam Reservoir: 37.314465,-79.818717), 30=Upstream pelagic site in transitional zone of the reservoir (Falling Creek Reservoir: 37.30534,-79.83825; Beaverdam Reservoir: 37.31921,-79.818226), 20=Different upstream pelagic site in transitional zone of the reservoir (Falling Creek Reservoir: 37.30769,-79.8371; Beaverdam Reservoir: 37.3170135,-79.8226419), 99=Farthest downstream site on inflow stream to Falling Creek Reservoir (37.307613,-79.8360878); 100=Inflow stream to Falling Creek Reservoir (Weir; 37.30858,-79.83494) or left arm inflow to Beaverdam Reservoir (37.31957,-79.82437); 101=upstream site along inflow to Falling Creek Reservoir (37.309653,-79.830467); 102=Furthest upstream site on inflow stream to Falling Creek Reservoir (37.311678,-79.827357); 200=Secondary inflow (wetland) stream to Falling Creek Reservoir (37.30943,-79.83619) or right arm inflow to Beaverdam Reservoir (37.322851,-79.81721); 01=Outflow site at spillway of Falling Creek Reservoir (37.30247,-79.83692) or the outflow pipe at Beaverdam Reservoir (37.314783,-79.820864)</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>natural</numberType>
+                <bounds>
+                  <minimum exclusive="false">1</minimum>
+                  <maximum exclusive="false">200</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>DateTime</attributeName>
+          <attributeDefinition>Date of sampling. All data were collected in the eastern time zone of the U.S.A. with daylight savings observed</attributeDefinition>
+          <storageType>date</storageType>
+          <measurementScale>
+            <dateTime>
+              <formatString>YYYY-MM-DD</formatString>
+              <dateTimeDomain/>
+            </dateTime>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>Depth_m</attributeName>
+          <attributeDefinition>The depth at which the sample was taken within the reservoir</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>meter</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.1</minimum>
+                  <maximum exclusive="false">9</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>Rep</attributeName>
+          <attributeDefinition>Replicate sample number. Samples are coded as either 1 or 2 for the first and second replicate, respectively</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>natural</numberType>
+                <bounds>
+                  <minimum exclusive="false">1</minimum>
+                  <maximum exclusive="false">2</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>Dilution</attributeName>
+          <attributeDefinition>Dilution factor for sample. Samples are labeled based on dilution factor (ex. 1,2)</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>natural</numberType>
+                <bounds>
+                  <minimum exclusive="false">1</minimum>
+                  <maximum exclusive="false">2</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>a254_m</attributeName>
+          <attributeDefinition>Napierian absorbance coefficient at 254 nm</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>perMeter</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">4.1454</minimum>
+                  <maximum exclusive="false">72.7748</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>a350_m</attributeName>
+          <attributeDefinition>Napierian absorbance coefficient at 350 nm</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>perMeter</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-1.3818</minimum>
+                  <maximum exclusive="false">67.2476</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>S275_295</attributeName>
+          <attributeDefinition>Average slope calculated from the natural log of naperian absorbance coefficients from 275 nm to 295 nm</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>perMeter</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">1.085663066</minimum>
+                  <maximum exclusive="false">4.255180054</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>S350_400</attributeName>
+          <attributeDefinition>Average slope calculated from the natural log of naperian absorbance coefficients from 350 nm to 400 nm</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>perMeter</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.068977517</minimum>
+                  <maximum exclusive="false">4.19068956</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>Sr</attributeName>
+          <attributeDefinition>The slope ratio calculated as S275_295/S350_400</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">1.012450065</minimum>
+                  <maximum exclusive="false">26.95640559</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>Max_FL_Ex</attributeName>
+          <attributeDefinition>Excitation wavelength of maximum fluorescence</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>nanometer</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>natural</numberType>
+                <bounds>
+                  <minimum exclusive="false">240</minimum>
+                  <maximum exclusive="false">325</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>Max_FL_Em</attributeName>
+          <attributeDefinition>Emission wavelength of maximum fluorescence</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>nanometer</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>natural</numberType>
+                <bounds>
+                  <minimum exclusive="false">300</minimum>
+                  <maximum exclusive="false">492</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>Max_FL</attributeName>
+          <attributeDefinition>Maximum fluorescence intensity</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>relativeFluorescenceUnites</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">4.592585979</minimum>
+                  <maximum exclusive="false">55.01577401</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>B</attributeName>
+          <attributeDefinition>Peak B, Fluorescent intensity measured at Ex = 275 nm; Em = 305 nm</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>relativeFluorescenceUnites</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.018916916</minimum>
+                  <maximum exclusive="false">0.545096291</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>T</attributeName>
+          <attributeDefinition>Peak T, Fluorescent intensity measured at Ex = 275 nm; Em = 340 nm</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>relativeFluorescenceUnites</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.00877561</minimum>
+                  <maximum exclusive="false">0.43732961</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>A</attributeName>
+          <attributeDefinition>Peak A, Fluorescent intensity measured at Ex = 260 nm; Em = 400-460 nm</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>relativeFluorescenceUnites</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.045098938</minimum>
+                  <maximum exclusive="false">0.472208006</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>C</attributeName>
+          <attributeDefinition>Peak C, Fluorescent intensity measured at Ex = 320-360 nm; Em = 420-460 nm</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>relativeFluorescenceUnites</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.018351683</minimum>
+                  <maximum exclusive="false">0.229648844</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>M</attributeName>
+          <attributeDefinition>Peak M, Fluorescent intensity measured at Ex = 290-310 nm; Em = 370-410 nm</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>relativeFluorescenceUnites</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.020751919</minimum>
+                  <maximum exclusive="false">0.174855073</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>N</attributeName>
+          <attributeDefinition>Peak N, Fluorescent intensity measured at Ex = 280 nm; Em = 370 nm</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>relativeFluorescenceUnites</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.021561378</minimum>
+                  <maximum exclusive="false">0.242913998</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>FI</attributeName>
+          <attributeDefinition>Fluorescent index (FI), Ratio of fluorescent intensity measured at Ex = 370 nm; Em = 450 nm/500 nm</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">1.341029341</minimum>
+                  <maximum exclusive="false">1.696508408</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>BIX</attributeName>
+          <attributeDefinition>Biological Index (BIX), Ratio of fluorescent intensity measured at Ex = 310 nm; Em = 380 nm/430 nm</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.496755941</minimum>
+                  <maximum exclusive="false">0.910052977</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>HIX</attributeName>
+          <attributeDefinition>Humification index (HIX), Ratio of fluorescent intensity measured at Ex = 254 nm; Em = 435-480 nm/300-345 nm</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.781097819</minimum>
+                  <maximum exclusive="false">9.35611772</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>T_B</attributeName>
+          <attributeDefinition>The ratio of peak T and peak B.</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.114761108</minimum>
+                  <maximum exclusive="false">1.828612059</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>T_M</attributeName>
+          <attributeDefinition>The ratio of peak T and peak M.</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.107116363</minimum>
+                  <maximum exclusive="false">3.889042337</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>T_N</attributeName>
+          <attributeDefinition>The ratio of peak T and peak N.</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.144582237</minimum>
+                  <maximum exclusive="false">1.800347501</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>T_C</attributeName>
+          <attributeDefinition>The ratio of peak T and peak C.</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.087977832</minimum>
+                  <maximum exclusive="false">5.370165672</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>A_T</attributeName>
+          <attributeDefinition>The ratio of peak A and peak T.</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.494403687</minimum>
+                  <maximum exclusive="false">22.0416537</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>A_C</attributeName>
+          <attributeDefinition>The ratio of peak A and peak C.</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">1.757595983</minimum>
+                  <maximum exclusive="false">2.775473393</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>A_M</attributeName>
+          <attributeDefinition>The ratio of peak A and peak M.</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">1.351376502</minimum>
+                  <maximum exclusive="false">2.985533762</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>M_C</attributeName>
+          <attributeDefinition>The ratio of peak M and peak C.</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.638642983</minimum>
+                  <maximum exclusive="false">1.583684091</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>C_N</attributeName>
+          <attributeDefinition>The ratio of peak C and peak N.</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.330820126</minimum>
+                  <maximum exclusive="false">2.155464529</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>Fmax1</attributeName>
+          <attributeDefinition>Fluorescent intensity of Component 1 identified by PARAFAC</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>relativeFluorescenceUnites</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.027592891</minimum>
+                  <maximum exclusive="false">1.149658267</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>Fmax2</attributeName>
+          <attributeDefinition>Fluorescent intensity of Component 2 identified by PARAFAC</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>relativeFluorescenceUnites</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.011752214</minimum>
+                  <maximum exclusive="false">1.386852305</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>Fmax3</attributeName>
+          <attributeDefinition>Fluorescent intensity of Component 3 identified by PARAFAC</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>relativeFluorescenceUnites</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0</minimum>
+                  <maximum exclusive="false">1.281013716</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>Fmax4</attributeName>
+          <attributeDefinition>Fluorescent intensity of Component 4 identified by PARAFAC</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>relativeFluorescenceUnites</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.00124503</minimum>
+                  <maximum exclusive="false">1.127297014</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>abs_Flag</attributeName>
+          <attributeDefinition>Flag for all absorbance parameters: 0 = Data are good; 1 = Absorbance not collected; 2 = Low absorbance values; use with caution</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>whole</numberType>
+                <bounds>
+                  <minimum exclusive="false">0</minimum>
+                  <maximum exclusive="false">2</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>fl_Flag</attributeName>
+          <attributeDefinition>Flag for all fluorescence parameters: 0 = Data are good; 1 = Fluorescence not collected</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>whole</numberType>
+                <bounds>
+                  <minimum exclusive="false">0</minimum>
+                  <maximum exclusive="false">1</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>value is missing</codeExplanation>
+          </missingValueCode>
+        </attribute>
+      </attributeList>
+      <numberOfRecords>352</numberOfRecords>
+    </dataTable>
+    <otherEntity>
+      <entityName>Abs_QA_QC.R</entityName>
+      <entityDescription>R script for QA/QC of absorbance and fluorescence data</entityDescription>
+      <physical>
+        <objectName>Abs_QA_QC.R</objectName>
+        <size unit="bytes">18326</size>
+        <authentication method="MD5">18daedea2a33fac593ff1807c849d412</authentication>
+        <dataFormat>
+          <externallyDefinedFormat>
+            <formatName>text/plain</formatName>
+          </externallyDefinedFormat>
+        </dataFormat>
+      </physical>
+      <entityType>unknown</entityType>
+    </otherEntity>
+    <otherEntity>
+      <entityName>PARAFAC_Mod.m</entityName>
+      <entityDescription>Matlab code used to generate a PARAFAC model on the corrected EEMs data</entityDescription>
+      <physical>
+        <objectName>PARAFAC_Mod.m</objectName>
+        <size unit="bytes">3224</size>
+        <authentication method="MD5">8563cd2948f2331f4f1043960c2500a3</authentication>
+        <dataFormat>
+          <externallyDefinedFormat>
+            <formatName>Unknown</formatName>
+          </externallyDefinedFormat>
+        </dataFormat>
+      </physical>
+      <entityType>unknown</entityType>
+    </otherEntity>
+    <otherEntity>
+      <entityName>EEMs_pfiles.zip</entityName>
+      <entityDescription>This zip folder contains corrected EEMs files ('p_ files') for all samples used in the PARAFAC model
+                               and the OpenFluor output used to identify PARAFAC components. See README file for file types and descriptions.</entityDescription>
+      <physical>
+        <objectName>EEMs_pfiles.zip</objectName>
+        <size unit="bytes">8504443</size>
+        <authentication method="MD5">737500fa80d7bdc30caae81e7b0c5b21</authentication>
+        <dataFormat>
+          <externallyDefinedFormat>
+            <formatName>application/zip</formatName>
+          </externallyDefinedFormat>
+        </dataFormat>
+      </physical>
+      <entityType>unknown</entityType>
+    </otherEntity>
+    <otherEntity>
+      <entityName>CDOM_Correction.zip</entityName>
+      <entityDescription>This zip folder contains CSV files for absorbance corrections for all measured absorbance samples. 
+                               See README file for file types and descriptions.</entityDescription>
+      <physical>
+        <objectName>CDOM_Correction.zip</objectName>
+        <size unit="bytes">591085</size>
+        <authentication method="MD5">4e6e085bdd6eaf3282e31bb008dca0cb</authentication>
+        <dataFormat>
+          <externallyDefinedFormat>
+            <formatName>application/zip</formatName>
+          </externallyDefinedFormat>
+        </dataFormat>
+      </physical>
+      <entityType>unknown</entityType>
+    </otherEntity>
+  </dataset>
+  <additionalMetadata>
+    <metadata>
+      <unitList>
+        <unit id="perMeter" multiplierToSI="" name="perMeter" parentSI="" unitType="absorbance">
+          <description>absorbance in per meter</description>
+        </unit>
+        <unit id="relativeFluorescenceUnites" multiplierToSI="" name="relativeFluorescenceUnites" parentSI="" unitType="fluorescence">
+          <description>fluorescence units standardized to the Raman scan of Nanopure water</description>
+        </unit>
+      </unitList>
+    </metadata>
+  </additionalMetadata>
+</eml:eml>
