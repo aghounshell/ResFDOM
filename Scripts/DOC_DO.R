@@ -557,11 +557,19 @@ ggarrange(doc_full, doc, jterm_full ,jterm,ncol=2,nrow=2,common.legend=TRUE,labe
 ggsave("./Fig_Output/Fig5_v2.jpg",width=10,height=8,units="in",dpi=320)
 
 # Plot temp by year (as box plots?)
+# Remove wonky casts: 2019-04-29, 2019-05-31
+ctd_50_hypo <- ctd_50_hypo %>% 
+  mutate(Temp_C = ifelse(Temp_C >= 16, NA, Temp_C)) %>% 
+  mutate(DO_mgL = ifelse(Temp_C >= 16, NA, DO_mgL))
+
+# Also want to add in timeseries of DO for the full time period
+ctd_50_hypo <- ctd_50_hypo[!is.na(ctd_50_hypo$DO_mgL),]
 temp_box <- ggplot(hypo_do_box,mapping=aes(year,Temp_C,colour=oxy))+
   geom_boxplot()+
   scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
   ylab(expression(paste("Temp (C"^o*")")))+
   xlab("Year")+
+  ylim(0,15)+
   theme_classic(base_size=17)+
   theme(legend.title=element_blank())
 
@@ -573,9 +581,6 @@ do_box <- ggplot(hypo_do_box,mapping=aes(year,DO_mgL,colour=oxy))+
   xlab("Year")+
   theme_classic(base_size=17)+
   theme(legend.title=element_blank())
-
-# Also want to add in timeseries of DO for the full time period
-ctd_50_hypo <- ctd_50_hypo[!is.na(ctd_50_hypo$DO_mgL),]
 
 do_time <- ggplot(ctd_50_hypo,mapping=aes(x=time,y=DO_mgL))+
   annotate(geom="rect",xmin = as.POSIXct("2018-04-23"), xmax = as.POSIXct("2018-07-30"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
@@ -595,13 +600,29 @@ do_time <- ggplot(ctd_50_hypo,mapping=aes(x=time,y=DO_mgL))+
   xlim(as.POSIXct("2018-01-01"),as.POSIXct("2020-12-31"))+
   theme_classic(base_size = 17)
 
-ggarrange(do_time,
-          ggarrange(temp_box,do_box,ncol=2,labels = c("B.","C."),common.legend = TRUE,font.label=list(face="plain",size=15)),
-          nrow=2,
-          labels = "A.",
-          font.label=list(face="plain",size=15))
+temp_time <- ggplot(ctd_50_hypo,mapping=aes(x=time,y=Temp_C))+
+  annotate(geom="rect",xmin = as.POSIXct("2018-04-23"), xmax = as.POSIXct("2018-07-30"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-06-03"), xmax = as.POSIXct("2019-06-17"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-07-08"),xmax = as.POSIXct("2019-07-19"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-08-05"),xmax = as.POSIXct("2019-08-19"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-09-02"), xmax = as.POSIXct("2019-11-20"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on (technically turned-off on 2019-12-01)
+  annotate(geom="rect",xmin = as.POSIXct("2020-06-29"), xmax = as.POSIXct("2020-09-11"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2020-09-25"), xmax = as.POSIXct("2020-12-02"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2018-10-21"),linetype="dashed")+ #Turnover FCR
+  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed")+ #Turnover FCR
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed")+ #Turnover FCR; operationally defined
+  geom_line(size=0.8)+
+  geom_point(size=3)+
+  ylab(expression(paste("Temp ("^o*"C)")))+
+  xlab("Year")+
+  ylim(0,15)+
+  xlim(as.POSIXct("2018-01-01"),as.POSIXct("2020-12-31"))+
+  theme_classic(base_size = 17)
+
+ggarrange(temp_time,temp_box,do_time,do_box,nrow=2,ncol=2,widths=c(3,2),
+          labels=c("A.","B.","C.","D."),font.label = list(face="plain",size=15))
   
-ggsave("./Fig_OutPut/DO_temp_Year_v2.jpg",width=10,height=9,units="in",dpi=320)
+ggsave("./Fig_OutPut/DO_temp_Year_v3.jpg",width=12,height=9,units="in",dpi=320)
 
 #Plot Inflow and dM/dt by year
 dm_dt <- ggplot(hypo_do_box,mapping=aes(year,dMdt_mgs*60*60*24/1000/1000,colour=oxy))+
