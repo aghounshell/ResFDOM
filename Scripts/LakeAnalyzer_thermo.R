@@ -175,7 +175,7 @@ la_results <- read.csv("./Data/20210603_LA_FCR_results.csv") %>%
 
 la_results_strat <- la_results %>% 
   mutate(month = month(DateTime)) %>% 
-  filter(month %in% c(5,6,7,8,9,10))
+  filter(month %in% c(4,5,6,7,8,9,10))
 
 # Plot to check?
 ggplot(la_results)+
@@ -184,6 +184,10 @@ ggplot(la_results)+
   geom_line(la_results_strat,mapping=aes(x=DateTime,y=-SthermD,color="SthermD"))+
   geom_point(la_results_strat,mapping=aes(x=DateTime,y=-SthermD,color="SthermD"))+
   theme_classic(base_size=15)
+
+# Average across the stratified period?
+thermo <- la_results_strat %>% 
+  summarise_all(mean,na.rm=TRUE)
 
 ### DID NOT USE BELOW ----
 # Could not figure out how to use LA in R... : (
