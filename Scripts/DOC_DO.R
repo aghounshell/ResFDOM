@@ -5,7 +5,7 @@
 # Don't worry about 'entrainment' - should be included in the outflow variable
 
 # Load libraries
-pacman::p_load(tidyverse,ggplot2,ggpubr,lubridate,zoo)
+pacman::p_load(tidyverse,ggplot2,ggpubr,lubridate,zoo,rMR)
 
 # Load data: long-term DOC; weir discharge; temperature/DO casts
 # DOC data from EDI - NOTE: May want to update for 2020 data??
@@ -372,6 +372,21 @@ ctd_50_depths <- as.data.frame(super_final) %>%
 
 ctd_50_depths$Temp_C <- as.numeric(ctd_50_depths$Temp_C)
 ctd_50_depths$depth <- as.numeric(ctd_50_depths$depth)
+ctd_50_depths$Cond_uScm <- as.numeric(ctd_50_depths$Cond_uScm)
+ctd_50_depths$DO_mgL <- as.numeric(ctd_50_depths$DO_mgL)
+
+# Calculate %DO Saturation using rMR
+ctd_do_calc <- ctd_50_depths %>% 
+  select(time,Temp_C,DO_mgL,Cond_uScm,depth)
+
+ctd_do_calc <- na.omit(ctd_do_calc)
+  
+ctd_do_calc <- ctd_do_calc %>% 
+  mutate(calc_DO_pSat = DO.saturation(DO.mgl = ctd_do_calc$DO_mgL,temp.C = ctd_do_calc$Temp_C,
+                                      elevation.m = 509, bar.press = NULL, bar.units = NULL,
+                                      ctd_do_calc$Cond_uScm,salinity.units = "uS")*100)
+
+ctd_50_depths_2 <- left_join(ctd_50_depths,ctd_do_calc,by=c("time","depth","Temp_C","DO_mgL","Cond_uScm"))
 
 ctd_50_hypo <- ctd_50_depths %>% 
   filter(depth == 9.0)
@@ -552,6 +567,48 @@ ggarrange(temp_time,temp_box,do_time,do_box,nrow=2,ncol=2,widths=c(3,2),
           labels=c("A.","B.","C.","D."),font.label = list(face="plain",size=15))
   
 ggsave("./Fig_OutPut/DO_temp_Year_v3.jpg",width=12,height=9,units="in",dpi=320)
+
+# Plot %DO sat for SI
+hypo_do_box$DO_pSat <- as.numeric(hypo_do_box$DO_pSat)
+ctd_50_hypo$DO_pSat <- as.numeric(ctd_50_hypo$DO_pSat)
+
+dosat_box <- ggplot(hypo_do_box,mapping=aes(year,DO_pSat,colour=oxy))+
+  geom_boxplot()+
+  scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
+  ylab("DO % Saturation")+
+  xlab("Year")+
+  theme_classic(base_size=17)+
+  theme(legend.title=element_blank())
+
+dosat_time <- ggplot(ctd_50_hypo,mapping=aes(x=time,y=DO_pSat))+
+  annotate(geom="rect",xmin = as.POSIXct("2018-04-23"), xmax = as.POSIXct("2018-07-30"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-06-03"), xmax = as.POSIXct("2019-06-17"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-07-08"),xmax = as.POSIXct("2019-07-19"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-08-05"),xmax = as.POSIXct("2019-08-19"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-09-02"), xmax = as.POSIXct("2019-11-20"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on (technically turned-off on 2019-12-01)
+  annotate(geom="rect",xmin = as.POSIXct("2020-06-29"), xmax = as.POSIXct("2020-09-11"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2020-09-25"), xmax = as.POSIXct("2020-12-02"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2018-10-21"),linetype="dashed")+ #Turnover FCR
+  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed")+ #Turnover FCR
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed")+ #Turnover FCR; operationally defined
+  geom_line(size=0.8)+
+  geom_point(size=3)+
+  ylab("DO % Saturation")+
+  xlab("Year")+
+  xlim(as.POSIXct("2018-01-01"),as.POSIXct("2020-12-31"))+
+  theme_classic(base_size = 17)
+
+ggarrange(dosat_time,dosat_box,nrow=1,ncol=2,widths=c(3,2),
+          labels=c("A.","B."),font.label = list(face="plain",size=15))
+
+ggsave("./Fig_OutPut/DOSat.jpg",width=10,height=5,units="in",dpi=320)
+
+# Calculate median DO for each year/oxygenation period
+do_med <- hypo_do_box %>% 
+  select(-time,-depth,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-DOC_8,-DOC_9,-hypo_vw_mgL,-j_kgd,
+         -hypo_mg,-DOC_mgL_therm,-DOC_mgL_100,-flow_cms,-j_mgs,-month,-dMdt_mgs,-wrt_d) %>% 
+  group_by(year,oxy) %>% 
+  summarize_all(funs(median),na.rm=TRUE)
 
 #Plot Inflow and dM/dt by year
 dm_dt <- ggplot(hypo_do_box,mapping=aes(year,dMdt_mgs*60*60*24/1000/1000,colour=oxy))+
