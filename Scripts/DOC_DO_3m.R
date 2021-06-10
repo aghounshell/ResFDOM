@@ -4,6 +4,10 @@
 # Following CCC thoughts: constrain hypo to 9 m (assume 8m = outflow concentration)
 # Don't worry about 'entrainment' - should be included in the outflow variable
 
+# Updated: 10 June 2021, A Hounshell
+# Following Gerling et al. 2016 and Krueger et al. 2020 for definition of Hypo
+# Hypo = 5, 6.2, 8, 9 m; Thermo = 3.8 m
+
 # Load libraries
 pacman::p_load(tidyverse,ggplot2,ggpubr,lubridate,zoo,rMR)
 
@@ -21,32 +25,42 @@ chem <- read.csv("./Data/chem.csv", header=T) %>%
 
 ### Separate and calculate hypo mass (and change in mass/time)
 chem_inputs <- chem %>% 
-  filter(Site==50 & Depth_m %in% c(6.2,8.0,9.0) | Site==100) %>% 
+  filter(Site==50 & Depth_m %in% c(3.8,5.0,6.2,8.0,9.0) | Site==100) %>% 
   filter(DateTime >= as.POSIXct("2018-01-01")) %>% 
   rename(time = DateTime,depth = Depth_m) %>% 
-  mutate(loc = ifelse(Site == 50 & depth==6.2, "50 6.2m",
-           ifelse(Site==50 & depth==8.0, "50 8m",
-                      ifelse(Site==50 & depth==9.0, "50 9m",
-                             ifelse(Site==100, "100",NA))))) %>% 
+  mutate(loc = ifelse(Site == 50 & depth == 3.8, "50 3.8m",
+                      ifelse(Site == 50 & depth == 5.0, "50 5.0m",
+                             ifelse(Site == 50 & depth==6.2, "50 6.2m",
+                                    ifelse(Site==50 & depth==8.0, "50 8m",
+                                           ifelse(Site==50 & depth==9.0, "50 9m",
+                                                  ifelse(Site==100, "100",NA))))))) %>% 
   mutate(DOC_mgL = ifelse(DOC_mgL > 12.0, NA, DOC_mgL)) # Remove outlier at 9 m (12 mg/L!!!)
 
 chem_inputs <- chem_inputs[!is.na(chem_inputs$DOC_mgL),]
 
-# Separate out hypo samples (8-9m) and calculate VW average
+# Plot to check!
+ggplot(chem_inputs,mapping=aes(x=time,y=DOC_mgL,color=as.factor(depth)))+
+  geom_line()+
+  geom_point()+
+  theme_classic(base_size = 15)
+
+# Separate out hypo samples (5-9m) and calculate VW average
 chem_hypo <- chem_inputs %>% 
-  filter(depth %in% c(8.0,9.0)) %>% 
+  filter(depth %in% c(5.0,6.2,8.0,9.0)) %>% 
   select(time,depth,DOC_mgL) %>% 
   pivot_wider(names_from = depth, values_from = DOC_mgL, values_fil = NA, values_fn = mean, names_prefix = "DOC_") %>% 
+  mutate(DOC_5 = na.fill(na.approx(DOC_5,na.rm=FALSE),"extend")) %>% 
+  mutate(DOC_6.2 = na.fill(na.approx(DOC_6.2,na.rm=FALSE),"extend")) %>% 
   mutate(DOC_8 = na.fill(na.approx(DOC_8,na.rm=FALSE),"extend")) %>% 
   mutate(DOC_9 = na.fill(na.approx(DOC_9,na.rm=FALSE),"extend")) %>% 
-  mutate(VW_Hypo_DOC_mgL = ((DOC_8*1.41*10^4)+(DOC_9*1.95*10^3))/((1.41*10^4)+(1.95*10^3)))
+  mutate(VW_Hypo_DOC_mgL = ((DOC_5*4.02*10^4)+(DOC_6.2*1.39*10^4)+(DOC_8*1.41*10^4)+(DOC_9*1.95*10^3))/((4.02*10^4)+(1.39*10^4)+(1.41*10^4)+(1.95*10^3)))
 
 chem_inflow <- chem_inputs %>% 
-  filter(Site==50 & depth == c(6.2) | Site==100) 
+  filter(Site==50 & depth == c(3.8) | Site==100) 
 
 chem_50_hypo <- chem %>%
   filter(Site==50) %>% 
-  filter(Depth_m %in% c(8.0,9.0)) %>% 
+  filter(Depth_m %in% c(5.0,6.2,8.0,9.0)) %>% 
   filter(DateTime >= as.POSIXct("2018-01-01")) %>%
   rename(time = DateTime,depth = Depth_m) %>% 
   select(time,depth,DOC_mgL) %>% 
@@ -60,14 +74,16 @@ chem_50_hypo_full <- left_join(chem_50_hypo_full,chem_50_hypo,by="time")
 
 # Extrapolate and constrain to 2015-2019 data
 chem_50_hypo_full <- chem_50_hypo_full %>% 
+  mutate(DOC_5 = na.fill(na.approx(DOC_5,na.rm=FALSE),"extend")) %>% 
+  mutate(DOC_6.2 = na.fill(na.approx(DOC_6.2,na.rm=FALSE),"extend")) %>% 
   mutate(DOC_8 = na.fill(na.approx(DOC_8,na.rm=FALSE),"extend")) %>% 
   mutate(DOC_9 = na.fill(na.approx(DOC_9,na.rm=FALSE),"extend"))
 
 # Calculate VW Hypo mass
 # Use same volumes as in L&O-L MS
 chem_50_hypo_full <- chem_50_hypo_full %>% 
-  mutate(hypo_mg = (DOC_8*1.41*10^4*1000)+(DOC_9*1.95*10^3*1000)) %>% 
-  mutate(hypo_vw_mgL = ((DOC_8*1.41*10^4)+(DOC_9*1.95*10^3))/((1.41*10^4)+(1.95*10^3))) %>% 
+  mutate(hypo_mg = (DOC_5*4.02*10^4*1000)+(DOC_6.2*1.39*10^4*1000)+(DOC_8*1.41*10^4*1000)+(DOC_9*1.95*10^3*1000)) %>% 
+  mutate(hypo_vw_mgL = ((DOC_5*4.02*10^4)+(DOC_6.2*1.39*10^4)+(DOC_8*1.41*10^4)+(DOC_9*1.95*10^3))/((4.02*10^4)+(1.39*10^4)+(1.41*10^4)+(1.95*10^3))) %>% 
   mutate(dMdt_mgs = NA)
 
 # Calculate dM/dt (mg/s)
@@ -85,12 +101,11 @@ box_data <- chem_50_hypo_full
 ### Separate out thermocline concentration for 'outflow' calculation
 chem_50_therm <- chem %>% 
   filter(Site==50) %>% 
-  filter(Depth_m %in% c(6.2)) %>% 
+  filter(Depth_m %in% c(3.8)) %>% 
   filter(DateTime >= as.POSIXct("2018-01-01")) %>%
   rename(time = DateTime,depth = Depth_m) %>% 
   select(time,DOC_mgL) %>% 
-  rename(DOC_mgL_therm = DOC_mgL) %>% 
-  mutate(DOC_mgL_therm = ifelse(DOC_mgL_therm > 12.0, NA, DOC_mgL_therm)) # Remove outlier at 8 m (12 mg/L!!!)
+  rename(DOC_mgL_therm = DOC_mgL)
 
 # Add to box_data data sheet and interpolate
 box_data <- left_join(box_data,chem_50_therm,by="time")
@@ -178,64 +193,6 @@ box_data <- left_join(box_data,inflow_box,by="time")
 box_data <- box_data %>% 
   mutate(flow_cms = na.fill(na.approx(flow_cms,na.rm=FALSE),"extend"))
 
-### Thinking about Flora data ----
-# As a potential 'source' of DOC to the hypo
-
-# Load from EDI: downloaded on 10 June 2021
-#inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/272/5/a24f4dbe9f0d856688f257547069d0a3" 
-#infile1 <- paste0(getwd(),"/Data/FluoroProbe.csv")
-#download.file(inUrl1,infile1,method="curl")
-
-flora <- read.csv("./Data/FluoroProbe.csv", header=T) %>%
-  select(Reservoir:Depth_m,TotalConc_ugL) %>%
-  dplyr::filter(Reservoir=="FCR") %>% 
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) %>% 
-  filter(DateTime > as.POSIXct("2017-12-31")) %>% 
-  filter(Site == 50)
-
-flora_1 <- flora %>% select(DateTime,Depth_m,TotalConc_ugL) %>% 
-  filter(Depth_m>=0 & Depth_m<0.5) %>% 
-  group_by(DateTime) %>% summarize_all(funs(mean)) %>% arrange(DateTime) %>% 
-  mutate(Depth=0.1)
-
-flora_2 <- flora %>% select(DateTime,Depth_m,TotalConc_ugL) %>% 
-  filter(Depth_m>=4.5 & Depth_m<5.5) %>% 
-  group_by(DateTime) %>% summarize_all(funs(mean)) %>% arrange(DateTime) %>% 
-  mutate(Depth=5.0)
-
-flora_3 <- flora %>% select(DateTime,Depth_m,TotalConc_ugL) %>% 
-  filter(Depth_m>=8.5 & Depth_m<9.5) %>% 
-  group_by(DateTime) %>% summarize_all(funs(mean)) %>% arrange(DateTime) %>% 
-  mutate(Depth=9.0)
-
-flora_all <- rbind(flora_1,flora_2,flora_3)
-
-flora_all <- flora_all %>% select(-c(Depth_m)) %>% mutate(Station = 50) %>% rename(Date = DateTime, Flora_ugL = TotalConc_ugL) %>% 
-  arrange(Date,Station,Depth)
-
-flora_all <- flora_all %>% relocate("Station",.after = "Date") %>% relocate("Depth",.after = "Station")
-
-flora_hypo <- flora_all %>% 
-  filter(Depth == "9") %>% 
-  mutate(flora_doc_mgL = Flora_ugL/1000*0.30) %>% 
-  rename(time = Date)
-
-# Combine vw_hypo_doc and flora_doc
-flora_box <- left_join(chem_hypo, flora_hypo, by="time")
-
-flora_box <- flora_box %>% 
-  mutate(perc_flora_doc = flora_doc_mgL/VW_Hypo_DOC_mgL*100)
-
-ggplot(flora_hypo,mapping=aes(x=Date,y=flora_doc_mgL))+
-  geom_line(size=1)+
-  geom_point(size=4)+
-  theme_classic(base_size = 15)
-
-ggplot(flora_box,mapping=aes(x=time,y=perc_flora_doc))+
-  geom_line(size=1)+
-  geom_point(size=4)+
-  theme_classic(base_size = 15)
-
 ### Calculate 'sink/source' term following Gerling et al. 2016; Kruger et al. 2020
 box_data <- box_data %>% 
   mutate(j_mgs = dMdt_mgs-(flow_cms*DOC_mgL_100*1000)+(flow_cms*DOC_mgL_therm*1000)) %>% 
@@ -245,7 +202,7 @@ box_data <- box_data %>%
 box_data_sel <- box_data %>% 
   filter(time>as.POSIXct("2018-01-15")&time<as.POSIXct("2020-12-02")) %>% 
   mutate(month = month(time)) %>% 
-  filter(month %in% c(5,6,7,8,9,10))
+  filter(month %in% c(6,7,8,9,10))
 
 # Plot - Figure 4: DOC Box model results
 box_18 <- ggplot()+
@@ -304,7 +261,7 @@ box_20 <- ggplot()+
 ggarrange(box_18,box_19,box_20,ncol=1,nrow=3,common.legend = TRUE, labels = c("A.", "B.", "C.", "D."),
           font.label=list(face="plain",size=15))
 
-ggsave("./Fig_Output/Fig4_v2.jpg",width=10,height=12,units="in",dpi=320)
+ggsave("./Fig_Output/Fig4_v2_fullhypo.jpg",width=10,height=12,units="in",dpi=320)
 
 # CTD and YSI casts - combine together for most complete time-period
 #need to import CTD observations from EDI
@@ -433,20 +390,6 @@ ctd_50_depths$depth <- as.numeric(ctd_50_depths$depth)
 ctd_50_depths$Cond_uScm <- as.numeric(ctd_50_depths$Cond_uScm)
 ctd_50_depths$DO_mgL <- as.numeric(ctd_50_depths$DO_mgL)
 
-# Plot DO for each depth
-ggplot(ctd_50_depths,mapping=aes(x=time,y=DO_mgL,color=as.factor(depth)))+
-  geom_line()+
-  geom_point()+
-  geom_hline(yintercept = 2)+
-  xlim(as.POSIXct("2018-01-01"),as.POSIXct("2020-12-31"))+
-  theme_classic(base_size=15)
-
-ggplot(chem,mapping=aes(x=DateTime,y=DOC_mgL,color=as.factor(Depth_m)))+
-  geom_line()+
-  geom_point()+
-  xlim(as.POSIXct("2018-01-01"),as.POSIXct("2020-12-31"))+
-  theme_classic(base_size=15)
-
 # Calculate %DO Saturation using rMR
 ctd_do_calc <- ctd_50_depths %>% 
   select(time,Temp_C,DO_mgL,Cond_uScm,depth)
@@ -570,7 +513,7 @@ jterm <- ggplot(hypo_do_box,mapping=aes(year,j_kgd,colour=oxy))+
 ggarrange(jterm_full ,jterm,ncol=2,nrow=1,common.legend=TRUE,labels = c("A.", "B."),
           font.label=list(face="plain",size=15))
 
-ggsave("./Fig_Output/Fig6_v3.jpg",width=10,height=5,units="in",dpi=320)
+ggsave("./Fig_Output/Fig6_v3_fullhypo.jpg",width=10,height=5,units="in",dpi=320)
 
 # Plot temp by year (as box plots?)
 # Remove wonky casts: 2019-04-29, 2019-05-31
@@ -723,7 +666,7 @@ jterm <- ggplot(hypo_do_box,mapping=aes(year,j_kgd,colour=oxy))+
 ggarrange(inflow,outflow,dm_dt,jterm,nrow=2,ncol=2,common.legend = TRUE,labels = c("A.", "B.", "C.", "D."),
           font.label=list(face="plain",size=15))
 
-ggsave("./Fig_Output/dmtodt_inflow_v2.jpg",width=10,height=8,units="in",dpi=320)
+ggsave("./Fig_Output/dmtodt_inflow_v2_fullhypo.jpg",width=10,height=8,units="in",dpi=320)
 
 ### Let's start thinking about DOM quality - what metrics to use?
 # a254? HIX? BIX? Peak C? Peak T? PARAFAC?
