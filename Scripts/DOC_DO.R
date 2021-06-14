@@ -245,7 +245,7 @@ box_data <- box_data %>%
 box_data_sel <- box_data %>% 
   filter(time>as.POSIXct("2018-01-15")&time<as.POSIXct("2020-12-02")) %>% 
   mutate(month = month(time)) %>% 
-  filter(month %in% c(5,6,7,8,9,10))
+  filter(month %in% c(6,7,8,9,10))
 
 # Plot - Figure 4: DOC Box model results
 box_18 <- ggplot()+
@@ -465,8 +465,40 @@ ctd_50_hypo <- ctd_50_depths %>%
 
 ctd_50_hypo$DO_mgL <- as.numeric(ctd_50_hypo$DO_mgL)
 
+# Calculate DOC mineralization following Carey et al. 2018
+# Need DOC concentration, temperature, amount O2 added
+box_data_remin <- left_join(box_data,ctd_50_hypo)
+
+box_data_remin <- box_data_remin %>% 
+  select(-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-depth) %>% 
+  mutate(Temp_C = na.fill(na.approx(Temp_C,na.rm=FALSE),"extend"))
+
+box_data_remin <- box_data_remin %>% 
+  mutate(oxy_mgL = ifelse(time >= "2018-04-23" & time <= "2018-07-20", (15*1e6)/(1046476.8),
+                          ifelse(time >= "2019-06-03" & time <= "2019-06-18", (25*1e6)/(1133683.2),
+                                 ifelse(time >= "2019-07-08" & time <= "2019-07-20", (25*1e6)/(1133683.2),
+                                      ifelse(time >= "2019-08-05" & time <= "2019-08-20", (25*1e6)/(1133683.2),
+                                             ifelse(time >= "2019-09-02" & time <= "2019-12-02", (25*1e6)/(1133683.2),
+                                                    ifelse(time >= "2020-06-29" & time <= "2020-07-06", (25*1e6)/(1133683.2),
+                                                           ifelse(time >= "2020-07-06" & time <= "2020-07-12", (25*1e6)/(1133683.2),
+                                                                  ifelse(time >= "2020-07-13" & time <= "2020-07-22", (25*1e6)/(1133683.2),
+                                                                         ifelse(time >= "2020-07-23" & time <= "2020-12-02", (25*1e6)/(1133683.2),
+                                                                                0))))))))))
+
+# Plot to check oxygenation schedule
+ggplot(box_data_remin,mapping=aes(x=time,y=oxy_mgL))+
+  geom_line()
+
+# Calculate DOC mineralization using equations in Carey et al. 2018
+# Start by calculating Rh-o2
+box_data_remin <- box_data_remin %>% 
+  mutate(rh_oxy = 1+(0.46*(oxy_mgL/7.015*10^7))/(0.2+(oxy_mgL/7.015*10^7))) %>% 
+  mutate(rh_doc = hypo_vw_mgL*0.0093*1.07^(Temp_C-20)*rh_oxy) %>% 
+  mutate(rh_perc = rh_doc/1e6/j_kgd*100) %>% 
+  select(-Temp_C,-DO_mgL,-DO_pSat)
+
 # Combine box model data w/ DO data
-hypo_do_box <- left_join(ctd_50_hypo,box_data,by="time")
+hypo_do_box <- left_join(ctd_50_hypo,box_data_remin,by="time")
 hypo_do_box$DO_mgL <- as.numeric(hypo_do_box$DO_mgL)
 
 hypo_do_box <- hypo_do_box %>% 
@@ -496,6 +528,20 @@ ggplot(hypo_do_box,mapping=aes(oxy,wrt_d,colour=oxy))+
   xlab("")+
   theme_classic(base_size=17)+
   theme(legend.title=element_blank())
+
+# Think about plotting DOC remineralization
+ggplot()+
+  annotate(geom="rect",xmin = as.POSIXct("2018-04-23"), xmax = as.POSIXct("2018-07-30"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-06-03"), xmax = as.POSIXct("2019-06-17"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-07-08"),xmax = as.POSIXct("2019-07-19"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-08-05"),xmax = as.POSIXct("2019-08-19"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2019-09-02"), xmax = as.POSIXct("2019-11-20"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on (technically turned-off on 2019-12-01)
+  annotate(geom="rect",xmin = as.POSIXct("2020-06-29"), xmax = as.POSIXct("2020-09-11"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on
+  annotate(geom="rect",xmin = as.POSIXct("2020-09-25"), xmax = as.POSIXct("2020-12-02"),ymin=-Inf,ymax=Inf,alpha=0.3)+ # Oxygen on
+  geom_vline(xintercept = as.POSIXct("2018-10-21"),linetype="dashed")+ #Turnover FCR
+  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed")+ #Turnover FCR
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed")+ #Turnover FCR; operationally defined
+  geom_line(box_data_remin,mapping=aes(x=time,y=rh_doc/1e6),size=1)
 
 # Fig. 5: Plot DOC and DOC source/sink term by oxic vs. anoxic
 # Figure 3 - [DOC] timeseries for 6.2 m, VW Hypo, 100 from 2018-01-01 to 2020-12-02
