@@ -171,11 +171,11 @@ write.csv(fcr_new,"./Data/LA_FCR.wrt")
 # Load in results from Lake Analyzer in Matlab
 la_results <- read.csv("./Data/20210603_LA_FCR_results.csv") %>% 
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%m/%d/%Y", tz="EST"))) %>% 
-  filter(DateTime > as.POSIXct("2020-01-01"))
+  filter(DateTime > as.POSIXct("2018-01-01"))
 
 la_results_strat <- la_results %>% 
   mutate(month = month(DateTime)) %>% 
-  filter(month %in% c(4,5,6,7,8,9,10))
+  filter(month %in% c(6,7,8,9,10))
 
 # Plot to check?
 ggplot(la_results)+
