@@ -1,11 +1,12 @@
-### Script to plot heatmaps for DO and Temp from 2015-2020
+### Script to plot heatmaps for DO and Temp from 2019-2020
 # 13 May 2021, A Hounshell
+# Updated: 16 Jue 2021
 
 wd <- getwd()
 setwd(wd)
 
 # Load libraries
-pacman::p_load(akima,dplyr,ggplot2,tidyverse,reshape2,gridExtra,grid,colorRamps,RColorBrewer,lubridate)
+pacman::p_load(akima,dplyr,ggplot2,tidyverse,reshape2,gridExtra,grid,colorRamps,RColorBrewer,lubridate,ggpubr)
 
 # CTD and YSI casts - combine together for most complete time-period
 #need to import CTD observations from EDI
@@ -86,9 +87,9 @@ fcr_date_list <- as.data.frame(unique(as.Date(fcr_all$time)))
 ## Average across date and depth
 fcr_all <- fcr_all %>% group_by(time,depth) %>% summarize_all(funs(mean),na.rm=TRUE)
 
-## Select dates from 2015-2020
+## Select dates from 2018-2020
 fcr_all_2 <- fcr_all %>% 
-  filter(time>as.POSIXct("2015-01-01")&time<as.POSIXct("2020-12-31"))
+  filter(time>as.POSIXct("2018-01-01")&time<as.POSIXct("2020-12-31"))
 
 # Filter out depths in the CTD cast that are closest to these specified values.
 df.final<-data.frame()
@@ -135,44 +136,261 @@ ctd_all <- arrange(df.final, time)
 # Round each extracted depth to the nearest 10th. 
 ctd_all$depth <- round(as.numeric(ctd_all$depth), digits = 0.5)
 ctd_all <- ctd_all %>% group_by(time,depth) %>% summarise_each(funs(mean))
-#ctd_all$DOY <- yday(ctd_all$time)
+ctd_all$DOY <- yday(ctd_all$time)
 
 
 # Select and make each CTD variable a separate dataframe
-temp_15 <- ctd_all %>% 
-  select(time, depth, Temp_C) %>% 
-  filter(time >= as.POSIXct("2015-01-01") & time <= as.POSIXct("2015-12-31"))
-  arrange(temp,depth)
-temp_15 <- na.omit(temp_15)
+temp_18 <- ctd_all %>% 
+  select(time, depth, Temp_C,DOY) %>% 
+  filter(time >= as.POSIXct("2018-01-01") & time <= as.POSIXct("2018-12-31")) %>% 
+  arrange(Temp_C,depth)
+temp_18 <- na.omit(temp_18)
+
+temp_19 <- ctd_all %>% 
+  select(time, depth, Temp_C,DOY) %>% 
+  filter(time >= as.POSIXct("2019-01-01") & time <= as.POSIXct("2019-12-31")) %>% 
+  arrange(Temp_C,depth)
+temp_19 <- na.omit(temp_19)
+
+temp_20 <- ctd_all %>% 
+  select(time, depth, Temp_C,DOY) %>% 
+  filter(time >= as.POSIXct("2020-01-01") & time <= as.POSIXct("2020-12-31")) %>% 
+  arrange(Temp_C,depth)
+temp_20 <- na.omit(temp_20)
 
 # Interpolate Temp
-interp_temp_15 <- interp(x=temp_15$time, y = temp_15$depth, z = temp_15$Temp_C,
-                            xo = seq(min(temp_15$time), max(temp_15$time), by = 10), 
-                            yo = seq(0.1, 9.6, by = 0.1),
+interp_temp_18 <- interp(x=temp_18$DOY, y = temp_18$depth, z = temp_18$Temp_C,
+                         xo = seq(min(temp_18$DOY), max(temp_18$DOY), by = .1), 
+                         yo = seq(0.1, 9.6, by = 0.01),
                             extrap = F, linear = T, duplicate = "strip")
-interp_temp_15 <- interp2xyz(interp_temp_15, data.frame=T)
+interp_temp_18 <- interp2xyz(interp_temp_18, data.frame=T)
+
+interp_temp_19 <- interp(x=temp_19$DOY, y = temp_19$depth, z = temp_19$Temp_C,
+                         xo = seq(min(temp_19$DOY), max(temp_19$DOY), by = .1), 
+                         yo = seq(0.1, 9.6, by = 0.01),
+                         extrap = F, linear = T, duplicate = "strip")
+interp_temp_19 <- interp2xyz(interp_temp_19, data.frame=T)
+
+interp_temp_20 <- interp(x=temp_20$DOY, y = temp_20$depth, z = temp_20$Temp_C,
+                         xo = seq(min(temp_20$DOY), max(temp_20$DOY), by = .1), 
+                         yo = seq(0.1, 9.6, by = 0.01),
+                         extrap = F, linear = T, duplicate = "strip")
+interp_temp_20 <- interp2xyz(interp_temp_20, data.frame=T)
 
 # Plot
-interp_temp_15$date <- as.POSIXct(interp_temp_15$x)
+interp_temp_18$date <- as.Date(interp_temp_18$x,origin="2018-01-01")
+interp_temp_19$date <- as.Date(interp_temp_19$x,origin="2019-01-01")
+interp_temp_20$date <- as.Date(interp_temp_20$x,origin="2020-01-01")
 
-# Temp
-ggplot(interp_temp_rough, aes(x=date, y=y))+
+## DO
+DO_18 <- ctd_all %>% 
+  select(time, depth, DO_mgL,DOY) %>% 
+  filter(time >= as.POSIXct("2018-01-01") & time <= as.POSIXct("2018-12-31")) %>% 
+  arrange(DO_mgL,depth)
+DO_18 <- na.omit(DO_18)
+
+DO_19 <- ctd_all %>% 
+  select(time, depth, DO_mgL,DOY) %>% 
+  filter(time >= as.POSIXct("2019-01-01") & time <= as.POSIXct("2019-12-31")) %>% 
+  arrange(DO_mgL,depth)
+DO_19 <- na.omit(DO_19)
+
+DO_20 <- ctd_all %>% 
+  select(time, depth, DO_mgL,DOY) %>% 
+  filter(time >= as.POSIXct("2020-01-01") & time <= as.POSIXct("2020-12-31")) %>% 
+  arrange(DO_mgL,depth)
+DO_20 <- na.omit(DO_20)
+
+# Interpolate DO
+interp_DO_18 <- interp(x=DO_18$DOY, y = DO_18$depth, z = DO_18$DO_mgL,
+                         xo = seq(min(DO_18$DOY), max(DO_18$DOY), by = .1), 
+                         yo = seq(0.1, 9.6, by = 0.01),
+                         extrap = F, linear = T, duplicate = "strip")
+interp_DO_18 <- interp2xyz(interp_DO_18, data.frame=T)
+
+interp_DO_19 <- interp(x=DO_19$DOY, y = DO_19$depth, z = DO_19$DO_mgL,
+                         xo = seq(min(DO_19$DOY), max(DO_19$DOY), by = .1), 
+                         yo = seq(0.1, 9.6, by = 0.01),
+                         extrap = F, linear = T, duplicate = "strip")
+interp_DO_19 <- interp2xyz(interp_DO_19, data.frame=T)
+
+interp_DO_20 <- interp(x=DO_20$DOY, y = DO_20$depth, z = DO_20$DO_mgL,
+                         xo = seq(min(DO_20$DOY), max(DO_20$DOY), by = .1), 
+                         yo = seq(0.1, 9.6, by = 0.01),
+                         extrap = F, linear = T, duplicate = "strip")
+interp_DO_20 <- interp2xyz(interp_DO_20, data.frame=T)
+
+# Plot
+interp_DO_18$date <- as.Date(interp_DO_18$x,origin="2018-01-01")
+interp_DO_19$date <- as.Date(interp_DO_19$x,origin="2019-01-01")
+interp_DO_20$date <- as.Date(interp_DO_20$x,origin="2020-01-01")
+
+# All the plots!
+temp_18 <- ggplot(interp_temp_18, aes(x=date, y=y))+
   geom_raster(aes(fill=z))+
   scale_y_reverse()+
+  geom_vline(xintercept = as.Date("2018-10-21"),linetype="dotted",colour="black",size=.7)+ #Turnover FCR
+  geom_vline(xintercept = as.Date("2018-04-23"),colour="black",size=.7)+
+  annotate("text",x=as.Date("2018-04-16"),y=-0.3,label="On",size=5)+
+  geom_vline(xintercept = as.Date("2018-07-30"),colour="black",size=0.7)+
+  annotate("text",x=as.Date("2018-07-23"),y=-0.3,label="Off",size=5)+
   geom_hline(yintercept = 0.1, linetype="dashed", colour="white")+
   geom_hline(yintercept = 1.6, linetype="dashed", colour="white")+
   geom_hline(yintercept = 3.8, linetype="dashed", colour="white")+
   geom_hline(yintercept = 5, linetype="dashed", colour="white")+
-  geom_hline(yintercept = 6.2, linetype="dashed", colour="white")+
-  geom_hline(yintercept = 8, linetype="dashed", colour="white")+
-  geom_hline(yintercept = 9, linetype="dashed", colour="white")+
-  labs(x = "Date", y = "Depth (m)", fill=expression(''*~degree*C*''))+
+  geom_hline(yintercept = 6.2, linetype="dashed", colour="white",size=1)+
+  geom_hline(yintercept = 8, linetype="dashed", colour="white",size=1)+
+  geom_hline(yintercept = 9, linetype="dashed", colour="white",size=1)+
+  labs(x = "2019", y = "Depth (m)", fill=expression(''*~degree*C*''))+
   scale_fill_gradientn(colours = blue2green2red(60), na.value="gray")+
-  theme_classic()
+  xlim(as.Date("2018-03-01"),("2018-12-07"))+
+  theme_classic(base_size = 15)
 
-do <- select(ctd_all, time, depth, DO_mgL)
-do <- na.omit(do)
-do <- arrange(do,depth)
+temp_19 <- ggplot(interp_temp_19, aes(x=date, y=y))+
+  geom_raster(aes(fill=z))+
+  scale_y_reverse()+
+  geom_vline(xintercept = as.Date("2019-10-23"),linetype="dotted",size=0.7)+ #Turnover FCR
+  geom_vline(xintercept = as.Date("2019-06-03"),size=0.7)+
+  annotate("text",x=as.Date("2019-05-27"),y=-0.3,label="On",size=5)+
+  geom_vline(xintercept = as.Date("2019-06-17"),size=0.7)+
+  annotate("text",x=as.Date("2019-06-10"),y=-0.3,label="Off",size=5)+
+  geom_vline(xintercept = as.Date("2019-07-08"),size=0.7)+
+  annotate("text",x=as.Date("2019-07-01"),y=-0.3,label="On",size=5)+
+  geom_vline(xintercept = as.Date("2019-07-19"),size=0.7)+
+  annotate("text",x=as.Date("2019-07-13"),y=-0.3,label="Off",size=5)+
+  geom_vline(xintercept = as.Date("2019-08-05"),size=0.7)+
+  annotate("text",x=as.Date("2019-07-30"),y=-0.3,label="On",size=5)+
+  geom_vline(xintercept = as.Date("2019-08-19"),size=0.7)+
+  annotate("text",x=as.Date("2019-08-12"),y=-0.3,label="Off",size=5)+
+  geom_vline(xintercept = as.Date("2019-09-02"),size=0.7)+
+  annotate("text",x=as.Date("2019-08-26"),y=-0.3,label="On",size=5)+
+  geom_vline(xintercept = as.Date("2019-12-01"),size=0.7)+
+  annotate("text",x=as.Date("2019-11-23"),y=-0.3,label="Off",size=5)+
+  geom_hline(yintercept = 0.1, linetype="dashed", colour="white")+
+  geom_hline(yintercept = 1.6, linetype="dashed", colour="white")+
+  geom_hline(yintercept = 3.8, linetype="dashed", colour="white")+
+  geom_hline(yintercept = 5, linetype="dashed", colour="white")+
+  geom_hline(yintercept = 6.2, linetype="dashed", colour="white",size=1)+
+  geom_hline(yintercept = 8, linetype="dashed", colour="white",size=1)+
+  geom_hline(yintercept = 9, linetype="dashed", colour="white",size=1)+
+  labs(x = "2019", y = "Depth (m)", fill=expression(''*~degree*C*''))+
+  scale_fill_gradientn(colours = blue2green2red(60), na.value="gray")+
+  xlim(as.Date("2019-03-01"),("2019-12-07"))+
+  theme_classic(base_size = 15)
+  
+temp_20 <- ggplot(interp_temp_20, aes(x=date, y=y))+
+  geom_raster(aes(fill=z))+
+  scale_y_reverse()+
+  geom_vline(xintercept = as.Date("2020-11-01"),linetype="dotted",size=0.7)+ #Turnover FCR; operationally defined
+  geom_vline(xintercept = as.Date("2020-06-29"),size=0.7)+
+  annotate("text",x=as.Date("2020-06-22"),y=-0.3,label="On",size=5)+
+  geom_vline(xintercept = as.Date("2020-09-11"),size=0.7)+
+  annotate("text",x=as.Date("2020-09-02"),y=-0.3,label="Off",size=5)+
+  geom_vline(xintercept = as.Date("2020-09-25"),size=0.7)+
+  annotate("text",x=as.Date("2020-09-19"),y=-0.3,label="On",size=5)+
+  geom_vline(xintercept = as.Date("2020-12-02"),size=0.7)+
+  annotate("text",x=as.Date("2020-11-25"),y=-0.3,label="Off",size=5)+
+  geom_hline(yintercept = 0.1, linetype="dashed", colour="white")+
+  geom_hline(yintercept = 1.6, linetype="dashed", colour="white")+
+  geom_hline(yintercept = 3.8, linetype="dashed", colour="white")+
+  geom_hline(yintercept = 5, linetype="dashed", colour="white")+
+  geom_hline(yintercept = 6.2, linetype="dashed", colour="white",size=1)+
+  geom_hline(yintercept = 8, linetype="dashed", colour="white",size=1)+
+  geom_hline(yintercept = 9, linetype="dashed", colour="white",size=1)+
+  labs(x = "2020", y = "Depth (m)", fill=expression(''*~degree*C*''))+
+  scale_fill_gradientn(colours = blue2green2red(60), na.value="gray")+
+  xlim(as.Date("2020-03-01"),("2020-12-07"))+
+  theme_classic(base_size=15)
+
+ggarrange(temp_18,temp_19,temp_20,ncol=1,nrow=3,common.legend=TRUE,legend="right",labels = c("A.", "B.", "C."),
+          font.label=list(face="plain",size=15))
+
+ggsave("./Fig_Output/Temp_heatmaps.png",width=10,height=12,units="in",dpi=320)
+
+DO_18 <- ggplot(interp_DO_18, aes(x=date, y=y))+
+  geom_raster(aes(fill=z))+
+  scale_y_reverse()+
+  geom_vline(xintercept = as.Date("2018-10-21"),linetype="dotted",colour="black",size=.7)+ #Turnover FCR
+  geom_vline(xintercept = as.Date("2018-04-23"),colour="black",size=.7)+
+  annotate("text",x=as.Date("2018-04-16"),y=-0.3,label="On",size=5)+
+  geom_vline(xintercept = as.Date("2018-07-30"),colour="black",size=0.7)+
+  annotate("text",x=as.Date("2018-07-23"),y=-0.3,label="Off",size=5)+
+  geom_hline(yintercept = 0.1, linetype="dashed", colour="white")+
+  geom_hline(yintercept = 1.6, linetype="dashed", colour="white")+
+  geom_hline(yintercept = 3.8, linetype="dashed", colour="white")+
+  geom_hline(yintercept = 5, linetype="dashed", colour="white")+
+  geom_hline(yintercept = 6.2, linetype="dashed", colour="white",size=1)+
+  geom_hline(yintercept = 8, linetype="dashed", colour="white",size=1)+
+  geom_hline(yintercept = 9, linetype="dashed", colour="white",size=1)+
+  labs(x = "2018", y = "Depth (m)", fill=expression("DO (mg L"^-1*")"))+
+  scale_fill_gradientn(colours = rev(blue2green2red(60)), na.value="gray")+
+  xlim(as.Date("2018-03-01"),("2018-12-07"))+
+  theme_classic(base_size = 15)
+
+DO_19 <- ggplot(interp_DO_19, aes(x=date, y=y))+
+  geom_raster(aes(fill=z))+
+  scale_y_reverse()+
+  geom_vline(xintercept = as.Date("2019-10-23"),linetype="dotted",size=0.7)+ #Turnover FCR
+  geom_vline(xintercept = as.Date("2019-06-03"),size=0.7)+
+  annotate("text",x=as.Date("2019-05-27"),y=-0.3,label="On",size=5)+
+  geom_vline(xintercept = as.Date("2019-06-17"),size=0.7)+
+  annotate("text",x=as.Date("2019-06-10"),y=-0.3,label="Off",size=5)+
+  geom_vline(xintercept = as.Date("2019-07-08"),size=0.7)+
+  annotate("text",x=as.Date("2019-07-01"),y=-0.3,label="On",size=5)+
+  geom_vline(xintercept = as.Date("2019-07-19"),size=0.7)+
+  annotate("text",x=as.Date("2019-07-13"),y=-0.3,label="Off",size=5)+
+  geom_vline(xintercept = as.Date("2019-08-05"),size=0.7)+
+  annotate("text",x=as.Date("2019-07-30"),y=-0.3,label="On",size=5)+
+  geom_vline(xintercept = as.Date("2019-08-19"),size=0.7)+
+  annotate("text",x=as.Date("2019-08-12"),y=-0.3,label="Off",size=5)+
+  geom_vline(xintercept = as.Date("2019-09-02"),size=0.7)+
+  annotate("text",x=as.Date("2019-08-26"),y=-0.3,label="On",size=5)+
+  geom_vline(xintercept = as.Date("2019-12-01"),size=0.7)+
+  annotate("text",x=as.Date("2019-11-23"),y=-0.3,label="Off",size=5)+
+  geom_hline(yintercept = 0.1, linetype="dashed", colour="white")+
+  geom_hline(yintercept = 1.6, linetype="dashed", colour="white")+
+  geom_hline(yintercept = 3.8, linetype="dashed", colour="white")+
+  geom_hline(yintercept = 5, linetype="dashed", colour="white")+
+  geom_hline(yintercept = 6.2, linetype="dashed", colour="white",size=1)+
+  geom_hline(yintercept = 8, linetype="dashed", colour="white",size=1)+
+  geom_hline(yintercept = 9, linetype="dashed", colour="white",size=1)+
+  labs(x = "2019", y = "Depth (m)", fill=expression("DO (mg L"^-1*")"))+
+  scale_fill_gradientn(colours = rev(blue2green2red(60)), na.value="gray")+
+  xlim(as.Date("2019-03-01"),("2019-12-07"))+
+  theme_classic(base_size = 15)
+
+DO_20 <- ggplot(interp_DO_20, aes(x=date, y=y))+
+  geom_raster(aes(fill=z))+
+  scale_y_reverse()+
+  geom_vline(xintercept = as.Date("2020-11-01"),linetype="dotted",size=0.7)+ #Turnover FCR; operationally defined
+  geom_vline(xintercept = as.Date("2020-06-29"),size=0.7)+
+  annotate("text",x=as.Date("2020-06-22"),y=-0.3,label="On",size=5)+
+  geom_vline(xintercept = as.Date("2020-09-11"),size=0.7)+
+  annotate("text",x=as.Date("2020-09-02"),y=-0.3,label="Off",size=5)+
+  geom_vline(xintercept = as.Date("2020-09-25"),size=0.7)+
+  annotate("text",x=as.Date("2020-09-19"),y=-0.3,label="On",size=5)+
+  geom_vline(xintercept = as.Date("2020-12-02"),size=0.7)+
+  annotate("text",x=as.Date("2020-11-25"),y=-0.3,label="Off",size=5)+
+  geom_hline(yintercept = 0.1, linetype="dashed", colour="white")+
+  geom_hline(yintercept = 1.6, linetype="dashed", colour="white")+
+  geom_hline(yintercept = 3.8, linetype="dashed", colour="white")+
+  geom_hline(yintercept = 5, linetype="dashed", colour="white")+
+  geom_hline(yintercept = 6.2, linetype="dashed", colour="white",size=1)+
+  geom_hline(yintercept = 8, linetype="dashed", colour="white",size=1)+
+  geom_hline(yintercept = 9, linetype="dashed", colour="white",size=1)+
+  labs(x = "2020", y = "Depth (m)", fill=expression("DO (mg L"^-1*")"))+
+  scale_fill_gradientn(colours = rev(blue2green2red(60)), na.value="gray")+
+  xlim(as.Date("2020-03-01"),("2020-12-07"))+
+  theme_classic(base_size=15)
+
+ggarrange(DO_18,DO_19,DO_20,ncol=1,nrow=3,common.legend=TRUE,legend="right",labels = c("A.", "B.", "C."),
+          font.label=list(face="plain",size=15))
+
+ggsave("./Fig_Output/DO_heatmaps.png",width=10,height=12,units="in",dpi=320)
+
+
+
+### OLD CODE ----
 
 # Heatmaps in R ----
 
@@ -199,3 +417,4 @@ do_wide <- do %>%
 
 write_csv(temp_wide,"./Data/Heatmap_Temp.csv")
 write_csv(do_wide,"./Data/Heatmap_DO.csv")
+interp_temp_18$date <- as.Date(interp_temp_18$x,origin="2018-01-01")
