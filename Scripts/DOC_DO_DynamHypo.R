@@ -3,6 +3,8 @@
 # Updated: 5 Apr 2021, A Hounshell
 # Following CCC thoughts: constrain hypo to 9 m (assume 8m = outflow concentration)
 # Don't worry about 'entrainment' - should be included in the outflow variable
+# Updated to account for variable metalimnion boundary (aka: dynamic hypo volume),
+# A Hounshell, 17 June 2021
 
 # Load libraries
 pacman::p_load(tidyverse,ggplot2,ggpubr,lubridate,zoo,rMR)
@@ -21,7 +23,7 @@ chem <- read.csv("./Data/chem.csv", header=T) %>%
 
 ### Separate and calculate hypo mass (and change in mass/time)
 chem_inputs <- chem %>% 
-  filter(Site==50 & Depth_m %in% c(6.2,8.0,9.0) | Site==100) %>% 
+  filter(Site==50 & Depth_m %in% c(0.1,1.6,3.8,5.0,6.2,8.0,9.0) | Site==100) %>% 
   filter(DateTime >= as.POSIXct("2018-01-01")) %>% 
   rename(time = DateTime,depth = Depth_m) %>% 
   mutate(loc = ifelse(Site == 50 & depth==6.2, "50 6.2m",
@@ -32,25 +34,35 @@ chem_inputs <- chem %>%
 
 chem_inputs <- chem_inputs[!is.na(chem_inputs$DOC_mgL),]
 
-# Separate out hypo samples (8-9m) and calculate VW average
-chem_hypo <- chem_inputs %>% 
-  filter(depth %in% c(8.0,9.0)) %>% 
-  select(time,depth,DOC_mgL) %>% 
-  pivot_wider(names_from = depth, values_from = DOC_mgL, values_fil = NA, values_fn = mean, names_prefix = "DOC_") %>% 
-  mutate(DOC_8 = na.fill(na.approx(DOC_8,na.rm=FALSE),"extend")) %>% 
-  mutate(DOC_9 = na.fill(na.approx(DOC_9,na.rm=FALSE),"extend")) %>% 
-  mutate(VW_Hypo_DOC_mgL = ((DOC_8*1.41*10^4)+(DOC_9*1.95*10^3))/((1.41*10^4)+(1.95*10^3)))
+# Plot Metalimnion Bottom boundary during time period
+# Use to determine volume of the Hypo as well as outflow concentration
+la_data <- read.csv("./Data/20210617_FCR_results.csv") %>% 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%m/%d/%Y", tz="EST"))) %>% 
+  filter(DateTime >= as.POSIXct("2018-01-01"))
 
+# Plot to see how it changes over time
+ggplot(la_data,mapping=aes(x=DateTime,y=-SmetaB))+
+  geom_line()
+
+# Separate inflow samples
 chem_inflow <- chem_inputs %>% 
-  filter(Site==50 & depth == c(6.2) | Site==100) 
+  filter(Site==100) 
 
 chem_50_hypo <- chem %>%
   filter(Site==50) %>% 
-  filter(Depth_m %in% c(8.0,9.0)) %>% 
+  filter(Depth_m %in% c(0.1,1.6,3.8,5.0,6.2,8.0,9.0)) %>% 
   filter(DateTime >= as.POSIXct("2018-01-01")) %>%
   rename(time = DateTime,depth = Depth_m) %>% 
   select(time,depth,DOC_mgL) %>% 
-  pivot_wider(names_from = depth, values_from = DOC_mgL, values_fil = NA, values_fn = mean, names_prefix = "DOC_")
+  pivot_wider(names_from = depth, values_from = DOC_mgL, values_fil = NA, values_fn = mean, names_prefix = "DOC_") %>% 
+  mutate(DOC_0.1 = na.fill(na.approx(DOC_0.1,na.rm=FALSE),"extend")) %>%
+  mutate(DOC_1.6 = na.fill(na.approx(DOC_1.6,na.rm=FALSE),"extend")) %>%
+  mutate(DOC_3.8 = na.fill(na.approx(DOC_3.8,na.rm=FALSE),"extend")) %>%
+  mutate(DOC_5 = na.fill(na.approx(DOC_5,na.rm=FALSE),"extend")) %>%
+  mutate(DOC_6.2 = na.fill(na.approx(DOC_6.2,na.rm=FALSE),"extend")) %>%
+  mutate(DOC_8 = na.fill(na.approx(DOC_8,na.rm=FALSE),"extend")) %>% 
+  mutate(DOC_9 = na.fill(na.approx(DOC_9,na.rm=FALSE),"extend")) 
+
 
 # Create dataframe with daily time step from 2018-01-01 to 2020-12-31
 chem_50_hypo_full <- as.data.frame(seq(as.POSIXct("2018-01-01",tz="EST"),as.POSIXct("2020-12-31",tz="EST"),by="days"))
@@ -58,17 +70,72 @@ chem_50_hypo_full <- chem_50_hypo_full %>%
   rename(time = `seq(as.POSIXct("2018-01-01", tz = "EST"), as.POSIXct("2020-12-31", tz = "EST"), by = "days")`)
 chem_50_hypo_full <- left_join(chem_50_hypo_full,chem_50_hypo,by="time")
 
-# Extrapolate and constrain to 2015-2019 data
+# Extrapolate DOC data to fully time period
 chem_50_hypo_full <- chem_50_hypo_full %>% 
+  mutate(DOC_0.1 = na.fill(na.approx(DOC_0.1,na.rm=FALSE),"extend")) %>%
+  mutate(DOC_1.6 = na.fill(na.approx(DOC_1.6,na.rm=FALSE),"extend")) %>%
+  mutate(DOC_3.8 = na.fill(na.approx(DOC_3.8,na.rm=FALSE),"extend")) %>%
+  mutate(DOC_5 = na.fill(na.approx(DOC_5,na.rm=FALSE),"extend")) %>%
+  mutate(DOC_6.2 = na.fill(na.approx(DOC_6.2,na.rm=FALSE),"extend")) %>%
   mutate(DOC_8 = na.fill(na.approx(DOC_8,na.rm=FALSE),"extend")) %>% 
   mutate(DOC_9 = na.fill(na.approx(DOC_9,na.rm=FALSE),"extend"))
 
-# Calculate VW Hypo mass
-# Use same volumes as in L&O-L MS
+# Combine with Bottom of the metalimnion
+SmetaB <- la_data %>% 
+  select(DateTime,SmetaB) %>% 
+  rename(time=DateTime)
+
+chem_50_hypo_full <- left_join(chem_50_hypo_full,SmetaB,by="time")
+
 chem_50_hypo_full <- chem_50_hypo_full %>% 
-  mutate(hypo_mg = (DOC_8*1.41*10^4*1000)+(DOC_9*1.95*10^3*1000)) %>% 
-  mutate(hypo_vw_mgL = ((DOC_8*1.41*10^4)+(DOC_9*1.95*10^3))/((1.41*10^4)+(1.95*10^3))) %>% 
-  mutate(dMdt_mgs = NA)
+  mutate(SmetaB = na.fill(na.approx(SmetaB,na.rm=FALSE),"extend")) %>% 
+  mutate(SmetaB = round(as.numeric(SmetaB), digits = 0.5)) %>% 
+  mutate(SmetaB = ifelse(SmetaB < 6.5, SmetaB, 6.6))
+
+chem_50_hypo_full <- chem_50_hypo_full %>% 
+  mutate(hypo_vw_mgL = ifelse(SmetaB <= 2.6, ((DOC_1.6*2.27e5)+(DOC_3.8*5.99e4)+(DOC_5*4.02e4)+(DOC_6.2*1.39e4)+(DOC_8*1.41e4)+(DOC_9*1.95e3))/3.57e5, 
+                              ifelse(SmetaB > 2.6 & SmetaB <= 4, ((DOC_3.8*5.99e4)+(DOC_5*4.02e4)+(DOC_6.2*1.39e4)+(DOC_8*1.41e4)+(DOC_9*1.95e3))/1.3e5,
+                                     ifelse(SmetaB > 4 & SmetaB <= 5.6, ((DOC_5*4.02e4)+(DOC_6.2*1.39e4)+(DOC_8*1.41e4)+(DOC_9*1.95e3))/7.01e4,
+                                            ifelse(SmetaB > 5.6 & SmetaB <= 6.5, ((DOC_6.2*1.39e4)+(DOC_8*1.41e4)+(DOC_9*1.95e3))/2.99e4,
+                                                   ifelse(SmetaB >= 6.6, ((DOC_8*1.41e4)+(DOC_9*1.95e3))/1.6e4,
+                                                          NA)))))) %>% 
+  mutate(outflow_mgL = ifelse(SmetaB <= 2.6, DOC_0.1, 
+                              ifelse(SmetaB > 2.6 & SmetaB <=4, DOC_1.6,
+                                     ifelse(SmetaB > 4 & SmetaB <= 5.6, DOC_3.8,
+                                            ifelse(SmetaB > 5.6 & SmetaB <= 6.5, DOC_5,
+                                                   ifelse(SmetaB >= 6.6, DOC_6.2,
+                                                          NA)))))) %>% 
+  mutate(hypo_vol_L = ifelse(SmetaB <= 2.6, 3.57e5*1000, 
+                              ifelse(SmetaB > 2.6 & SmetaB <= 4, 1.3e5*1000,
+                                     ifelse(SmetaB > 4 & SmetaB <= 5.6, 7.01e4*1000,
+                                            ifelse(SmetaB > 5.6 & SmetaB <= 6.5, 2.99e4*1000,
+                                                   ifelse(SmetaB >= 6.6, 1.6e4*1000,
+                                                          NA)))))) %>% 
+
+  mutate(hypo_dmdt_mgLd = NA) %>% 
+  mutate(hypo_vscaling = NA)
+
+### IDK WHAT TO DO ABOUT CHANGING VOLUMES! IN TERMS OF CALCULATING DM/DT
+# How do you account for the fact that dM/dt is likely changing b/c of changes in volume 
+# AND NOT changes in DOC?
+  
+# Calculate volume scaling factor
+for (i in 2:length(chem_50_hypo_full$time)){
+  chem_50_hypo_full$hypo_vscaling[i] = 1 + ((hypo_vol_L[i]-hypo_vol_L[i-1])/hypo_vol_L[i-1])
+}
+
+# Calculate dm/dt (mgL/d)
+for (i in 2:length(chem_50_hypo_full$time)){
+  chem_50_hypo_full$hypo_dmdt_mgLd[i] = (chem_50_hypo_full$hypo_vw_mgL[i]-chem_50_hypo_full$hypo_vw_mgL[i-1])
+}
+
+
+#mutate(hypo_mg = ifelse(SmetaB <= 2.6, ((DOC_1.6*2.27e5*1000)+(DOC_3.8*5.99e4*1000)+(DOC_5*4.02e4*1000)+(DOC_6.2*1.39e4*1000)+(DOC_8*1.41e4*1000)+(DOC_9*1.95e3*1000)), 
+  #                        ifelse(SmetaB > 2.6 & SmetaB <= 4, ((DOC_3.8*5.99e4*1000)+(DOC_5*4.02e4*1000)+(DOC_6.2*1.39e4*1000)+(DOC_8*1.41e4*1000)+(DOC_9*1.95e3*1000)),
+  #                               ifelse(SmetaB > 4 & SmetaB <= 5.6, ((DOC_5*4.02e4*1000)+(DOC_6.2*1.39e4*1000)+(DOC_8*1.41e4*1000)+(DOC_9*1.95e3*1000)),
+  #                                      ifelse(SmetaB > 5.6 & SmetaB <= 6.5, ((DOC_6.2*1.39e4*1000)+(DOC_8*1.41e4*1000)+(DOC_9*1.95e3*1000)),
+  #                                             ifelse(SmetaB >= 6.6, ((DOC_8*1.41e4*1000)+(DOC_9*1.95e3*1000)),
+  #                                                    NA))))))
 
 # Calculate dM/dt (mg/s)
 for(i in 2:length(chem_50_hypo_full$time)){
@@ -238,7 +305,7 @@ ggplot(flora_box,mapping=aes(x=time,y=perc_flora_doc))+
 
 ### Calculate 'sink/source' term following Gerling et al. 2016; Kruger et al. 2020
 box_data <- box_data %>% 
-  mutate(j_mgs = dMdt_mgs-(flow_cms*DOC_mgL_100*1000*0.26)+(flow_cms*DOC_mgL_therm*1000*0.26)) %>% 
+  mutate(j_mgs = dMdt_mgs-(flow_cms*DOC_mgL_100*1000)+(flow_cms*DOC_mgL_therm*1000)) %>% 
   mutate(j_kgd = j_mgs*60*60*24/1000/1000)
 
 # Select for 2015-2019 during the stratified period
@@ -253,8 +320,8 @@ box_18 <- ggplot()+
   geom_vline(xintercept = as.POSIXct("2018-10-21"),linetype="dashed")+ #Turnover FCR
   geom_hline(yintercept = 0,linetype="dashed")+
   geom_line(box_data_sel,mapping=aes(x=time,y=dMdt_mgs*60*60*24/1000/1000,color="dMdt_kgd"),size=2)+
-  geom_line(box_data_sel,mapping=aes(x=time,y=flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26,color="Inflow_kgd"),size=2)+
-  geom_line(box_data_sel,mapping=aes(x=time,y=flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26,color="Outflow_kgd"),size=2)+
+  geom_line(box_data_sel,mapping=aes(x=time,y=flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000,color="Inflow_kgd"),size=2)+
+  geom_line(box_data_sel,mapping=aes(x=time,y=flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000,color="Outflow_kgd"),size=2)+
   geom_line(box_data_sel,mapping=aes(x=time,y=j_kgd,color="j_kgd"),size=2)+
   ylab(expression(paste("(kg C d"^-1*")")))+
   xlab("2018")+
@@ -273,8 +340,8 @@ box_19 <- ggplot()+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed")+ #Turnover FCR; operationally defined
   geom_hline(yintercept = 0,linetype="dashed")+
   geom_line(box_data_sel,mapping=aes(x=time,y=dMdt_mgs*60*60*24/1000/1000,color="dMdt_kgd"),size=2)+
-  geom_line(box_data_sel,mapping=aes(x=time,y=flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26,color="Inflow_kgd"),size=2)+
-  geom_line(box_data_sel,mapping=aes(x=time,y=flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26,color="Outflow_kgd"),size=2)+
+  geom_line(box_data_sel,mapping=aes(x=time,y=flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000,color="Inflow_kgd"),size=2)+
+  geom_line(box_data_sel,mapping=aes(x=time,y=flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000,color="Outflow_kgd"),size=2)+
   geom_line(box_data_sel,mapping=aes(x=time,y=j_kgd,color="j_kgd"),size=2)+
   xlab("2019")+
   ylab(expression(paste("(kg C d"^-1*")")))+
@@ -291,8 +358,8 @@ box_20 <- ggplot()+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed")+ #Turnover FCR; operationally defined
   geom_hline(yintercept = 0,linetype="dashed")+
   geom_line(box_data_sel,mapping=aes(x=time,y=dMdt_mgs*60*60*24/1000/1000,color="dMdt_kgd"),size=2)+
-  geom_line(box_data_sel,mapping=aes(x=time,y=flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26,color="Inflow_kgd"),size=2)+
-  geom_line(box_data_sel,mapping=aes(x=time,y=flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26,color="Outflow_kgd"),size=2)+
+  geom_line(box_data_sel,mapping=aes(x=time,y=flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000,color="Inflow_kgd"),size=2)+
+  geom_line(box_data_sel,mapping=aes(x=time,y=flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000,color="Outflow_kgd"),size=2)+
   geom_line(box_data_sel,mapping=aes(x=time,y=j_kgd,color="j_kgd"),size=2)+
   xlab("2020")+
   ylab(expression(paste("(kg C d"^-1*")")))+
@@ -304,7 +371,7 @@ box_20 <- ggplot()+
 ggarrange(box_18,box_19,box_20,ncol=1,nrow=3,common.legend = TRUE, labels = c("A.", "B.", "C.", "D."),
           font.label=list(face="plain",size=15))
 
-ggsave("./Fig_Output/Fig4_scaledFlows.jpg",width=10,height=12,units="in",dpi=320)
+ggsave("./Fig_Output/Fig4_v2.jpg",width=10,height=12,units="in",dpi=320)
 
 # CTD and YSI casts - combine together for most complete time-period
 #need to import CTD observations from EDI
