@@ -597,9 +597,9 @@ jterm_full <- ggplot(hypo_do_box,mapping=aes(oxy,j_kgd,colour=oxy))+
   geom_hline(yintercept = 0, linetype="dashed")+
   geom_boxplot()+
   scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
-  ylab(expression(paste("Source/sink term (kg d"^-1*")")))+
+  ylab(expression(paste("Internal processing (kg C d"^-1*")")))+
   xlab("")+
-  ylim(-15,10)+
+  ylim(-10,11)+
   theme_classic(base_size=17)+
   theme(legend.title=element_blank())
 
@@ -607,16 +607,16 @@ jterm <- ggplot(hypo_do_box,mapping=aes(year,j_kgd,colour=oxy))+
   geom_hline(yintercept = 0, linetype="dashed")+
   geom_boxplot()+
   scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
-  ylab(expression(paste("Source/sink term (kg d"^-1*")")))+
+  ylab(expression(paste("Internal processing (kg C d"^-1*")")))+
   xlab("Year")+
-  ylim(-15,10)+
+  ylim(-10,11)+
   theme_classic(base_size=17)+
   theme(legend.title=element_blank())
 
 ggarrange(jterm_full ,jterm,ncol=2,nrow=1,common.legend=TRUE,labels = c("A.", "B."),
           font.label=list(face="plain",size=15))
 
-ggsave("./Fig_Output/Fig6_v3.jpg",width=10,height=5,units="in",dpi=320)
+ggsave("./Fig_Output/Fig6_HypoBypass.jpg",width=10,height=5,units="in",dpi=320)
 
 # Plot temp by year (as box plots?)
 # Remove wonky casts: 2019-04-29, 2019-05-31
@@ -723,8 +723,7 @@ ggsave("./Fig_OutPut/DOSat.jpg",width=10,height=5,units="in",dpi=320)
 
 # Calculate median DO for each year/oxygenation period
 do_med <- hypo_do_box %>% 
-  select(-time,-depth,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-DOC_8,-DOC_9,-hypo_vw_mgL,-j_kgd,
-         -hypo_mg,-DOC_mgL_therm,-DOC_mgL_100,-flow_cms,-j_mgs,-month,-dMdt_mgs,-wrt_d) %>% 
+  select(Temp_C,DO_mgL,j_kgd,flow_cms,DOC_mgL_100,DOC_mgL_therm,dMdt_mgs,year,oxy) %>% 
   group_by(year,oxy) %>% 
   summarize_all(funs(median),na.rm=TRUE)
 
@@ -738,7 +737,7 @@ dm_dt <- ggplot(hypo_do_box,mapping=aes(year,dMdt_mgs*60*60*24/1000/1000,colour=
   theme_classic(base_size=17)+
   theme(legend.title=element_blank())
 
-inflow <- ggplot(hypo_do_box,mapping=aes(year,flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000,colour=oxy))+
+inflow <- ggplot(hypo_do_box,mapping=aes(year,flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26,colour=oxy))+
   geom_hline(yintercept = 0, linetype="dashed")+
   geom_boxplot()+
   scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
@@ -747,7 +746,7 @@ inflow <- ggplot(hypo_do_box,mapping=aes(year,flow_cms*DOC_mgL_100*1000*60*60*24
   theme_classic(base_size=17)+
   theme(legend.title=element_blank())
 
-outflow <- ggplot(hypo_do_box,mapping=aes(year,flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000,colour=oxy))+
+outflow <- ggplot(hypo_do_box,mapping=aes(year,flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26,colour=oxy))+
   geom_hline(yintercept = 0, linetype="dashed")+
   geom_boxplot()+
   scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
@@ -760,16 +759,16 @@ jterm <- ggplot(hypo_do_box,mapping=aes(year,j_kgd,colour=oxy))+
   geom_hline(yintercept = 0, linetype="dashed")+
   geom_boxplot()+
   scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
-  ylab(expression(paste("Source/sink term (kg C d"^-1*")")))+
+  ylab(expression(paste("Internal processing (kg C d"^-1*")")))+
   xlab("Year")+
-  ylim(-15,10)+
+  ylim(-15,11)+
   theme_classic(base_size=17)+
   theme(legend.title=element_blank())
 
 ggarrange(inflow,outflow,dm_dt,jterm,nrow=2,ncol=2,common.legend = TRUE,labels = c("A.", "B.", "C.", "D."),
           font.label=list(face="plain",size=15))
 
-ggsave("./Fig_Output/dmtodt_inflow_v2.jpg",width=10,height=8,units="in",dpi=320)
+ggsave("./Fig_Output/dmtodt_inflow_hypobypass.jpg",width=10,height=8,units="in",dpi=320)
 
 ### Let's start thinking about DOM quality - what metrics to use?
 # a254? HIX? BIX? Peak C? Peak T? PARAFAC?
@@ -980,11 +979,10 @@ ggplot(hypo_do_box_2,mapping=aes(x=year,y=M,colour=oxy))+
 
 # Calculate median for various groups of data ----
 all_med <- hypo_do_box %>% 
-  mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000) %>% 
-  mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000) %>% 
+  mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26) %>% 
+  mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
-  select(-time,-depth,-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-DOC_8,-DOC_9,
-         -hypo_mg,-DOC_mgL_therm,-DOC_mgL_100,-flow_cms,-j_mgs,-month,-dMdt_mgs,-wrt_d) %>% 
+  select(Temp_C,DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,year,oxy,hypo_vw_mgL) %>% 
   group_by(year,oxy) %>% 
   summarize_all(funs(median),na.rm=TRUE)
 
@@ -1000,11 +998,10 @@ all_med_fdom <- hypo_do_box_2 %>%
 all_med <- left_join(all_med,all_med_fdom,by=c("year","oxy"))
 
 year_med <- hypo_do_box %>% 
-  mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000) %>% 
-  mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000) %>% 
+  mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26) %>% 
+  mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
-  select(-time,-depth,-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-DOC_8,-DOC_9,
-         -hypo_mg,-DOC_mgL_therm,-DOC_mgL_100,-flow_cms,-j_mgs,-month,-dMdt_mgs,-wrt_d,-oxy) %>%
+  select(Temp_C,DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,year,hypo_vw_mgL) %>%
   group_by(year) %>% 
   summarize_all(funs(median),na.rm=TRUE) %>% 
   mutate(oxy = "All")
@@ -1020,11 +1017,10 @@ year_med_fdom <- hypo_do_box_2 %>%
 year_med <- left_join(year_med,year_med_fdom,by=c("year","oxy"))
 
 oxy_med <- hypo_do_box %>% 
-  mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000) %>% 
-  mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000) %>% 
+  mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26) %>% 
+  mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
-  select(-time,-depth,-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-DOC_8,-DOC_9,
-         -hypo_mg,-DOC_mgL_therm,-DOC_mgL_100,-flow_cms,-j_mgs,-month,-dMdt_mgs,-wrt_d,-year) %>%
+  select(Temp_C,DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,oxy,hypo_vw_mgL) %>%
   group_by(oxy) %>% 
   summarize_all(funs(median),na.rm=TRUE) %>% 
   mutate(year = "All")
@@ -1040,11 +1036,10 @@ oxy_med_fdom <- hypo_do_box_2 %>%
 oxy_med <- left_join(oxy_med,oxy_med_fdom,by=c("year","oxy"))
 
 all_year_med <- hypo_do_box %>% 
-  mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000) %>% 
-  mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000) %>% 
+  mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26) %>% 
+  mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
-  select(-time,-depth,-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-DOC_8,-DOC_9,
-         -hypo_mg,-DOC_mgL_therm,-DOC_mgL_100,-flow_cms,-j_mgs,-month,-dMdt_mgs,-wrt_d,-oxy,-year) %>%
+  select(Temp_C,DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,hypo_vw_mgL) %>%
   summarize_all(funs(median),na.rm=TRUE) %>% 
   mutate(oxy = "All") %>% 
   mutate(year = "All")
@@ -1071,11 +1066,10 @@ all_all_med$PeakT[12] <- NA
 
 # Calculate 25th percentile for various groups of data
 all_quan_25 <- hypo_do_box %>% 
-  mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000) %>% 
-  mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000) %>% 
+  mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26) %>% 
+  mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
-  select(-time,-depth,-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-DOC_8,-DOC_9,
-         -hypo_mg,-DOC_mgL_therm,-DOC_mgL_100,-flow_cms,-j_mgs,-month,-dMdt_mgs,-wrt_d) %>%
+  select(Temp_C,DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,year,oxy,hypo_vw_mgL) %>%
   group_by(year,oxy) %>% 
   summarize_all(funs(quantile(.,.25,na.rm=TRUE)))
 
@@ -1091,11 +1085,10 @@ all_quan_25_fdom <- hypo_do_box_2 %>%
 all_quan_25 <- left_join(all_quan_25,all_quan_25_fdom,by=c("year","oxy"))
 
 year_quan_25 <- hypo_do_box %>% 
-  mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000) %>% 
-  mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000) %>% 
+  mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26) %>% 
+  mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
-  select(-time,-depth,-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-DOC_8,-DOC_9,
-         -hypo_mg,-DOC_mgL_therm,-DOC_mgL_100,-flow_cms,-j_mgs,-month,-dMdt_mgs,-wrt_d,-oxy) %>%
+  select(Temp_C,DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,year,hypo_vw_mgL) %>%
   group_by(year) %>% 
   summarize_all(funs(quantile(.,.25,na.rm=TRUE))) %>% 
   mutate(oxy = "All")
@@ -1111,11 +1104,10 @@ year_quan_25_fdom <- hypo_do_box_2 %>%
 year_quan_25 <- left_join(year_quan_25,year_quan_25_fdom,by=c("year","oxy"))
 
 oxy_quan_25 <- hypo_do_box %>% 
-  mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000) %>% 
-  mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000) %>% 
+  mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26) %>% 
+  mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
-  select(-time,-depth,-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-DOC_8,-DOC_9,
-         -hypo_mg,-DOC_mgL_therm,-DOC_mgL_100,-flow_cms,-j_mgs,-month,-dMdt_mgs,-wrt_d,-year) %>%
+  select(Temp_C,DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,oxy,hypo_vw_mgL) %>%
   group_by(oxy) %>% 
   summarize_all(funs(quantile(.,.25,na.rm=TRUE))) %>% 
   mutate(year = "All")
@@ -1131,11 +1123,10 @@ oxy_quan_25_fdom <- hypo_do_box_2 %>%
 oxy_quan_25 <- left_join(oxy_quan_25,oxy_quan_25_fdom,by=c("year","oxy"))
 
 all_year_quan_25 <- hypo_do_box %>% 
-  mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000) %>% 
-  mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000) %>% 
+  mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26) %>% 
+  mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
-  select(-time,-depth,-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-DOC_8,-DOC_9,
-         -hypo_mg,-DOC_mgL_therm,-DOC_mgL_100,-flow_cms,-j_mgs,-month,-dMdt_mgs,-wrt_d,-oxy,-year) %>%
+  select(Temp_C,DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,hypo_vw_mgL) %>%
   summarize_all(funs(quantile(.,.25,na.rm=TRUE))) %>% 
   mutate(oxy = "All") %>% 
   mutate(year = "All")
@@ -1162,11 +1153,10 @@ all_all_quan_25$PeakT[12] <- NA
 
 # Calculate 75th percentile for various groups of data
 all_quan_75 <- hypo_do_box %>% 
-  mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000) %>% 
-  mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000) %>% 
+  mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26) %>% 
+  mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
-  select(-time,-depth,-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-DOC_8,-DOC_9,
-         -hypo_mg,-DOC_mgL_therm,-DOC_mgL_100,-flow_cms,-j_mgs,-month,-dMdt_mgs,-wrt_d) %>%
+  select(Temp_C,DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,year,oxy,hypo_vw_mgL) %>%
   group_by(year,oxy) %>% 
   summarize_all(funs(quantile(.,.75,na.rm=TRUE)))
 
@@ -1182,11 +1172,10 @@ all_quan_75_fdom <- hypo_do_box_2 %>%
 all_quan_75 <- left_join(all_quan_75,all_quan_75_fdom,by=c("year","oxy"))
 
 year_quan_75 <- hypo_do_box %>% 
-  mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000) %>% 
-  mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000) %>% 
+  mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26) %>% 
+  mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
-  select(-time,-depth,-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-DOC_8,-DOC_9,
-         -hypo_mg,-DOC_mgL_therm,-DOC_mgL_100,-flow_cms,-j_mgs,-month,-dMdt_mgs,-wrt_d,-oxy) %>%
+  select(Temp_C,DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,year,hypo_vw_mgL) %>%
   group_by(year) %>% 
   summarize_all(funs(quantile(.,.75,na.rm=TRUE))) %>% 
   mutate(oxy = "All")
@@ -1202,11 +1191,10 @@ year_quan_75_fdom <- hypo_do_box_2 %>%
 year_quan_75 <- left_join(year_quan_75,year_quan_75_fdom,by=c("year","oxy"))
 
 oxy_quan_75 <- hypo_do_box %>% 
-  mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000) %>% 
-  mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000) %>% 
+  mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26) %>% 
+  mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
-  select(-time,-depth,-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-DOC_8,-DOC_9,
-         -hypo_mg,-DOC_mgL_therm,-DOC_mgL_100,-flow_cms,-j_mgs,-month,-dMdt_mgs,-wrt_d,-year) %>%
+  select(Temp_C,DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,oxy,hypo_vw_mgL) %>%
   group_by(oxy) %>% 
   summarize_all(funs(quantile(.,.75,na.rm=TRUE))) %>% 
   mutate(year = "All")
@@ -1222,11 +1210,10 @@ oxy_quan_75_fdom <- hypo_do_box_2 %>%
 oxy_quan_75 <- left_join(oxy_quan_75,oxy_quan_75_fdom,by=c("year","oxy"))
 
 all_year_quan_75 <- hypo_do_box %>% 
-  mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000) %>% 
-  mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000) %>% 
+  mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26) %>% 
+  mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
-  select(-time,-depth,-DO_pSat,-Cond_uScm,-Chla_ugL,-Turb_NTU,-pH,-ORP_mV,-PAR_umolm2s,-DOC_8,-DOC_9,
-         -hypo_mg,-DOC_mgL_therm,-DOC_mgL_100,-flow_cms,-j_mgs,-month,-dMdt_mgs,-wrt_d,-year,-oxy) %>%
+  select(Temp_C,DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,hypo_vw_mgL) %>%
   summarize_all(funs(quantile(.,.75,na.rm=TRUE))) %>% 
   mutate(oxy = "All") %>% 
   mutate(year = "All")
@@ -1278,7 +1265,7 @@ really_all_round <- really_all_round %>%
 really_all <- cbind(really_all,really_all_round)
 
 # Export out and format as a table in excel
-write_csv(really_all,"./Fig_Output/20210530_SITable_quantiles.csv")
+write_csv(really_all,"./Fig_Output/20210618_SITable_quantiles.csv")
 
 
 ### OLD CODE ----
