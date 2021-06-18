@@ -723,8 +723,8 @@ ggsave("./Fig_OutPut/DOSat.jpg",width=10,height=5,units="in",dpi=320)
 
 # Calculate median DO for each year/oxygenation period
 do_med <- hypo_do_box %>% 
-  select(Temp_C,DO_mgL,j_kgd,flow_cms,DOC_mgL_100,DOC_mgL_therm,dMdt_mgs,year,oxy) %>% 
-  group_by(year,oxy) %>% 
+  select(Temp_C,DO_mgL,j_kgd,flow_cms,DOC_mgL_100,DOC_mgL_therm,dMdt_mgs,oxy,rh_perc) %>% 
+  group_by(oxy) %>% 
   summarize_all(funs(median),na.rm=TRUE)
 
 #Plot Inflow and dM/dt by year
