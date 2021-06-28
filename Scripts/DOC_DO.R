@@ -1123,11 +1123,11 @@ all_med <- hypo_do_box %>%
   mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
-  select(Temp_C,DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,year,oxy,hypo_vw_mgL) %>% 
+  select(vw_temp_C,vw_DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,year,oxy,hypo_vw_mgL) %>% 
   group_by(year,oxy) %>% 
   summarize_all(funs(median),na.rm=TRUE)
 
-col_order <- c("year","oxy","Temp_C","DO_mgL","hypo_vw_mgL","j_kgd","inflow_kgd","outflow_kgd","dMdt_kgd")
+col_order <- c("year","oxy","vw_temp_C","vw_DO_mgL","hypo_vw_mgL","j_kgd","inflow_kgd","outflow_kgd","dMdt_kgd")
 
 all_med <- all_med[,col_order]
 
@@ -1142,7 +1142,7 @@ year_med <- hypo_do_box %>%
   mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
-  select(Temp_C,DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,year,hypo_vw_mgL) %>%
+  select(vw_temp_C,vw_DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,year,hypo_vw_mgL) %>%
   group_by(year) %>% 
   summarize_all(funs(median),na.rm=TRUE) %>% 
   mutate(oxy = "All")
@@ -1161,7 +1161,7 @@ oxy_med <- hypo_do_box %>%
   mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
-  select(Temp_C,DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,oxy,hypo_vw_mgL) %>%
+  select(vw_temp_C,vw_DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,oxy,hypo_vw_mgL) %>%
   group_by(oxy) %>% 
   summarize_all(funs(median),na.rm=TRUE) %>% 
   mutate(year = "All")
@@ -1180,7 +1180,7 @@ all_year_med <- hypo_do_box %>%
   mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
-  select(Temp_C,DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,hypo_vw_mgL) %>%
+  select(vw_temp_C,vw_DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,hypo_vw_mgL) %>%
   summarize_all(funs(median),na.rm=TRUE) %>% 
   mutate(oxy = "All") %>% 
   mutate(year = "All")
@@ -1210,11 +1210,11 @@ all_quan_25 <- hypo_do_box %>%
   mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
-  select(Temp_C,DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,year,oxy,hypo_vw_mgL) %>%
+  select(vw_temp_C,vw_DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,year,oxy,hypo_vw_mgL) %>%
   group_by(year,oxy) %>% 
   summarize_all(funs(quantile(.,.25,na.rm=TRUE)))
 
-col_order <- c("year","oxy","Temp_C","DO_mgL","hypo_vw_mgL","j_kgd","inflow_kgd","outflow_kgd","dMdt_kgd")
+col_order <- c("year","oxy","vw_temp_C","vw_DO_mgL","hypo_vw_mgL","j_kgd","inflow_kgd","outflow_kgd","dMdt_kgd")
 
 all_quan_25 <- all_quan_25[,col_order]
 
@@ -1229,7 +1229,7 @@ year_quan_25 <- hypo_do_box %>%
   mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
-  select(Temp_C,DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,year,hypo_vw_mgL) %>%
+  select(vw_temp_C,vw_DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,year,hypo_vw_mgL) %>%
   group_by(year) %>% 
   summarize_all(funs(quantile(.,.25,na.rm=TRUE))) %>% 
   mutate(oxy = "All")
@@ -1248,7 +1248,7 @@ oxy_quan_25 <- hypo_do_box %>%
   mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
-  select(Temp_C,DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,oxy,hypo_vw_mgL) %>%
+  select(vw_temp_C,vw_DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,oxy,hypo_vw_mgL) %>%
   group_by(oxy) %>% 
   summarize_all(funs(quantile(.,.25,na.rm=TRUE))) %>% 
   mutate(year = "All")
@@ -1267,7 +1267,7 @@ all_year_quan_25 <- hypo_do_box %>%
   mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
-  select(Temp_C,DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,hypo_vw_mgL) %>%
+  select(vw_temp_C,vw_DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,hypo_vw_mgL) %>%
   summarize_all(funs(quantile(.,.25,na.rm=TRUE))) %>% 
   mutate(oxy = "All") %>% 
   mutate(year = "All")
@@ -1297,11 +1297,11 @@ all_quan_75 <- hypo_do_box %>%
   mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
-  select(Temp_C,DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,year,oxy,hypo_vw_mgL) %>%
+  select(vw_temp_C,vw_DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,year,oxy,hypo_vw_mgL) %>%
   group_by(year,oxy) %>% 
   summarize_all(funs(quantile(.,.75,na.rm=TRUE)))
 
-col_order <- c("year","oxy","Temp_C","DO_mgL","hypo_vw_mgL","j_kgd","inflow_kgd","outflow_kgd","dMdt_kgd")
+col_order <- c("year","oxy","vw_temp_C","vw_DO_mgL","hypo_vw_mgL","j_kgd","inflow_kgd","outflow_kgd","dMdt_kgd")
 
 all_quan_75 <- all_quan_75[,col_order]
 
@@ -1316,7 +1316,7 @@ year_quan_75 <- hypo_do_box %>%
   mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
-  select(Temp_C,DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,year,hypo_vw_mgL) %>%
+  select(vw_temp_C,vw_DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,year,hypo_vw_mgL) %>%
   group_by(year) %>% 
   summarize_all(funs(quantile(.,.75,na.rm=TRUE))) %>% 
   mutate(oxy = "All")
@@ -1335,7 +1335,7 @@ oxy_quan_75 <- hypo_do_box %>%
   mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
-  select(Temp_C,DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,oxy,hypo_vw_mgL) %>%
+  select(vw_temp_C,vw_DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,oxy,hypo_vw_mgL) %>%
   group_by(oxy) %>% 
   summarize_all(funs(quantile(.,.75,na.rm=TRUE))) %>% 
   mutate(year = "All")
@@ -1354,7 +1354,7 @@ all_year_quan_75 <- hypo_do_box %>%
   mutate(outflow_kgd = flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(inflow_kgd = flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26) %>% 
   mutate(dMdt_kgd = dMdt_mgs*60*60*24/1000/1000) %>% 
-  select(Temp_C,DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,hypo_vw_mgL) %>%
+  select(vw_temp_C,vw_DO_mgL,j_kgd,inflow_kgd,outflow_kgd,dMdt_kgd,hypo_vw_mgL) %>%
   summarize_all(funs(quantile(.,.75,na.rm=TRUE))) %>% 
   mutate(oxy = "All") %>% 
   mutate(year = "All")
@@ -1387,8 +1387,8 @@ really_all_round <- really_all %>%
   select(-year,-oxy) %>% 
   round(.,digits=2)
 
-really_all_round$Temp_med <- paste(really_all_round$Temp_C.x,really_all_round$Temp_C.y,really_all_round$Temp_C,sep=";")
-really_all_round$DO_med <- paste(really_all_round$DO_mgL.x,really_all_round$DO_mgL.y,really_all_round$DO_mgL,sep=";")
+really_all_round$Temp_med <- paste(really_all_round$vw_temp_C.x,really_all_round$vw_temp_C.y,really_all_round$vw_temp_C,sep=";")
+really_all_round$DO_med <- paste(really_all_round$vw_DO_mgL.x,really_all_round$vw_DO_mgL.y,really_all_round$vw_DO_mgL,sep=";")
 really_all_round$hypo_vw_mgL_med <- paste(really_all_round$hypo_vw_mgL.x,really_all_round$hypo_vw_mgL.y,really_all_round$hypo_vw_mgL,sep=";")
 really_all_round$j_med <- paste(really_all_round$j_kgd.x,really_all_round$j_kgd.y,really_all_round$j_kgd,sep=";")
 really_all_round$inflow_med <- paste(really_all_round$inflow_kgd.x,really_all_round$inflow_kgd.y,really_all_round$inflow_kgd,sep=";")
@@ -1406,7 +1406,7 @@ really_all_round <- really_all_round %>%
 really_all <- cbind(really_all,really_all_round)
 
 # Export out and format as a table in excel
-write_csv(really_all,"./Fig_Output/20210618_SITable_quantiles.csv")
+write_csv(really_all,"./Fig_Output/20210628_SITable_quantiles.csv")
 
 
 ### OLD CODE ----
