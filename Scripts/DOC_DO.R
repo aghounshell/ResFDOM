@@ -512,7 +512,28 @@ box_data_remin <- box_data_remin %>%
   select(-vw_temp_C,-vw_DO_mgL,-vw_pSat_DO)
 
 # Combine box model data w/ DO data
+hypo_do_box_full <- left_join(box_data_remin,ctd_50_hypo,by="time")
+
+anoxia_time <- hypo_do_box_full %>% 
+  select(time,vw_DO_mgL) %>% 
+  mutate(vw_DO_mgL = na.fill(na.approx(vw_DO_mgL,na.rm=FALSE),"extend")) %>% 
+  mutate(anoxia = ifelse(vw_DO_mgL< 1.0, 1, 0)) %>% 
+  mutate(anoxia_time_d = 0)
+
+for (i in 1:length(anoxia_time$time)){
+  if (anoxia_time$anoxia[i] == 1){
+    anoxia_time$anoxia_time_d[i] = anoxia_time$anoxia_time_d[i-1]+1
+  } else {
+    anoxia_time$anoxia_time_d[i] = 0
+  }
+}
+
+anoxia_time <- anoxia_time %>% 
+  select(time,anoxia_time_d)
+
+# Combine box model data w/ DO data and constrain to measured time points
 hypo_do_box <- left_join(ctd_50_hypo,box_data_remin,by="time")
+hypo_do_box <- left_join(hypo_do_box,anoxia_time,by="time")
 hypo_do_box$vw_DO_mgL <- as.numeric(hypo_do_box$vw_DO_mgL)
 
 hypo_do_box <- hypo_do_box %>% 
@@ -556,6 +577,30 @@ ggplot()+
   geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed")+ #Turnover FCR
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed")+ #Turnover FCR; operationally defined
   geom_line(box_data_remin,mapping=aes(x=time,y=rh_doc/1e6),size=1)
+
+# Thinking about time since anoxia as a driver?
+anoxia_doc <- ggplot(hypo_do_box,mapping=aes(x=anoxia_time_d,y=hypo_vw_mgL,color=year))+
+  geom_point(size=3)+
+  geom_line()+
+  ylab(expression(paste("VW DOC (mg L"^-1*")")))+
+  xlab("Duration of anoxia (d)")+
+  scale_color_manual(breaks=c('2018','2019','2020'),values=c("#7EBDC2","#393E41","#F0B670"))+
+  theme_classic(base_size = 17)+
+  theme(legend.title=element_blank())
+
+anoxia_loading <- ggplot(hypo_do_box,mapping=aes(anoxia_time_d,j_kgd,colour=year))+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_point(size=3)+
+  geom_line()+
+  ylab(expression(paste("Internal DOC loading (kg C d"^-1*")")))+
+  xlab("Duration of anoxia (d)")+
+  scale_color_manual(breaks=c('2018','2019','2020'),values=c("#7EBDC2","#393E41","#F0B670"))+
+  theme_classic(base_size = 17)+
+  theme(legend.title=element_blank())
+
+ggarrange(anoxia_doc,anoxia_loading,common.legend = TRUE,ncol=2,nrow=1,labels = c("A.","B."),font.label = list(face="plain",size=15))
+
+ggsave("./Fig_Output/DurationAnoxia.jpg",width=10,height=5,units="in",dpi=320)
 
 # Fig. 5: Plot DOC and DOC source/sink term by oxic vs. anoxic
 # Figure 3 - [DOC] timeseries for 6.2 m, VW Hypo, 100 from 2018-01-01 to 2020-12-02
@@ -650,6 +695,29 @@ ggarrange(ggarrange(doc_18,doc_19,doc_20,ncol=3,labels = c("A.","B.","C."),commo
           nrow=2)
 
 ggsave("./Fig_Output/Fig3_v4.jpg",width=10,height=8,units="in",dpi=320)
+
+## Plot VW Hypo DOC vs. DO for each year/summer stratified period
+do_doc <- ggplot(hypo_do_box,mapping=aes(vw_DO_mgL,hypo_vw_mgL,colour=year))+
+  geom_vline(xintercept = 1,linetype="dashed")+
+  geom_point(size=3)+
+  ylab(expression(paste("VW DOC (mg L"^-1*")")))+
+  xlab(expression(paste("VW DO (mg L"^-1*")")))+
+  scale_color_manual(breaks=c('2018','2019','2020'),values=c("#7EBDC2","#393E41","#F0B670"))+
+  theme_classic(base_size = 17)+
+  theme(legend.title=element_blank())
+
+do_loading <- ggplot(hypo_do_box,mapping=aes(vw_DO_mgL,j_kgd,colour=year))+
+  geom_vline(xintercept = 1,linetype="dashed")+
+  geom_point(size=3)+
+  ylab(expression(paste("Internal DOC loading (kg C d"^-1*")")))+
+  xlab(expression(paste("VW DO (mg L"^-1*")")))+
+  scale_color_manual(breaks=c('2018','2019','2020'),values=c("#7EBDC2","#393E41","#F0B670"))+
+  theme_classic(base_size = 17)+
+  theme(legend.title=element_blank())
+
+ggarrange(do_doc,do_loading,common.legend = TRUE,ncol=2,nrow=1,labels = c("A.","B."),font.label = list(face="plain",size=15))
+
+ggsave("./Fig_Output/DO_DOC.jpg",width=10,height=5,units="in",dpi=320)
 
 # Source/sink term
 jterm_full <- ggplot(hypo_do_box,mapping=aes(oxy,j_kgd,colour=oxy))+
@@ -862,9 +930,9 @@ ggsave("./Fig_OutPut/DOSat_v2.jpg",width=10,height=9,units="in",dpi=320)
 
 # Calculate median DO for each year/oxygenation period
 do_med <- hypo_do_box %>% 
-  select(vw_temp_C,vw_DO_mgL,j_kgd,flow_cms,DOC_mgL_100,DOC_mgL_therm,dMdt_mgs,oxy,rh_perc) %>% 
-  group_by(oxy) %>% 
-  summarize_all(funs(median),na.rm=TRUE)
+  select(-oxy) %>% 
+  group_by(year) %>% 
+  summarize_all(funs(min),na.rm=TRUE)
 
 #Plot Inflow and dM/dt by year
 dm_dt <- ggplot(hypo_do_box,mapping=aes(year,dMdt_mgs*60*60*24/1000/1000,colour=oxy))+
