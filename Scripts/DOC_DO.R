@@ -5,7 +5,7 @@
 # Don't worry about 'entrainment' - should be included in the outflow variable
 
 # Load libraries
-pacman::p_load(tidyverse,ggplot2,ggpubr,lubridate,zoo,rMR)
+pacman::p_load(tidyverse,ggplot2,ggpubr,lubridate,zoo,rMR,lme4)
 
 # Load data: long-term DOC; weir discharge; temperature/DO casts
 # DOC data from EDI - NOTE: May want to update for 2020 data??
@@ -579,28 +579,57 @@ ggplot()+
   geom_line(box_data_remin,mapping=aes(x=time,y=rh_doc/1e6),size=1)
 
 # Thinking about time since anoxia as a driver?
-anoxia_doc <- ggplot(hypo_do_box,mapping=aes(x=anoxia_time_d,y=hypo_vw_mgL,color=year))+
+# Calculate linear trend line for each year
+# Remove values when duration of anoxia = 0
+hypo_do_box_sel <- hypo_do_box %>% 
+  filter(anoxia_time_d > 0)
+
+fits <- lmList(j_kgd ~ anoxia_time_d | year, data = hypo_do_box_sel)
+fits <- lmList(hypo_vw_mgL ~ anoxia_time_d | year, data = hypo_do_box_sel)
+
+anoxia_doc_zero <- hypo_do_box %>% 
+  filter(anoxia_time_d == 0) %>% 
+  ggplot(mapping=aes(x=anoxia_time_d,y=hypo_vw_mgL,color=year))+
+  geom_boxplot()+
+  scale_color_manual(breaks=c('2018','2019','2020'),values=c("#7EBDC2","#393E41","#F0B670"))+
+  ylab(expression(paste("VW DOC (mg L"^-1*")")))+
+  xlab("Duration of anoxia (d)")+
+  theme_classic(base_size = 17)+
+  theme(legend.title=element_blank())
+
+anoxia_doc <- ggplot(hypo_do_box_sel,mapping=aes(x=anoxia_time_d,y=hypo_vw_mgL,color=year))+
   geom_point(size=3)+
-  geom_line()+
   ylab(expression(paste("VW DOC (mg L"^-1*")")))+
   xlab("Duration of anoxia (d)")+
   scale_color_manual(breaks=c('2018','2019','2020'),values=c("#7EBDC2","#393E41","#F0B670"))+
   theme_classic(base_size = 17)+
   theme(legend.title=element_blank())
 
-anoxia_loading <- ggplot(hypo_do_box,mapping=aes(anoxia_time_d,j_kgd,colour=year))+
+anoxia_loading_zero <- hypo_do_box %>% 
+  filter(anoxia_time_d == 0) %>% 
+  ggplot(mapping=aes(x=anoxia_time_d,y=j_kgd,color=year))+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_boxplot()+
+  scale_color_manual(breaks=c('2018','2019','2020'),values=c("#7EBDC2","#393E41","#F0B670"))+
+  ylab(expression(paste("Internal DOC loading (kg C d"^-1*")")))+
+  xlab("Duration of anoxia (d)")+
+  theme_classic(base_size = 17)+
+  theme(legend.title=element_blank())
+
+anoxia_loading <- ggplot(hypo_do_box_sel,mapping=aes(anoxia_time_d,j_kgd,colour=year))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   geom_point(size=3)+
-  geom_line()+
+  #geom_smooth(method="lm")+
   ylab(expression(paste("Internal DOC loading (kg C d"^-1*")")))+
   xlab("Duration of anoxia (d)")+
   scale_color_manual(breaks=c('2018','2019','2020'),values=c("#7EBDC2","#393E41","#F0B670"))+
   theme_classic(base_size = 17)+
   theme(legend.title=element_blank())
 
-ggarrange(anoxia_doc,anoxia_loading,common.legend = TRUE,ncol=2,nrow=1,labels = c("A.","B."),font.label = list(face="plain",size=15))
+ggarrange(anoxia_doc_zero, anoxia_doc, anoxia_loading_zero, anoxia_loading,common.legend = TRUE,ncol=2,nrow=2,widths=c(1,2),
+          labels = c("A.","B.","C.","D."),font.label = list(face="plain",size=15))
 
-ggsave("./Fig_Output/DurationAnoxia.jpg",width=10,height=5,units="in",dpi=320)
+ggsave("./Fig_Output/DurationAnoxia_v2.jpg",width=10,height=8,units="in",dpi=320)
 
 # Fig. 5: Plot DOC and DOC source/sink term by oxic vs. anoxic
 # Figure 3 - [DOC] timeseries for 6.2 m, VW Hypo, 100 from 2018-01-01 to 2020-12-02
@@ -930,8 +959,8 @@ ggsave("./Fig_OutPut/DOSat_v2.jpg",width=10,height=9,units="in",dpi=320)
 
 # Calculate median DO for each year/oxygenation period
 do_med <- hypo_do_box %>% 
-  select(-oxy) %>% 
-  group_by(year) %>% 
+  #select(-year,-oxy) %>% 
+  group_by(oxy,year) %>% 
   summarize_all(funs(min),na.rm=TRUE)
 
 #Plot Inflow and dM/dt by year
@@ -1185,6 +1214,12 @@ ggplot(hypo_do_box_2,mapping=aes(x=year,y=M,colour=oxy))+
   xlab("Year")+
   theme_classic(base_size=17)+
   theme(legend.title=element_blank())
+
+# Find range for FDOM parameters
+med_fdom <- hypo_do_box_2 %>% 
+  select(oxy,PeakA,PeakT) %>% 
+  group_by(oxy) %>% 
+  summarize_all(funs(min,max),na.rm=TRUE)
 
 # Calculate median for various groups of data ----
 all_med <- hypo_do_box %>% 
