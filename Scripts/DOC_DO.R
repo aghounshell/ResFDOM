@@ -5,7 +5,8 @@
 # Don't worry about 'entrainment' - should be included in the outflow variable
 
 # Load libraries
-pacman::p_load(tidyverse,ggplot2,ggpubr,lubridate,zoo,rMR,lme4)
+pacman::p_load(tidyverse,ggplot2,ggpubr,rMR,lme4,PerformanceAnalytics,astsa,cowplot,lubridate,dplR,zoo,naniar,
+               DescTools,MuMIn,rsq,Metrics)
 
 # Load data: long-term DOC; weir discharge; temperature/DO casts
 # DOC data from EDI - NOTE: May want to update for 2020 data??
@@ -95,7 +96,9 @@ chem_50_therm <- chem %>%
 # Add to box_data data sheet and interpolate
 box_data <- left_join(box_data,chem_50_therm,by="time")
 box_data <- box_data %>% 
-  mutate(DOC_mgL_therm = na.fill(na.approx(DOC_mgL_therm,na.rm=FALSE),"extend"))
+  mutate(DOC_mgL_therm = na.fill(na.approx(DOC_mgL_therm,na.rm=FALSE),"extend")) %>%
+  group_by(time) %>% 
+  summarise_all(mean,na.rm=TRUE)
 
 # Filter and add data from 100
 chem_100 <- chem %>% 
@@ -107,7 +110,9 @@ chem_100 <- chem %>%
 
 box_data <- left_join(box_data,chem_100,by="time")
 box_data <- box_data %>% 
-  mutate(DOC_mgL_100 = na.fill(na.approx(DOC_mgL_100,na.rm=FALSE),"extend"))
+  mutate(DOC_mgL_100 = na.fill(na.approx(DOC_mgL_100,na.rm=FALSE),"extend")) %>% 
+  group_by(time) %>% 
+  summarise_all(mean,na.rm=TRUE)
 
 # Weir discharge/temperature
 #inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/202/7/f5fa5de4b49bae8373f6e7c1773b026e" 
@@ -518,7 +523,17 @@ anoxia_time <- hypo_do_box_full %>%
   select(time,vw_DO_mgL) %>% 
   mutate(vw_DO_mgL = na.fill(na.approx(vw_DO_mgL,na.rm=FALSE),"extend")) %>% 
   mutate(anoxia = ifelse(vw_DO_mgL< 1.0, 1, 0)) %>% 
-  mutate(anoxia_time_d = 0)
+  mutate(anoxia_time_d = 0) %>% 
+  mutate(oxygenation = ifelse(time >= "2018-04-23" & time <= "2018-07-20", 1,
+                          ifelse(time >= "2019-06-03" & time <= "2019-06-18", 1,
+                                 ifelse(time >= "2019-07-08" & time <= "2019-07-20", 1,
+                                        ifelse(time >= "2019-08-05" & time <= "2019-08-20", 1,
+                                               ifelse(time >= "2019-09-02" & time <= "2019-12-02", 1,
+                                                      ifelse(time >= "2020-06-29" & time <= "2020-07-06", 1,
+                                                             ifelse(time >= "2020-07-06" & time <= "2020-07-12", 1,
+                                                                    ifelse(time >= "2020-07-13" & time <= "2020-07-22", 1,
+                                                                           ifelse(time >= "2020-07-23" & time <= "2020-12-02", 1,
+                                                                                  0))))))))))
 
 for (i in 1:length(anoxia_time$time)){
   if (anoxia_time$anoxia[i] == 1){
@@ -529,7 +544,7 @@ for (i in 1:length(anoxia_time$time)){
 }
 
 anoxia_time <- anoxia_time %>% 
-  select(time,anoxia_time_d)
+  select(time,anoxia_time_d,oxygenation)
 
 # Combine box model data w/ DO data and constrain to measured time points
 hypo_do_box <- left_join(ctd_50_hypo,box_data_remin,by="time")
@@ -613,6 +628,7 @@ anoxia_loading_zero <- hypo_do_box %>%
   scale_color_manual(breaks=c('2018','2019','2020'),values=c("#7EBDC2","#393E41","#F0B670"))+
   ylab(expression(paste("Internal DOC loading (kg C d"^-1*")")))+
   xlab("Duration of anoxia (d)")+
+  ylim(-10,10)+
   theme_classic(base_size = 17)+
   theme(legend.title=element_blank())
 
@@ -623,13 +639,14 @@ anoxia_loading <- ggplot(hypo_do_box_sel,mapping=aes(anoxia_time_d,j_kgd,colour=
   ylab(expression(paste("Internal DOC loading (kg C d"^-1*")")))+
   xlab("Duration of anoxia (d)")+
   scale_color_manual(breaks=c('2018','2019','2020'),values=c("#7EBDC2","#393E41","#F0B670"))+
+  ylim(-10,10)+
   theme_classic(base_size = 17)+
   theme(legend.title=element_blank())
 
-ggarrange(anoxia_doc_zero, anoxia_doc, anoxia_loading_zero, anoxia_loading,common.legend = TRUE,ncol=2,nrow=2,widths=c(1,2),
-          labels = c("A.","B.","C.","D."),font.label = list(face="plain",size=15))
+ggarrange(anoxia_loading_zero, anoxia_loading,common.legend = TRUE,ncol=2,nrow=1,widths=c(1,2),
+          labels = c("A.","B."),font.label = list(face="plain",size=15))
 
-ggsave("./Fig_Output/DurationAnoxia_v2.jpg",width=10,height=8,units="in",dpi=320)
+ggsave("./Fig_Output/DurationAnoxia_v3.jpg",width=10,height=4,units="in",dpi=320)
 
 # Fig. 5: Plot DOC and DOC source/sink term by oxic vs. anoxic
 # Figure 3 - [DOC] timeseries for 6.2 m, VW Hypo, 100 from 2018-01-01 to 2020-12-02
@@ -1006,7 +1023,234 @@ ggarrange(inflow,outflow,dm_dt,jterm,nrow=2,ncol=2,common.legend = TRUE,labels =
 
 ggsave("./Fig_Output/dmtodt_inflow_hypobypass_v2.jpg",width=10,height=8,units="in",dpi=320)
 
-### Let's start thinking about DOM quality - what metrics to use?
+### Generate AR model for DOC internal loading ----
+# Including: AR term, DO, Temp, Anoxia Duration, and Oxygenation
+# Following Howard et al. 2021; AGU GHG presentation
+
+# Select data need for AR Model: 2018
+ar_model_2018 <- hypo_do_box %>% 
+  filter(year==2018) %>% 
+  select(time,vw_temp_C,vw_DO_mgL,j_kgd)
+
+# Create list of each Monday from June 2018 to end of October 2018
+mon_2018 <- seq(as.Date("2018-06-04"),as.Date("2018-10-31"),"7 days")
+mon_2018 <- as.POSIXct(strptime(mon_2018,"%Y-%m-%d", tz="EST"))
+mon_2018 <- as.data.frame(mon_2018)
+mon_2018 <- mon_2018 %>% 
+  rename(dates_2018 = mon_2018)
+
+#thurs_2018 <- seq(as.Date("2018-06-07"),as.Date("2018-10-31"),"7 days")
+#thurs_2018 <- as.POSIXct(strptime(thurs_2018,"%Y-%m-%d", tz="EST"))
+#thurs_2018 <- as.data.frame(thurs_2018)
+#thurs_2018 <- thurs_2018 %>% 
+#  rename(dates_2018 = thurs_2018)
+
+#dates_2018 <- rbind(mon_2018,thurs_2018)
+
+dates_2018 <- mon_2018
+
+dates_2018 <- dates_2018 %>% 
+  arrange(dates_2018) %>% 
+  mutate(time = dates_2018)
+
+ar_model_2018 <- full_join(ar_model_2018,dates_2018,by="time")
+
+ar_model_2018 <- ar_model_2018 %>% 
+  arrange(time) %>% 
+  mutate(vw_temp_C = na.fill(na.approx(vw_temp_C,na.rm=FALSE),"extend")) %>% 
+  mutate(vw_DO_mgL = na.fill(na.approx(vw_DO_mgL,na.rm=FALSE),"extend")) %>% 
+  mutate(j_kgd = na.fill(na.approx(j_kgd,na.rm=FALSE),"extend")) %>% 
+  group_by(time) %>% 
+  summarise_all(mean,na.rm=TRUE)
+
+ar_model_2018 <- left_join(ar_model_2018,anoxia_time,by="time")
+
+ar_model_2018 <- ar_model_2018[!is.na(ar_model_2018$dates_2018),]
+
+# Select data need for AR Model: 2019
+ar_model_2019 <- hypo_do_box %>% 
+  filter(year==2019) %>% 
+  select(time,vw_temp_C,vw_DO_mgL,j_kgd)
+
+# Create list of each Monday from June 2019 to end of October 2019
+mon_2019 <- seq(as.Date("2019-06-03"),as.Date("2019-10-31"),"7 days")
+mon_2019 <- as.POSIXct(strptime(mon_2019,"%Y-%m-%d", tz="EST"))
+mon_2019 <- as.data.frame(mon_2019)
+mon_2019 <- mon_2019 %>% 
+  rename(dates_2019 = mon_2019)
+
+#thurs_2019 <- seq(as.Date("2019-06-06"),as.Date("2019-10-31"),"7 days")
+#thurs_2019 <- as.POSIXct(strptime(thurs_2019,"%Y-%m-%d", tz="EST"))
+#thurs_2019 <- as.data.frame(thurs_2019)
+#thurs_2019 <- thurs_2019 %>% 
+#  rename(dates_2019 = thurs_2019)
+
+#dates_2019 <- rbind(mon_2019,thurs_2019)
+
+dates_2019 <- mon_2019
+
+dates_2019 <- dates_2019 %>% 
+  arrange(dates_2019) %>% 
+  mutate(time = dates_2019)
+
+ar_model_2019 <- full_join(ar_model_2019,dates_2019,by="time")
+
+ar_model_2019 <- ar_model_2019 %>% 
+  arrange(time) %>% 
+  mutate(vw_temp_C = na.fill(na.approx(vw_temp_C,na.rm=FALSE),"extend")) %>% 
+  mutate(vw_DO_mgL = na.fill(na.approx(vw_DO_mgL,na.rm=FALSE),"extend")) %>% 
+  mutate(j_kgd = na.fill(na.approx(j_kgd,na.rm=FALSE),"extend"))%>% 
+  group_by(time) %>% 
+  summarise_all(mean,na.rm=TRUE)
+
+ar_model_2019 <- left_join(ar_model_2019,anoxia_time,by="time")
+
+ar_model_2019 <- ar_model_2019[!is.na(ar_model_2019$dates_2019),]
+
+# Select data need for AR Model: 2020
+ar_model_2020 <- hypo_do_box %>% 
+  filter(year==2020) %>% 
+  select(time,vw_temp_C,vw_DO_mgL,j_kgd)
+
+# Create list of each Monday from June 2020 to end of October 2020
+mon_2020 <- seq(as.Date("2020-06-01"),as.Date("2020-10-31"),"7 days")
+mon_2020 <- as.POSIXct(strptime(mon_2020,"%Y-%m-%d", tz="EST"))
+mon_2020 <- as.data.frame(mon_2020)
+mon_2020 <- mon_2020 %>% 
+  rename(dates_2020 = mon_2020)
+
+#thurs_2020 <- seq(as.Date("2020-06-04"),as.Date("2020-10-31"),"7 days")
+#thurs_2020 <- as.POSIXct(strptime(thurs_2020,"%Y-%m-%d", tz="EST"))
+#thurs_2020 <- as.data.frame(thurs_2020)
+#thurs_2020 <- thurs_2020 %>% 
+#  rename(dates_2020 = thurs_2020)
+
+#dates_2020 <- rbind(mon_2020,thurs_2020)
+
+dates_2020 <- mon_2020
+
+dates_2020 <- dates_2020 %>% 
+  arrange(dates_2020) %>% 
+  mutate(time = dates_2020)
+
+ar_model_2020 <- full_join(ar_model_2020,dates_2020,by="time")
+
+ar_model_2020 <- ar_model_2020 %>% 
+  arrange(time) %>% 
+  mutate(vw_temp_C = na.fill(na.approx(vw_temp_C,na.rm=FALSE),"extend")) %>% 
+  mutate(vw_DO_mgL = na.fill(na.approx(vw_DO_mgL,na.rm=FALSE),"extend")) %>% 
+  mutate(j_kgd = na.fill(na.approx(j_kgd,na.rm=FALSE),"extend"))%>% 
+  group_by(time) %>% 
+  summarise_all(mean,na.rm=TRUE)
+
+ar_model_2020 <- left_join(ar_model_2020,anoxia_time,by="time")
+
+ar_model_2020 <- ar_model_2020[!is.na(ar_model_2020$dates_2020),]
+
+### Check for autocorrelation among DOC internal loading parameters (for each year)
+
+# DOC internal loading, 2018: no lag term!
+plot(ar_model_2018$j_kgd,type="b")
+lag1.plot(ar_model_2018$j_kgd,10)
+PlotACF(ar_model_2018$j_kgd)
+acf2(ar_model_2018$j_kgd,na.action=na.pass)
+pacf(ar_model_2018$j_kgd,na.action=na.pass)
+
+# DOC internal loading 2019: first lag term!
+plot(ar_model_2019$j_kgd,type="b")
+lag1.plot(ar_model_2019$j_kgd,10)
+PlotACF(ar_model_2019$j_kgd)
+acf2(ar_model_2019$j_kgd,na.action=na.pass)
+pacf(ar_model_2019$j_kgd,na.action=na.pass)
+
+# Add lag term to 2019 data
+xlag1 = lag(ar_model_2019$j_kgd,1)
+y = cbind(ar_model_2019$j_kgd,xlag1)
+ar1fit = lm(y[,1]~y[,2])
+summary(ar1fit)
+plot(ar1fit$fit,ar1fit$residuals)
+acf(ar1fit$residuals)
+# Add AR lag to methane epi data
+colnames(y) <- c("j","j_kgd_ARLag1")
+ar_model_2019 <- cbind(ar_model_2019,y)
+ar_model_2019 <- ar_model_2019 %>% select(-j)
+
+# DOC internal loading 2020: no lag term!
+plot(ar_model_2020$j_kgd,type="b")
+lag1.plot(ar_model_2020$j_kgd,10)
+PlotACF(ar_model_2020$j_kgd)
+acf2(ar_model_2020$j_kgd,na.action=na.pass)
+pacf(ar_model_2020$j_kgd,na.action=na.pass)
+
+# Plot ACF and PACF for each year
+pdf("./Fig_Output/ACF_Plots.pdf", width=12, height=8)
+
+acf2(ar_model_2018$j_kgd,na.action=na.pass)
+acf2(ar_model_2019$j_kgd,na.action=na.pass)
+acf2(ar_model_2020$j_kgd,na.action=na.pass)
+
+dev.off()
+
+# Check for collinearity among variables for each year and standardize to z-scores
+# 2018
+ar_model_2018_2 <- ar_model_2018 %>% 
+  select(-time,-dates_2018,-oxygenation) %>% 
+  scale()
+
+# Keep variables with r<0.80 (pushing the limits here!)
+# Removed oxygenation (keep: temp, DO, anoxia_time)
+chart.Correlation(ar_model_2018_2,histogram=TRUE,method=c("spearman"))
+
+# 2019
+ar_model_2019_2 <- ar_model_2019 %>% 
+  select(-time,-dates_2019) %>% 
+  scale()
+
+# Keep all variables??
+chart.Correlation(ar_model_2019_2,histogram=TRUE,method=c("spearman"))
+
+# 2020
+ar_model_2020_2 <- ar_model_2020 %>% 
+  select(-time,-dates_2020,-anoxia_time_d) %>% 
+  scale()
+
+# Remove anoxia_time (keep: temp, DO, oxygenation)
+chart.Correlation(ar_model_2020_2,histogram=TRUE,method=c("spearman"))
+
+## Generate AR models!
+# 2018
+ar_model_2018_2 <- as.data.frame(ar_model_2018_2)
+model_2018 <- glm(j_kgd ~ vw_DO_mgL + vw_temp_C + anoxia_time_d, data = ar_model_2018_2, family = gaussian,
+                  na.action = 'na.fail')
+
+glm_2018 <- dredge(model_2018,rank="AICc")
+
+select_glm_2018 <- subset(glm_2018,delta<2)
+
+# 2019
+ar_model_2019_2 <- as.data.frame(ar_model_2019_2)
+
+ar_model_2019_2 <- ar_model_2019_2[complete.cases(ar_model_2019_2),]
+
+model_2019 <- glm(j_kgd ~ j_kgd_ARLag1 + vw_DO_mgL + vw_temp_C + anoxia_time_d + oxygenation, data = ar_model_2019_2, 
+                  family = gaussian,
+                  na.action = 'na.fail')
+
+glm_2019 <- dredge(model_2019,rank="AICc")
+
+select_glm_2019 <- subset(glm_2019,delta<2)
+
+# 2020
+ar_model_2020_2 <- as.data.frame(ar_model_2020_2)
+model_2020 <- glm(j_kgd ~ vw_DO_mgL + vw_temp_C + oxygenation, data = ar_model_2020_2, family = gaussian,
+                  na.action = 'na.fail')
+
+glm_2020 <- dredge(model_2020,rank="AICc")
+
+select_glm_2020 <- subset(glm_2020,delta<2)
+
+
+### Let's start thinking about DOM quality - what metrics to use? ----
 # a254? HIX? BIX? Peak C? Peak T? PARAFAC?
 # Load in data
 fdom <- read_csv("./EDI_2021/20210511_OpticalData.csv") %>% 
@@ -1023,6 +1267,18 @@ fdom_hypo <- fdom %>%
 fdom_hypo_sd <- fdom %>% 
   filter(Depth_m == 9.0) %>% 
   group_by(DateTime,Depth_m) %>% 
+  summarize_all(funs(sd(.,na.rm=TRUE))) %>% 
+  rename(time = DateTime,PeakT=T,PeakA=A)
+
+fdom_inflow <- fdom %>% 
+  filter(Site == 100) %>% 
+  group_by(DateTime) %>% 
+  summarize_all(funs(mean(.,na.rm=TRUE))) %>% 
+  rename(time = DateTime,PeakT=T,PeakA=A)
+
+fdom_inflow_sd <- fdom %>% 
+  filter(Site == 100) %>% 
+  group_by(DateTime) %>% 
   summarize_all(funs(sd(.,na.rm=TRUE))) %>% 
   rename(time = DateTime,PeakT=T,PeakA=A)
 
@@ -1045,19 +1301,25 @@ peakt_time <- ggplot()+
   annotate(geom="rect",xmin = as.POSIXct("2019-07-29"), xmax = as.POSIXct("2019-08-05"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Anoxic
   annotate(geom="rect",xmin = as.POSIXct("2019-08-22"),xmax = as.POSIXct("2019-09-11"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Anoxic
   geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed")+ #Turnover FCR
-  geom_line(fdom_hypo,mapping=aes(x=time,y=PeakT))+
-  geom_point(fdom_hypo,mapping=aes(x=time,y=PeakT))+
-  geom_errorbar(fdom_hypo,mapping=aes(x=time,y=PeakT,ymin=PeakT-fdom_hypo_sd$PeakT,ymax=PeakT+fdom_hypo_sd$PeakT))+
+  geom_line(fdom_inflow,mapping=aes(x=time,y=PeakT,color="Inflow"),size=0.8)+
+  geom_point(fdom_inflow,mapping=aes(x=time,y=PeakT,color="Inflow"),size=3)+
+  geom_errorbar(fdom_inflow,mapping=aes(x=time,y=PeakT,ymin=PeakT-fdom_inflow_sd$PeakT,ymax=PeakT+fdom_inflow_sd$PeakT,color="Inflow"))+
+  geom_line(fdom_hypo,mapping=aes(x=time,y=PeakT,color="9 m"),size=0.8)+
+  geom_point(fdom_hypo,mapping=aes(x=time,y=PeakT,color="9 m"),size=3)+
+  geom_errorbar(fdom_hypo,mapping=aes(x=time,y=PeakT,ymin=PeakT-fdom_hypo_sd$PeakT,ymax=PeakT+fdom_hypo_sd$PeakT,color="9 m"))+
+  scale_color_manual(breaks=c('9 m','Inflow'),values=c("#393E41","#F0B670"))+
   xlim(as.POSIXct("2019-06-01"),as.POSIXct("2019-10-31"))+
   ylim(0,0.25)+
   ylab("Peak T (R.F.U.)")+
-  theme_classic(base_size=17)
+  theme_classic(base_size=17)+
+  theme(legend.title=element_blank())
 
 peakt_box <- ggplot(hypo_do_box_2,mapping=aes(x=year,y=PeakT,colour=oxy))+
   geom_boxplot()+
   scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
   ylab("Peak T (R.F.U.)")+
   xlab("Year")+
+  ylim(0,0.25)+
   theme_classic(base_size=17)+
   theme(legend.title=element_blank())
 
@@ -1067,27 +1329,33 @@ peaka_time <- ggplot()+
   annotate(geom="rect",xmin = as.POSIXct("2019-07-29"), xmax = as.POSIXct("2019-08-05"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Anoxic
   annotate(geom="rect",xmin = as.POSIXct("2019-08-22"),xmax = as.POSIXct("2019-09-11"), ymin=-Inf, ymax=Inf,alpha=0.3)+ # Anoxic
   geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed")+ #Turnover FCR
-  geom_line(fdom_hypo,mapping=aes(x=time,y=PeakA))+
-  geom_point(fdom_hypo,mapping=aes(x=time,y=PeakA))+
-  geom_errorbar(fdom_hypo,mapping=aes(x=time,y=PeakA,ymin=PeakA-fdom_hypo_sd$PeakA,ymax=PeakA+fdom_hypo_sd$PeakA))+
+  geom_line(fdom_inflow,mapping=aes(x=time,y=PeakA,color="Inflow"),size=0.8)+
+  geom_point(fdom_inflow,mapping=aes(x=time,y=PeakA,color="Inflow"),size=3)+
+  geom_errorbar(fdom_inflow,mapping=aes(x=time,y=PeakA,ymin=PeakA-fdom_inflow_sd$PeakA,ymax=PeakA+fdom_inflow_sd$PeakA,color="Inflow"))+
+  geom_line(fdom_hypo,mapping=aes(x=time,y=PeakA,color="9 m"),size=0.8)+
+  geom_point(fdom_hypo,mapping=aes(x=time,y=PeakA, color="9 m"),size=3)+
+  geom_errorbar(fdom_hypo,mapping=aes(x=time,y=PeakA,ymin=PeakA-fdom_hypo_sd$PeakA,ymax=PeakA+fdom_hypo_sd$PeakA, color="9 m"))+
+  scale_color_manual(breaks=c('9 m','Inflow'),values=c("#393E41","#F0B670"))+
   ylim(0,0.35)+
   xlim(as.POSIXct("2019-06-01"),as.POSIXct("2019-10-31"))+
   xlab("")+
   ylab("Peak A (R.F.U.)")+
-  theme_classic(base_size=17)
+  theme_classic(base_size=17)+
+  theme(legend.title=element_blank())
 
 peaka_box <- ggplot(hypo_do_box_2,mapping=aes(x=year,y=PeakA,colour=oxy))+
   geom_boxplot()+
   scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
   ylab("Peak A (R.F.U.)")+
   xlab("")+
+  ylim(0,0.35)+
   theme_classic(base_size=17)+
   theme(legend.title=element_blank())
 
-ggarrange(peaka_time,peaka_box,peakt_time,peakt_box,common.legend=TRUE,nrow=2,ncol=2,labels = c("A.", "B.", "C.", "D."),
+ggarrange(peaka_time,peaka_box,peakt_time,peakt_box,nrow=2,ncol=2,labels = c("A.", "B.", "C.", "D."),
           font.label=list(face="plain",size=15))
 
-ggsave("./Fig_Output/Fig6_v2.jpg",width=10,height=8,units="in",dpi=320)
+ggsave("./Fig_Output/Fig6_v3.jpg",width=11,height=7,units="in",dpi=320)
 
 # Try plotting some other parameters as well
 a254_time <- ggplot()+
