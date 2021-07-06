@@ -144,14 +144,14 @@ ggplot()+
   geom_line(inflow_box,mapping=aes(x=time,y=VT_Flow_cms,color="VT"))+
   theme_classic(base_size = 17)
 
-# Select flow_cms
-inflow_box <- inflow_box %>% 
-  select(time,flow_cms)
-
 # Calculate median flow for each year
 year_inflow <- inflow_box %>% 
   group_by(year) %>% 
   summarize_all(funs(median),na.rm=TRUE)
+
+# Select flow_cms
+inflow_box <- inflow_box %>% 
+  select(time,flow_cms)
 
 # Plot all inflow data for SI
 ggplot()+
@@ -199,7 +199,7 @@ flora <- read.csv("./Data/FluoroProbe.csv", header=T) %>%
   filter(Site == 50)
 
 flora_1 <- flora %>% select(DateTime,Depth_m,TotalConc_ugL) %>% 
-  filter(Depth_m>=0 & Depth_m<0.5) %>% 
+  filter(Depth_m>=0 & Depth_m<6.2) %>% 
   group_by(DateTime) %>% summarize_all(funs(mean)) %>% arrange(DateTime) %>% 
   mutate(Depth=0.1)
 
@@ -220,26 +220,42 @@ flora_all <- flora_all %>% select(-c(Depth_m)) %>% mutate(Station = 50) %>% rena
 
 flora_all <- flora_all %>% relocate("Station",.after = "Date") %>% relocate("Depth",.after = "Station")
 
-flora_hypo <- flora_all %>% 
-  filter(Depth == "9") %>% 
-  mutate(flora_doc_mgL = Flora_ugL/1000*0.30) %>% 
-  rename(time = Date)
+# Plot Flora for above the thermocline (> 6.2 m) for each summer stratified period
+flora_summer <- flora_all %>% 
+  filter(Date>as.POSIXct("2018-01-15")&Date<as.POSIXct("2020-12-02")) %>% 
+  filter(Depth == 0.1) %>% 
+  mutate(month = month(Date)) %>% 
+  filter(month %in% c(6,7,8,9,10))
 
-# Combine vw_hypo_doc and flora_doc
-flora_box <- left_join(chem_hypo, flora_hypo, by="time")
-
-flora_box <- flora_box %>% 
-  mutate(perc_flora_doc = flora_doc_mgL/VW_Hypo_DOC_mgL*100)
-
-ggplot(flora_hypo,mapping=aes(x=Date,y=flora_doc_mgL))+
-  geom_line(size=1)+
-  geom_point(size=4)+
+# Plot!
+chla_18 <- ggplot(flora_summer,mapping=aes(x=Date,y=Flora_ugL))+
+  geom_line()+
+  geom_point()+
+  xlim(as.POSIXct("2018-06-01"),as.POSIXct("2018-10-31"))+
+  ylab(expression(paste("Chla ("*mu*"g L"^-1*")")))+
+  xlab("2018")+
   theme_classic(base_size = 15)
 
-ggplot(flora_box,mapping=aes(x=time,y=perc_flora_doc))+
-  geom_line(size=1)+
-  geom_point(size=4)+
+chla_19 <- ggplot(flora_summer,mapping=aes(x=Date,y=Flora_ugL))+
+  geom_line()+
+  geom_point()+
+  xlim(as.POSIXct("2019-06-01"),as.POSIXct("2019-10-31"))+
+  ylab(expression(paste("Chla ("*mu*"g L"^-1*")")))+
+  xlab("2019")+
   theme_classic(base_size = 15)
+
+chla_20 <- ggplot(flora_summer,mapping=aes(x=Date,y=Flora_ugL))+
+  geom_line()+
+  geom_point()+
+  xlim(as.POSIXct("2020-06-01"),as.POSIXct("2020-10-31"))+
+  ylab(expression(paste("Chla ("*mu*"g L"^-1*")")))+
+  xlab("2020")+
+  theme_classic(base_size = 15)
+
+ggarrange(chla_18,chla_19,chla_20,ncol=1,nrow=3,common.legend = TRUE, labels = c("A.", "B.", "C."),
+          font.label=list(face="plain",size=15))
+
+ggsave("./Fig_Output/Epi_Flora.jpg",width=10,height=12,units="in",dpi=320)
 
 ### Calculate 'sink/source' term following Gerling et al. 2016; Kruger et al. 2020
 box_data <- box_data %>% 
@@ -593,6 +609,36 @@ ggplot()+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed")+ #Turnover FCR; operationally defined
   geom_line(box_data_remin,mapping=aes(x=time,y=rh_doc/1e6),size=1)
 
+# Plot discharge for each summer stratified period
+q_18 <- ggplot()+
+  geom_line(inflow_box,mapping=aes(x=time,y=flow_cms),size=0.8)+
+  geom_point(hypo_do_box,mapping=aes(x=time,y=flow_cms),size=3)+
+  xlim(as.POSIXct("2018-06-01"),as.POSIXct("2018-10-31"))+
+  ylab(expression(paste("Discharge (m"^3*"s"^-1*")")))+
+  xlab("2018")+
+  theme_classic(base_size = 15)
+
+q_19 <- ggplot()+
+  geom_line(inflow_box,mapping=aes(x=time,y=flow_cms),size=0.8)+
+  geom_point(hypo_do_box,mapping=aes(x=time,y=flow_cms),size=3)+
+  xlim(as.POSIXct("2019-06-01"),as.POSIXct("2019-10-31"))+
+  ylab(expression(paste("Discharge (m"^3*"s"^-1*")")))+
+  xlab("2019")+
+  theme_classic(base_size = 15)
+
+q_20 <- ggplot()+
+  geom_line(inflow_box,mapping=aes(x=time,y=flow_cms),size=0.8)+
+  geom_point(hypo_do_box,mapping=aes(x=time,y=flow_cms),size=3)+
+  xlim(as.POSIXct("2020-06-01"),as.POSIXct("2020-10-31"))+
+  ylab(expression(paste("Discharge (m"^3*"s"^-1*")")))+
+  xlab("2020")+
+  theme_classic(base_size = 15)
+
+ggarrange(q_18,q_19,q_20,ncol=1,nrow=3,common.legend = TRUE, labels = c("A.", "B.", "C."),
+          font.label=list(face="plain",size=15))
+
+ggsave("./Fig_Output/Discharge_v2.jpg",width=10,height=12,units="in",dpi=320)
+
 # Thinking about time since anoxia as a driver?
 # Calculate linear trend line for each year
 # Remove values when duration of anoxia = 0
@@ -719,7 +765,8 @@ doc_20 <- ggplot()+
 
 # [DOC]
 doc_full <- ggplot(hypo_do_box,mapping=aes(oxy,hypo_vw_mgL,colour=oxy))+
-  geom_boxplot()+
+  geom_boxplot(outlier.shape = NA)+
+  geom_point(position=position_jitterdodge(),alpha=0.5)+
   scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
   ylab(expression(paste("VW DOC (mg L"^-1*")")))+
   xlab("")+
@@ -728,7 +775,8 @@ doc_full <- ggplot(hypo_do_box,mapping=aes(oxy,hypo_vw_mgL,colour=oxy))+
   theme(legend.title=element_blank())
 
 doc <- ggplot(hypo_do_box,mapping=aes(year,hypo_vw_mgL,colour=oxy))+
-  geom_boxplot()+
+  geom_boxplot(outlier.shape = NA)+
+  geom_point(position=position_jitterdodge(),alpha=0.5)+
   scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
   ylab(expression(paste("VW DOC (mg L"^-1*")")))+
   xlab("Year")+
@@ -740,7 +788,7 @@ ggarrange(ggarrange(doc_18,doc_19,doc_20,ncol=3,labels = c("A.","B.","C."),commo
           ggarrange(doc_full,doc,ncol=2,labels = c("D.","E."),common.legend = TRUE,font.label=list(face="plain",size=15)),
           nrow=2)
 
-ggsave("./Fig_Output/Fig3_v4.jpg",width=10,height=8,units="in",dpi=320)
+ggsave("./Fig_Output/Fig3_v5.jpg",width=10,height=8,units="in",dpi=320)
 
 ## Plot VW Hypo DOC vs. DO for each year/summer stratified period
 do_doc <- ggplot(hypo_do_box,mapping=aes(vw_DO_mgL,hypo_vw_mgL,colour=year))+
@@ -768,7 +816,8 @@ ggsave("./Fig_Output/DO_DOC.jpg",width=10,height=5,units="in",dpi=320)
 # Source/sink term
 jterm_full <- ggplot(hypo_do_box,mapping=aes(oxy,j_kgd,colour=oxy))+
   geom_hline(yintercept = 0, linetype="dashed")+
-  geom_boxplot()+
+  geom_boxplot(outlier.shape = NA)+
+  geom_point(position=position_jitterdodge(),alpha=0.5)+
   scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
   ylab(expression(paste("Internal loading (kg C d"^-1*")")))+
   xlab("")+
@@ -778,7 +827,8 @@ jterm_full <- ggplot(hypo_do_box,mapping=aes(oxy,j_kgd,colour=oxy))+
 
 jterm <- ggplot(hypo_do_box,mapping=aes(year,j_kgd,colour=oxy))+
   geom_hline(yintercept = 0, linetype="dashed")+
-  geom_boxplot()+
+  geom_boxplot(outlier.shape = NA)+
+  geom_point(position=position_jitterdodge(),alpha=0.5)+
   scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
   ylab(expression(paste("Internal loading (kg C d"^-1*")")))+
   xlab("Year")+
@@ -789,7 +839,7 @@ jterm <- ggplot(hypo_do_box,mapping=aes(year,j_kgd,colour=oxy))+
 ggarrange(jterm_full ,jterm,ncol=2,nrow=1,common.legend=TRUE,labels = c("A.", "B."),
           font.label=list(face="plain",size=15))
 
-ggsave("./Fig_Output/Fig6_HypoBypass.jpg",width=10,height=5,units="in",dpi=320)
+ggsave("./Fig_Output/Fig6_HypoBypass_v2.jpg",width=10,height=5,units="in",dpi=320)
 
 # Plot temp by year (as box plots?)
 # Remove wonky casts: 2019-04-29, 2019-05-31
@@ -800,7 +850,8 @@ ggsave("./Fig_Output/Fig6_HypoBypass.jpg",width=10,height=5,units="in",dpi=320)
 # Also want to add in timeseries of DO for the full time period
 #ctd_50_hypo <- ctd_50_hypo[!is.na(ctd_50_hypo$DO_mgL),]
 temp_box <- ggplot(hypo_do_box,mapping=aes(year,vw_temp_C,colour=oxy))+
-  geom_boxplot()+
+  geom_boxplot(outlier.shape = NA)+
+  geom_point(position=position_jitterdodge(),alpha=0.5)+
   scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
   ylab(expression(paste("Temp (C"^o*")")))+
   xlab("Year")+
@@ -811,7 +862,8 @@ temp_box <- ggplot(hypo_do_box,mapping=aes(year,vw_temp_C,colour=oxy))+
 # Plot DO as box plots
 do_box <- ggplot(hypo_do_box,mapping=aes(year,vw_DO_mgL,colour=oxy))+
   geom_hline(yintercept = 1, linetype="dashed")+
-  geom_boxplot()+
+  geom_boxplot(outlier.shape = NA)+
+  geom_point(position=position_jitterdodge(),alpha=0.5)+
   scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
   ylab(expression(paste("DO (mg L"^-1*")")))+
   xlab("Year")+
@@ -914,14 +966,15 @@ ggarrange(ggarrange(temp_18,temp_19,temp_20,do_18,do_19,do_20,nrow=2,ncol=3,labe
           ggarrange(temp_box,do_box,ncol=3,common.legend=TRUE,labels=c("G.","H."),font.label=list(face="plain",size=15)),
           nrow=2,heights=c(2,1))
   
-ggsave("./Fig_OutPut/DO_temp_Year_v4.jpg",width=12,height=11,units="in",dpi=320)
+ggsave("./Fig_OutPut/DO_temp_Year_v5.jpg",width=12,height=11,units="in",dpi=320)
 
 # Plot %DO sat for SI
 hypo_do_box$vw_pSat_DO <- as.numeric(hypo_do_box$vw_pSat_DO)
 ctd_50_hypo$vw_pSat_DO <- as.numeric(ctd_50_hypo$vw_pSat_DO)
 
 dosat_box <- ggplot(hypo_do_box,mapping=aes(year,vw_pSat_DO,colour=oxy))+
-  geom_boxplot()+
+  geom_boxplot(outlier.shape = NA)+
+  geom_point(position=position_jitterdodge(),alpha=0.5)+
   scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
   ylab("DO % Saturation")+
   xlab("Year")+
@@ -972,18 +1025,19 @@ dosat_20 <- ggplot(hypo_do_box,mapping=aes(x=time,y=vw_pSat_DO))+
 ggarrange(dosat_18,dosat_19,dosat_20,dosat_box,nrow=2,ncol=2,
           labels=c("A.","B.","C.","D."),font.label = list(face="plain",size=15))
 
-ggsave("./Fig_OutPut/DOSat_v2.jpg",width=10,height=9,units="in",dpi=320)
+ggsave("./Fig_OutPut/DOSat_v3.jpg",width=10,height=9,units="in",dpi=320)
 
 # Calculate median DO for each year/oxygenation period
 do_med <- hypo_do_box %>% 
-  #select(-year,-oxy) %>% 
-  group_by(oxy,year) %>% 
+  select(-oxy) %>% 
+  group_by(year) %>% 
   summarize_all(funs(min),na.rm=TRUE)
 
 #Plot Inflow and dM/dt by year
 dm_dt <- ggplot(hypo_do_box,mapping=aes(year,dMdt_mgs*60*60*24/1000/1000,colour=oxy))+
   geom_hline(yintercept = 0, linetype="dashed")+
-  geom_boxplot()+
+  geom_boxplot(outlier.shape = NA)+
+  geom_point(position=position_jitterdodge(),alpha=0.5)+
   scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
   ylab(expression(paste("dM/dt (kg C d"^-1*")")))+
   xlab("Year")+
@@ -992,7 +1046,8 @@ dm_dt <- ggplot(hypo_do_box,mapping=aes(year,dMdt_mgs*60*60*24/1000/1000,colour=
 
 inflow <- ggplot(hypo_do_box,mapping=aes(year,flow_cms*DOC_mgL_100*1000*60*60*24/1000/1000*0.26,colour=oxy))+
   geom_hline(yintercept = 0, linetype="dashed")+
-  geom_boxplot()+
+  geom_boxplot(outlier.shape = NA)+
+  geom_point(position=position_jitterdodge(),alpha=0.5)+
   scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
   ylab(expression(paste("Inflow (kg C d"^-1*")")))+
   xlab("")+
@@ -1001,7 +1056,8 @@ inflow <- ggplot(hypo_do_box,mapping=aes(year,flow_cms*DOC_mgL_100*1000*60*60*24
 
 outflow <- ggplot(hypo_do_box,mapping=aes(year,flow_cms*DOC_mgL_therm*1000*60*60*24/1000/1000*0.26,colour=oxy))+
   geom_hline(yintercept = 0, linetype="dashed")+
-  geom_boxplot()+
+  geom_boxplot(outlier.shape = NA)+
+  geom_point(position=position_jitterdodge(),alpha=0.5)+
   scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
   ylab(expression(paste("Outflow (kg C d"^-1*")")))+
   xlab("")+
@@ -1010,7 +1066,8 @@ outflow <- ggplot(hypo_do_box,mapping=aes(year,flow_cms*DOC_mgL_therm*1000*60*60
 
 jterm <- ggplot(hypo_do_box,mapping=aes(year,j_kgd,colour=oxy))+
   geom_hline(yintercept = 0, linetype="dashed")+
-  geom_boxplot()+
+  geom_boxplot(outlier.shape = NA)+
+  geom_point(position=position_jitterdodge(),alpha=0.5)+
   scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
   ylab(expression(paste("Internal loading (kg C d"^-1*")")))+
   xlab("Year")+
@@ -1021,7 +1078,7 @@ jterm <- ggplot(hypo_do_box,mapping=aes(year,j_kgd,colour=oxy))+
 ggarrange(inflow,outflow,dm_dt,jterm,nrow=2,ncol=2,common.legend = TRUE,labels = c("A.", "B.", "C.", "D."),
           font.label=list(face="plain",size=15))
 
-ggsave("./Fig_Output/dmtodt_inflow_hypobypass_v2.jpg",width=10,height=8,units="in",dpi=320)
+ggsave("./Fig_Output/dmtodt_inflow_hypobypass_v3.jpg",width=10,height=8,units="in",dpi=320)
 
 ### Generate AR model for DOC internal loading ----
 # Including: AR term, DO, Temp, Anoxia Duration, and Oxygenation
@@ -1315,7 +1372,8 @@ peakt_time <- ggplot()+
   theme(legend.title=element_blank())
 
 peakt_box <- ggplot(hypo_do_box_2,mapping=aes(x=year,y=PeakT,colour=oxy))+
-  geom_boxplot()+
+  geom_boxplot(outlier.shape = NA)+
+  geom_point(position=position_jitterdodge(),alpha=0.5)+
   scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
   ylab("Peak T (R.F.U.)")+
   xlab("Year")+
@@ -1344,7 +1402,8 @@ peaka_time <- ggplot()+
   theme(legend.title=element_blank())
 
 peaka_box <- ggplot(hypo_do_box_2,mapping=aes(x=year,y=PeakA,colour=oxy))+
-  geom_boxplot()+
+  geom_boxplot(outlier.shape = NA)+
+  geom_point(position=position_jitterdodge(),alpha=0.5)+
   scale_color_manual(breaks=c('Anoxic','Oxic'),values=c("#CD5C5C","#598BAF"))+
   ylab("Peak A (R.F.U.)")+
   xlab("")+
@@ -1355,7 +1414,7 @@ peaka_box <- ggplot(hypo_do_box_2,mapping=aes(x=year,y=PeakA,colour=oxy))+
 ggarrange(peaka_time,peaka_box,peakt_time,peakt_box,nrow=2,ncol=2,labels = c("A.", "B.", "C.", "D."),
           font.label=list(face="plain",size=15))
 
-ggsave("./Fig_Output/Fig6_v3.jpg",width=11,height=7,units="in",dpi=320)
+ggsave("./Fig_Output/Fig6_v4.jpg",width=11,height=7,units="in",dpi=320)
 
 # Try plotting some other parameters as well
 a254_time <- ggplot()+
