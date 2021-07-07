@@ -1029,9 +1029,10 @@ ggsave("./Fig_OutPut/DOSat_v3.jpg",width=10,height=9,units="in",dpi=320)
 
 # Calculate median DO for each year/oxygenation period
 do_med <- hypo_do_box %>% 
-  select(-oxy) %>% 
-  group_by(year) %>% 
-  summarize_all(funs(min),na.rm=TRUE)
+  #select(-oxy) %>% 
+  group_by(oxy,year) %>% 
+  summarize_all(funs(max),na.rm=TRUE) %>% 
+  select(oxy,year,j_kgd)
 
 #Plot Inflow and dM/dt by year
 dm_dt <- ggplot(hypo_do_box,mapping=aes(year,dMdt_mgs*60*60*24/1000/1000,colour=oxy))+
