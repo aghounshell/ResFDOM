@@ -199,7 +199,7 @@ flora <- read.csv("./Data/FluoroProbe.csv", header=T) %>%
   filter(Site == 50)
 
 flora_1 <- flora %>% select(DateTime,Depth_m,TotalConc_ugL) %>% 
-  filter(Depth_m>=0 & Depth_m<6.2) %>% 
+  filter(Depth_m>=0 & Depth_m<9.0) %>% 
   group_by(DateTime) %>% summarize_all(funs(mean)) %>% arrange(DateTime) %>% 
   mutate(Depth=0.1)
 
@@ -219,6 +219,10 @@ flora_all <- flora_all %>% select(-c(Depth_m)) %>% mutate(Station = 50) %>% rena
   arrange(Date,Station,Depth)
 
 flora_all <- flora_all %>% relocate("Station",.after = "Date") %>% relocate("Depth",.after = "Station")
+
+flora_wc <- flora_1 %>% 
+  select(DateTime,TotalConc_ugL) %>% 
+  rename(time = DateTime)
 
 # Plot Flora for above the thermocline (> 6.2 m) for each summer stratified period
 flora_summer <- flora_all %>% 
@@ -1085,10 +1089,13 @@ ggsave("./Fig_Output/dmtodt_inflow_hypobypass_v3.jpg",width=10,height=8,units="i
 # Including: AR term, DO, Temp, Anoxia Duration, and Oxygenation
 # Following Howard et al. 2021; AGU GHG presentation
 
+# First add in Flora data (full water column mean)
+hypo_do_box <- left_join(hypo_do_box,flora_wc,by="time")
+
 # Select data need for AR Model: 2018
 ar_model_2018 <- hypo_do_box %>% 
   filter(year==2018) %>% 
-  select(time,vw_temp_C,vw_DO_mgL,j_kgd)
+  select(time,vw_temp_C,vw_DO_mgL,j_kgd,flow_cms,TotalConc_ugL)
 
 # Create list of each Monday from June 2018 to end of October 2018
 mon_2018 <- seq(as.Date("2018-06-04"),as.Date("2018-10-31"),"7 days")
@@ -1118,6 +1125,8 @@ ar_model_2018 <- ar_model_2018 %>%
   mutate(vw_temp_C = na.fill(na.approx(vw_temp_C,na.rm=FALSE),"extend")) %>% 
   mutate(vw_DO_mgL = na.fill(na.approx(vw_DO_mgL,na.rm=FALSE),"extend")) %>% 
   mutate(j_kgd = na.fill(na.approx(j_kgd,na.rm=FALSE),"extend")) %>% 
+  mutate(flow_cms = na.fill(na.approx(flow_cms,na.rm=FALSE),"extend")) %>% 
+  mutate(TotalConc_ugL = na.fill(na.approx(TotalConc_ugL,na.rm=FALSE),"extend")) %>% 
   group_by(time) %>% 
   summarise_all(mean,na.rm=TRUE)
 
@@ -1128,7 +1137,7 @@ ar_model_2018 <- ar_model_2018[!is.na(ar_model_2018$dates_2018),]
 # Select data need for AR Model: 2019
 ar_model_2019 <- hypo_do_box %>% 
   filter(year==2019) %>% 
-  select(time,vw_temp_C,vw_DO_mgL,j_kgd)
+  select(time,vw_temp_C,vw_DO_mgL,j_kgd,flow_cms,TotalConc_ugL)
 
 # Create list of each Monday from June 2019 to end of October 2019
 mon_2019 <- seq(as.Date("2019-06-03"),as.Date("2019-10-31"),"7 days")
@@ -1158,6 +1167,8 @@ ar_model_2019 <- ar_model_2019 %>%
   mutate(vw_temp_C = na.fill(na.approx(vw_temp_C,na.rm=FALSE),"extend")) %>% 
   mutate(vw_DO_mgL = na.fill(na.approx(vw_DO_mgL,na.rm=FALSE),"extend")) %>% 
   mutate(j_kgd = na.fill(na.approx(j_kgd,na.rm=FALSE),"extend"))%>% 
+  mutate(flow_cms = na.fill(na.approx(flow_cms,na.rm=FALSE),"extend")) %>% 
+  mutate(TotalConc_ugL = na.fill(na.approx(TotalConc_ugL,na.rm=FALSE),"extend")) %>% 
   group_by(time) %>% 
   summarise_all(mean,na.rm=TRUE)
 
@@ -1168,7 +1179,7 @@ ar_model_2019 <- ar_model_2019[!is.na(ar_model_2019$dates_2019),]
 # Select data need for AR Model: 2020
 ar_model_2020 <- hypo_do_box %>% 
   filter(year==2020) %>% 
-  select(time,vw_temp_C,vw_DO_mgL,j_kgd)
+  select(time,vw_temp_C,vw_DO_mgL,j_kgd,flow_cms,TotalConc_ugL)
 
 # Create list of each Monday from June 2020 to end of October 2020
 mon_2020 <- seq(as.Date("2020-06-01"),as.Date("2020-10-31"),"7 days")
@@ -1198,6 +1209,8 @@ ar_model_2020 <- ar_model_2020 %>%
   mutate(vw_temp_C = na.fill(na.approx(vw_temp_C,na.rm=FALSE),"extend")) %>% 
   mutate(vw_DO_mgL = na.fill(na.approx(vw_DO_mgL,na.rm=FALSE),"extend")) %>% 
   mutate(j_kgd = na.fill(na.approx(j_kgd,na.rm=FALSE),"extend"))%>% 
+  mutate(flow_cms = na.fill(na.approx(flow_cms,na.rm=FALSE),"extend")) %>% 
+  mutate(TotalConc_ugL = na.fill(na.approx(TotalConc_ugL,na.rm=FALSE),"extend")) %>% 
   group_by(time) %>% 
   summarise_all(mean,na.rm=TRUE)
 
@@ -1252,7 +1265,7 @@ dev.off()
 # Check for collinearity among variables for each year and standardize to z-scores
 # 2018
 ar_model_2018_2 <- ar_model_2018 %>% 
-  select(-time,-dates_2018,-oxygenation) %>% 
+  select(-time,-dates_2018,-oxygenation,-flow_cms,-TotalConc_ugL) %>% 
   scale()
 
 # Keep variables with r<0.80 (pushing the limits here!)
@@ -1261,7 +1274,7 @@ chart.Correlation(ar_model_2018_2,histogram=TRUE,method=c("spearman"))
 
 # 2019
 ar_model_2019_2 <- ar_model_2019 %>% 
-  select(-time,-dates_2019) %>% 
+  select(-time,-dates_2019,-flow_cms,-TotalConc_ugL) %>% 
   scale()
 
 # Keep all variables??
@@ -1269,7 +1282,7 @@ chart.Correlation(ar_model_2019_2,histogram=TRUE,method=c("spearman"))
 
 # 2020
 ar_model_2020_2 <- ar_model_2020 %>% 
-  select(-time,-dates_2020,-anoxia_time_d) %>% 
+  select(-time,-dates_2020,-flow_cms,-TotalConc_ugL,-anoxia_time_d) %>% 
   scale()
 
 # Remove anoxia_time (keep: temp, DO, oxygenation)
