@@ -643,6 +643,22 @@ ggarrange(q_18,q_19,q_20,ncol=1,nrow=3,common.legend = TRUE, labels = c("A.", "B
 
 ggsave("./Fig_Output/Discharge_v2.jpg",width=10,height=12,units="in",dpi=320)
 
+# Plot discharge vs. DOC concentration at the weir - how representative are we of different flow events?
+# Determine linear relationships with each year
+fits <- lmList(DOC_mgL_100 ~ flow_cms | year, data = hypo_do_box)
+
+ggplot(hypo_do_box,mapping=aes(x=flow_cms,y=DOC_mgL_100,color=year))+
+  geom_vline(xintercept = 0.18,linetype="dashed")+
+  geom_point()+
+  geom_smooth(method="lm")+
+  xlab(expression(paste("Discharge (m"^3*"s"^-1*")")))+
+  ylab(expression(paste("DOC (mg L"^-1*")")))+
+  scale_color_manual(breaks=c('2018','2019','2020'),values=c("#7EBDC2","#393E41","#F0B670"))+
+  theme_classic(base_size = 17)+
+  theme(legend.title=element_blank())
+
+ggsave("./Fig_Output/Q_DOC.jpg",width=6,height=4,units="in",dpi=320)
+
 # Thinking about time since anoxia as a driver?
 # Calculate linear trend line for each year
 # Remove values when duration of anoxia = 0
