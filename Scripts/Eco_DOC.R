@@ -113,14 +113,10 @@ inflow_daily <- inflow %>%
   filter(DateTime >= as.POSIXct("2015-01-01"))
 
 ### Load in Flora data for Chla ----
-
-# !!!!!NEED TO UPDATE TO CALCULATE VW WEIGHTED AVERAGES!!!!! #
-
 # Load from EDI: downloaded on 10 June 2021
 #inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/272/5/a24f4dbe9f0d856688f257547069d0a3" 
 #infile1 <- paste0(getwd(),"/Data/FluoroProbe.csv")
 #download.file(inUrl1,infile1,method="curl")
-
 flora <- read.csv("./Data/FluoroProbe.csv", header=T) %>%
   select(Reservoir:Depth_m,TotalConc_ugL) %>%
   dplyr::filter(Reservoir=="FCR") %>% 
@@ -128,15 +124,50 @@ flora <- read.csv("./Data/FluoroProbe.csv", header=T) %>%
   filter(DateTime > as.POSIXct("2015-01-01")) %>% 
   filter(Site == 50)
 
-flora_epi <- flora %>% select(DateTime,Depth_m,TotalConc_ugL) %>% 
-  filter(Depth_m>=0 & Depth_m<4.0) %>% 
-  group_by(DateTime) %>% summarize_all(funs(mean)) %>% arrange(DateTime) %>% 
-  mutate(Depth = "Epi")
+### Create a dataframe for Flora parameters at each sampling depth
+depths<- c(0.1, 1.6, 3.8, 5.0, 6.2, 8.0, 9.0) 
 
-flora_hypo <- flora %>% select(DateTime,Depth_m,TotalConc_ugL) %>% 
-  filter(Depth_m>=4.0 & Depth_m<10) %>% 
-  group_by(DateTime) %>% summarize_all(funs(mean)) %>% arrange(DateTime) %>% 
-  mutate(Depth="Hypo")
+#Initialize an empty matrix with the correct number of rows and columns 
+temp<-matrix(data=NA, ncol=ncol(flora), nrow=length(depths)) #of cols in CTD data, and then nrows = # of layers produced
+super_final<-matrix(data=NA, ncol=1, nrow=0)
+dates<-unique(flora$DateTime)
+
+#create a function to chose the matching depth closest to our focal depths
+closest<-function(xv, sv){
+  xv[which.min(abs(xv-sv))]}
+
+library(plyr) #only use plyr for this for loop, then detach!
+
+#For loop to retrieve CTD depth with the closest function and fill in matrix
+for (i in 1:length(dates)){
+  j=dates[i]
+  q <- subset(flora, flora$DateTime == j)
+  
+  layer1 <- q[q[, "Depth_m"] == closest(q$Depth_m,0.1),][1,]
+  layer2<- q[q[, "Depth_m"] == closest(q$Depth_m,1.6),][1,]
+  layer3<- q[q[, "Depth_m"] == closest(q$Depth_m,3.8),][1,]
+  layer4<- q[q[, "Depth_m"] == closest(q$Depth_m,5.0),][1,]
+  layer5<- q[q[, "Depth_m"] == closest(q$Depth_m,6.2),][1,]
+  layer6<- q[q[, "Depth_m"] == closest(q$Depth_m,8.0),][1,]
+  layer7<- q[q[, "Depth_m"] == closest(q$Depth_m,9.0),][1,]
+  
+  temp<-rbind(layer1,layer2,layer3,layer4,layer5,layer6,layer7)
+  temp[,((ncol(flora))+1)] <- depths
+  colnames(temp)[((ncol(flora))+1)]<-"new_depth"
+  final <- temp
+  final <- data.frame(final)
+  super_final <- rbind.fill.matrix(super_final,final)
+}
+
+detach(package:plyr)#to prevent issues with dplyr vs plyr not playing well together!
+
+#now need to clean up the data frame and make all factors numeric
+flora_depths <- as.data.frame(super_final) %>%
+  select(-c(1,Depth_m)) %>%
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST")))
+
+### !!! NEED TO CALCULATE VW EPI AND HYPO FLORA !!! ###
+
 
 ### Load in CTD and YSI data ----
 #need to import CTD observations from EDI
