@@ -166,8 +166,40 @@ flora_depths <- as.data.frame(super_final) %>%
   select(-c(1,Depth_m)) %>%
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST")))
 
-### !!! NEED TO CALCULATE VW EPI AND HYPO FLORA !!! ###
+flora_depths$TotalConc_ugL <- as.numeric(flora_depths$TotalConc_ugL)
+flora_depths$new_depth <- as.numeric(flora_depths$new_depth)
 
+# Separate and calculate VW [DOC] for Epi and Hypo: from 2016 to 2020
+flora_epi <- flora_depths %>% 
+  select(DateTime,new_depth,TotalConc_ugL) %>% 
+  drop_na() %>% 
+  filter(new_depth %in% c(0.1,1.6,3.8)) %>% 
+  pivot_wider(names_from = new_depth, values_from = TotalConc_ugL, values_fil = NA, values_fn = mean, names_prefix = "Chla_") %>% 
+  mutate(Chla_0.1 = na.fill(na.approx(Chla_0.1,na.rm=FALSE),"extend")) %>% 
+  mutate(Chla_1.6 = na.fill(na.approx(Chla_1.6,na.rm=FALSE),"extend")) %>% 
+  mutate(Chla_3.8 = na.fill(na.approx(Chla_3.8,na.rm=FALSE),"extend")) %>% 
+  mutate(VW_Epi_Chla_mgL = ((Chla_0.1*1.38*10^5)+(Chla_1.6*8.91*10^4)+(Chla_3.8*5.96*10^4))/((1.38*10^5)+(8.91*10^4)+(5.96*10^4))) %>% 
+  mutate(month = month(DateTime))
+
+flora_hypo <- flora_depths %>% 
+  select(DateTime,new_depth,TotalConc_ugL) %>% 
+  drop_na() %>% 
+  filter(new_depth %in% c(5,6.2,8,9)) %>% 
+  pivot_wider(names_from = new_depth, values_from = TotalConc_ugL, values_fil = NA, values_fn = mean, names_prefix = "Chla_") %>% 
+  mutate(Chla_5 = na.fill(na.approx(Chla_5,na.rm=FALSE),"extend")) %>% 
+  mutate(Chla_6.2 = na.fill(na.approx(Chla_6.2,na.rm=FALSE),"extend")) %>%   
+  mutate(Chla_8 = na.fill(na.approx(Chla_8,na.rm=FALSE),"extend")) %>% 
+  mutate(Chla_9 = na.fill(na.approx(Chla_9,na.rm=FALSE),"extend")) %>% 
+  mutate(VW_Hypo_Chla_mgL = ((Chla_5*4.02*10^4)+(Chla_6.2*1.40*10^4)+(Chla_8*1.40*10^4)+(Chla_9*1.95*10^3))/((4.02*10^4)+(1.40*10^4)+(1.40*10^4)+(1.95*10^3))) %>% 
+  mutate(month = month(DateTime))
+
+# Plot VW Epi and VW Hypo: WILL NEED TO UPDATE FOR MS
+ggplot()+
+  geom_point(flora_epi,mapping=aes(x=DateTime,y=VW_Epi_Chla_mgL,color="VW Epi"))+
+  geom_line(flora_epi,mapping=aes(x=DateTime,y=VW_Epi_Chla_mgL,color="VW Epi"))+
+  geom_point(flora_hypo,mapping=aes(x=DateTime,y=VW_Hypo_Chla_mgL,color="VW Hypo"))+
+  geom_line(flora_hypo,mapping=aes(x=DateTime,y=VW_Hypo_Chla_mgL,color="VW Hypo"))+
+  theme_classic(base_size=15)
 
 ### Load in CTD and YSI data ----
 #need to import CTD observations from EDI
@@ -342,3 +374,127 @@ ctd_50_hypo <- ctd_50_hypo %>%
   mutate(VW_DO_mgL = ((DO_mgL_5*4.02*10^4)+(DO_mgL_6.2*1.40*10^4)+(DO_mgL_8*1.40*10^4)+(DO_mgL_9*1.95*10^3))/((4.02*10^4)+(1.40*10^4)+(1.40*10^4)+(1.95*10^3))) %>% 
   mutate(VW_pSat_DO = ((calc_DO_pSat_5*4.02*10^4)+(calc_DO_pSat_6.2*1.40*10^4)+(calc_DO_pSat_8*1.40*10^4)+(calc_DO_pSat_9*1.95*10^3))/((4.02*10^4)+(1.40*10^4)+(1.40*10^4)+(1.95*10^3))) %>% 
   mutate(month = month(time))
+
+# Plot for now: VW Temp
+ggplot()+
+  geom_point(ctd_50_epi,mapping=aes(x=time,y=VW_temp_c,color="VW Epi"))+
+  geom_line(ctd_50_epi,mapping=aes(x=time,y=VW_temp_c,color="VW Epi"))+
+  geom_point(ctd_50_hypo,mapping=aes(x=time,y=VW_temp_c,color="VW Hypo"))+
+  geom_line(ctd_50_hypo,mapping=aes(x=time,y=VW_temp_c,color="VW Hypo"))+
+  theme_classic(base_size=15)
+
+# Plot VW DO_Sat
+ggplot()+
+  geom_point(ctd_50_epi,mapping=aes(x=time,y=VW_pSat_DO,color="VW Epi"))+
+  geom_line(ctd_50_epi,mapping=aes(x=time,y=VW_pSat_DO,color="VW Epi"))+
+  geom_point(ctd_50_hypo,mapping=aes(x=time,y=VW_pSat_DO,color="VW Hypo"))+
+  geom_line(ctd_50_hypo,mapping=aes(x=time,y=VW_pSat_DO,color="VW Hypo"))+
+  theme_classic(base_size=15)
+
+# DO_mgL
+ggplot()+
+  geom_point(ctd_50_epi,mapping=aes(x=time,y=VW_DO_mgL,color="VW Epi"))+
+  geom_line(ctd_50_epi,mapping=aes(x=time,y=VW_DO_mgL,color="VW Epi"))+
+  geom_point(ctd_50_hypo,mapping=aes(x=time,y=VW_DO_mgL,color="VW Hypo"))+
+  geom_line(ctd_50_hypo,mapping=aes(x=time,y=VW_DO_mgL,color="VW Hypo"))+
+  theme_classic(base_size=15)
+
+### Calculate DOC processing for Epi and Hypo -----
+# First, separate by depth and convert to mass
+doc_box <- chem_50 %>% 
+  select(DateTime,Depth_m,DOC_mgL) %>% 
+  pivot_wider(names_from = Depth_m, values_from = DOC_mgL, values_fil = NA, values_fn = mean, names_prefix = "DOC_") %>% 
+  mutate(DOC_0.1 = na.fill(na.approx(DOC_0.1,na.rm=FALSE),"extend")) %>% 
+  mutate(DOC_1.6 = na.fill(na.approx(DOC_1.6,na.rm=FALSE),"extend")) %>% 
+  mutate(DOC_3.8 = na.fill(na.approx(DOC_3.8,na.rm=FALSE),"extend")) %>% 
+  mutate(DOC_5 = na.fill(na.approx(DOC_5,na.rm=FALSE),"extend")) %>% 
+  mutate(DOC_6.2 = na.fill(na.approx(DOC_6.2,na.rm=FALSE),"extend")) %>%   
+  mutate(DOC_8 = na.fill(na.approx(DOC_8,na.rm=FALSE),"extend")) %>% 
+  mutate(DOC_9 = na.fill(na.approx(DOC_9,na.rm=FALSE),"extend"))
+
+doc_box_full <- as.data.frame(seq(as.POSIXct("2015-01-01",tz="EST"),as.POSIXct("2020-12-31",tz="EST"),by="days"))
+doc_box_full <- doc_box_full %>% 
+  rename(DateTime = `seq(as.POSIXct("2015-01-01", tz = "EST"), as.POSIXct("2020-12-31", tz = "EST"), by = "days")`)
+doc_box_full <- left_join(doc_box_full,doc_box,by="DateTime")
+
+doc_box_full <- doc_box_full %>% 
+  mutate(DOC_0.1 = na.fill(na.approx(DOC_0.1,na.rm=FALSE),"extend")) %>% 
+  mutate(DOC_1.6 = na.fill(na.approx(DOC_1.6,na.rm=FALSE),"extend")) %>% 
+  mutate(DOC_3.8 = na.fill(na.approx(DOC_3.8,na.rm=FALSE),"extend")) %>% 
+  mutate(DOC_5 = na.fill(na.approx(DOC_5,na.rm=FALSE),"extend")) %>% 
+  mutate(DOC_6.2 = na.fill(na.approx(DOC_6.2,na.rm=FALSE),"extend")) %>%   
+  mutate(DOC_8 = na.fill(na.approx(DOC_8,na.rm=FALSE),"extend")) %>% 
+  mutate(DOC_9 = na.fill(na.approx(DOC_9,na.rm=FALSE),"extend"))
+
+doc_box_full <- doc_box_full %>% 
+  mutate(DOC_0.1_g = DOC_0.1*1.38*10^5,
+         DOC_1.6_g = DOC_1.6*8.91*10^4,
+         DOC_3.8_g = DOC_3.8*5.96*10^4,
+         DOC_5_g = DOC_5*4.02*10^4,
+         DOC_6.2_g = DOC_6.2*1.40*10^4,
+         DOC_8_g = DOC_8*1.40*10^4,
+         DOC_9_g = DOC_9*1.95*10^3)
+
+# Second, extrapolate inflow concentrations and calculate daily mass
+doc_inflow_full <- as.data.frame(seq(as.POSIXct("2015-01-01",tz="EST"),as.POSIXct("2020-12-31",tz="EST"),by="days"))
+doc_inflow_full <- doc_inflow_full %>% 
+  rename(DateTime = `seq(as.POSIXct("2015-01-01", tz = "EST"), as.POSIXct("2020-12-31", tz = "EST"), by = "days")`)
+
+doc_inflow_full <- left_join(doc_inflow_full,inflow_daily,by="DateTime") %>% 
+  select(DateTime,WVWA_Flow_cms,VT_Flow_cms) 
+
+doc_inflow_full <- doc_inflow_full %>%  
+  mutate(full_flow_cms = ifelse(WVWA_Flow_cms == "NaN", VT_Flow_cms, WVWA_Flow_cms))
+
+doc_inflow_full <- left_join(doc_inflow_full,chem_100,by="DateTime") %>% 
+  select(DateTime,full_flow_cms,DOC_mgL)
+
+doc_inflow_full <- doc_inflow_full %>% 
+  mutate(DOC_mgL = na.fill(na.approx(DOC_mgL,na.rm=FALSE),"extend"),
+         full_flow_cms = na.fill(na.approx(full_flow_cms,na.rm=FALSE),"extend")) %>% 
+  mutate(DOC_100_g = DOC_mgL*full_flow_cms*60*60*24)
+
+# DOC Box data
+doc_box_data <- left_join(doc_box_full, doc_inflow_full,by="DateTime")
+
+# Add in thermocline depth information
+doc_box_data <- left_join(doc_box_data,la_results,by="DateTime") %>% 
+  select(-St,-thermD,-N2,-SN2)
+
+doc_box_data <- doc_box_data %>% 
+  mutate(SthermD = na.fill(na.approx(SthermD, na.rm=FALSE),"extend"))
+
+# Create vector of different volumes for each depth
+vol_depths <- data.frame("Depth" = c(0.1,1.6,3.8,5.0,6.2,8.0,9.0), "Vol_m3" = c(1.38*10^5,8.91*10^4,5.96*10^4,4.02*10^4,1.40*10^4,1.40*10^4,1.95*10^3))
+
+### Thinking about how to designate Epi vs. Hypo what parameters depend on this:
+# Mass of Epi vs. Mass of Hypo
+# 'Outflow' to Epi from Hypo: concentration * outflow * scaled outflow = mass/day
+
+# First, determine outflow concentration
+doc_box_data <- doc_box_data %>% 
+  mutate(SthermD = round(SthermD,digits=1)) %>% 
+  mutate(epi_bottomg_depth_m = ifelse(SthermD > 9.0, 9.0,
+                                       ifelse(SthermD > 8.0, 8.0,
+                                              ifelse(SthermD > 6.2, 6.2,
+                                                     ifelse(SthermD > 5.0, 5.0,
+                                                            ifelse(SthermD > 3.8, 3.8,
+                                                                   ifelse(SthermD >1.6, 1.6,
+                                                                          ifelse(SthermD > 0.1, 0.1,NA)))))))) %>% 
+  mutate(hypo_top_depth_m = ifelse(SthermD < 0.1, 0.1,
+                                   ifelse(SthermD < 1.6, 1.6,
+                                          ifelse(SthermD < 3.8, 3.8,
+                                                 ifelse(SthermD < 5.0, 5.0,
+                                                        ifelse(SthermD < 6.2, 6.2,
+                                                               ifelse(SthermD < 8.0, 8.0,
+                                                                      ifelse(SthermD < 9.0, 9.0, NA))))))))
+
+# Calculate Epi and Hypo outflow mass
+doc_box_data <- doc_box_data %>% 
+  mutate(Epi_outflow_g = DOC_0.1*full_flow_cms*60*60*24,
+         Hypo_outflow_g = ifelse(hypo_top_depth_m==0.1,DOC_0.1*full_flow_cms*60*60*24,
+                                 ifelse(hypo_top_depth_m==1.6,DOC_1.6*full_flow_cms*60*60*24,
+                                        ifelse(hypo_top_depth_m==3.8,DOC_3.8*full_flow_cms*60*60*24,
+                                               ifelse(hypo_top_depth_m==5.0,DOC_5*full_flow_cms*60*60*24,
+                                                      ifelse(hypo_top_depth_m==6.2,DOC_6.2*full_flow_cms*60*60*24,
+                                                             ifelse(hypo_top_depth_m==8.0,DOC_8*full_flow_cms*60*60*24,0)))))))
