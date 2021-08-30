@@ -35,6 +35,22 @@ thermo_month <- la_results_strat %>%
   group_by(month) %>% 
   summarise_all(median,na.rm=TRUE)
 
+### Load in Inflow data ----
+# Weir discharge/temperature
+#inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/202/7/f5fa5de4b49bae8373f6e7c1773b026e" 
+#infile1 <- paste0(getwd(),"/Data/inflow_for_EDI_2013_10Jan2021.csv")
+#download.file(inUrl1,infile1,method="curl")
+
+inflow <- read.csv("./Data/inflow_for_EDI_2013_10Jan2021.csv",header=T) %>% 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) %>% 
+  select(Reservoir:VT_Temp_C)
+
+# Average inflow by day
+inflow_daily <- inflow %>% 
+  group_by(DateTime) %>% 
+  summarize_all(funs(mean(.,na.rm=TRUE))) %>% 
+  filter(DateTime >= as.POSIXct("2015-01-01"))
+
 ### Load DOC data ----
 # Updated: 19 Apr 2021 with 2020 data!
 #inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/199/8/da174082a3d924e989d3151924f9ef98" 
@@ -56,61 +72,219 @@ chem_50 <- chem %>%
   mutate(year = year(DateTime)) %>% 
   filter(DOC_mgL <= 15)
 
-# Plot to see what type of data we have
+# Create vector of different volumes for each depth: based on L&O-L 2020 paper
+vol_depths <- data.frame("Depth" = c(0.1,1.6,3.8,5.0,6.2,8.0,9.0), "Vol_m3" = c(1.38*10^5,8.91*10^4,5.96*10^4,4.02*10^4,1.401*10^4,1.40*10^4,1.95*10^3))
 
-chem_50 %>% 
-  filter(year == 2020) %>% 
-  ggplot(mapping=aes(x=DateTime,y=DOC_mgL,color=as.factor(Depth_m)))+
-  geom_point()+
-  geom_line()
-
-# Separate and calculate VW [DOC] for Epi and Hypo: from 2016 to 2020
-doc_epi <- chem_50 %>% 
+### Calculate DOC processing for Epi and Hypo -----
+# First, separate by depth and convert to mass
+doc_box <- chem_50 %>% 
   select(DateTime,Depth_m,DOC_mgL) %>% 
-  drop_na() %>% 
-  filter(Depth_m %in% c(0.1,1.6,3.8)) %>% 
   pivot_wider(names_from = Depth_m, values_from = DOC_mgL, values_fil = NA, values_fn = mean, names_prefix = "DOC_") %>% 
   mutate(DOC_0.1 = na.fill(na.approx(DOC_0.1,na.rm=FALSE),"extend")) %>% 
   mutate(DOC_1.6 = na.fill(na.approx(DOC_1.6,na.rm=FALSE),"extend")) %>% 
   mutate(DOC_3.8 = na.fill(na.approx(DOC_3.8,na.rm=FALSE),"extend")) %>% 
-  mutate(VW_Epi_DOC_mgL = ((DOC_0.1*1.38*10^5)+(DOC_1.6*8.91*10^4)+(DOC_3.8*5.96*10^4))/((1.38*10^5)+(8.91*10^4)+(5.96*10^4))) %>% 
-  mutate(month = month(DateTime))
-
-doc_hypo <- chem_50 %>% 
-  select(DateTime,Depth_m,DOC_mgL) %>% 
-  drop_na() %>% 
-  filter(Depth_m %in% c(5.0,6.2,8.0,9.0)) %>% 
-  pivot_wider(names_from = Depth_m, values_from = DOC_mgL, values_fil = NA, values_fn = mean, names_prefix = "DOC_") %>% 
   mutate(DOC_5 = na.fill(na.approx(DOC_5,na.rm=FALSE),"extend")) %>% 
   mutate(DOC_6.2 = na.fill(na.approx(DOC_6.2,na.rm=FALSE),"extend")) %>%   
   mutate(DOC_8 = na.fill(na.approx(DOC_8,na.rm=FALSE),"extend")) %>% 
-  mutate(DOC_9 = na.fill(na.approx(DOC_9,na.rm=FALSE),"extend")) %>% 
-  mutate(VW_Hypo_DOC_mgL = ((DOC_5*4.02*10^4)+(DOC_6.2*1.40*10^4)+(DOC_8*1.40*10^4)+(DOC_9*1.95*10^3))/((4.02*10^4)+(1.40*10^4)+(1.40*10^4)+(1.95*10^3))) %>% 
-  mutate(month = month(DateTime))
+  mutate(DOC_9 = na.fill(na.approx(DOC_9,na.rm=FALSE),"extend"))
 
-# Plot VW Epi and VW Hypo: WILL NEED TO UPDATE FOR MS
-ggplot()+
-  geom_point(doc_epi,mapping=aes(x=DateTime,y=VW_Epi_DOC_mgL,color="VW Epi"))+
-  geom_line(doc_epi,mapping=aes(x=DateTime,y=VW_Epi_DOC_mgL,color="VW Epi"))+
-  geom_point(doc_hypo,mapping=aes(x=DateTime,y=VW_Hypo_DOC_mgL,color="VW Hypo"))+
-  geom_line(doc_hypo,mapping=aes(x=DateTime,y=VW_Hypo_DOC_mgL,color="VW Hypo"))+
+doc_box_full <- as.data.frame(seq(as.POSIXct("2015-01-01",tz="EST"),as.POSIXct("2020-12-31",tz="EST"),by="days"))
+doc_box_full <- doc_box_full %>% 
+  rename(DateTime = `seq(as.POSIXct("2015-01-01", tz = "EST"), as.POSIXct("2020-12-31", tz = "EST"), by = "days")`)
+doc_box_full <- left_join(doc_box_full,doc_box,by="DateTime")
+
+doc_box_full <- doc_box_full %>% 
+  mutate(DOC_0.1 = na.fill(na.approx(DOC_0.1,na.rm=FALSE),"extend")) %>% 
+  mutate(DOC_1.6 = na.fill(na.approx(DOC_1.6,na.rm=FALSE),"extend")) %>% 
+  mutate(DOC_3.8 = na.fill(na.approx(DOC_3.8,na.rm=FALSE),"extend")) %>% 
+  mutate(DOC_5 = na.fill(na.approx(DOC_5,na.rm=FALSE),"extend")) %>% 
+  mutate(DOC_6.2 = na.fill(na.approx(DOC_6.2,na.rm=FALSE),"extend")) %>%   
+  mutate(DOC_8 = na.fill(na.approx(DOC_8,na.rm=FALSE),"extend")) %>% 
+  mutate(DOC_9 = na.fill(na.approx(DOC_9,na.rm=FALSE),"extend"))
+
+doc_box_full <- doc_box_full %>% 
+  mutate(DOC_0.1_g = DOC_0.1*1.38*10^5,
+         DOC_1.6_g = DOC_1.6*8.91*10^4,
+         DOC_3.8_g = DOC_3.8*5.96*10^4,
+         DOC_5_g = DOC_5*4.02*10^4,
+         DOC_6.2_g = DOC_6.2*1.40*10^4,
+         DOC_8_g = DOC_8*1.40*10^4,
+         DOC_9_g = DOC_9*1.95*10^3)
+
+# Second, extrapolate inflow concentrations and calculate daily mass
+doc_inflow_full <- as.data.frame(seq(as.POSIXct("2015-01-01",tz="EST"),as.POSIXct("2020-12-31",tz="EST"),by="days"))
+doc_inflow_full <- doc_inflow_full %>% 
+  rename(DateTime = `seq(as.POSIXct("2015-01-01", tz = "EST"), as.POSIXct("2020-12-31", tz = "EST"), by = "days")`)
+
+doc_inflow_full <- left_join(doc_inflow_full,inflow_daily,by="DateTime") %>% 
+  select(DateTime,WVWA_Flow_cms,VT_Flow_cms) 
+
+doc_inflow_full <- doc_inflow_full %>%  
+  mutate(full_flow_cms = ifelse(WVWA_Flow_cms == "NaN", VT_Flow_cms, WVWA_Flow_cms))
+
+doc_inflow_full <- left_join(doc_inflow_full,chem_100,by="DateTime") %>% 
+  select(DateTime,full_flow_cms,DOC_mgL)
+
+doc_inflow_full <- doc_inflow_full %>% 
+  mutate(DOC_mgL = na.fill(na.approx(DOC_mgL,na.rm=FALSE),"extend"),
+         full_flow_cms = na.fill(na.approx(full_flow_cms,na.rm=FALSE),"extend")) %>% 
+  mutate(DOC_100_g = DOC_mgL*full_flow_cms*60*60*24)
+
+# DOC Box data
+doc_box_data <- left_join(doc_box_full, doc_inflow_full,by="DateTime")
+
+# Add in thermocline depth information
+doc_box_data <- left_join(doc_box_data,la_results,by="DateTime") %>% 
+  select(-St,-thermD,-N2,-SN2)
+
+doc_box_data <- doc_box_data %>% 
+  mutate(SthermD = na.fill(na.approx(SthermD, na.rm=FALSE),"extend"))
+
+### Thinking about how to designate Epi vs. Hypo what parameters depend on this:
+# Mass of Epi vs. Mass of Hypo
+# 'Outflow' to Epi from Hypo: concentration * outflow * scaled outflow = mass/day
+
+# First, determine outflow concentration
+doc_box_data <- doc_box_data %>% 
+  mutate(SthermD = round(SthermD,digits=1)) %>% 
+  mutate(epi_bottomg_depth_m = ifelse(SthermD > 9.0, 9.0,
+                                      ifelse(SthermD > 8.0, 8.0,
+                                             ifelse(SthermD > 6.2, 6.2,
+                                                    ifelse(SthermD > 5.0, 5.0,
+                                                           ifelse(SthermD > 3.8, 3.8,
+                                                                  ifelse(SthermD >1.6, 1.6,
+                                                                         ifelse(SthermD > 0.1, 0.1,NA)))))))) %>% 
+  mutate(hypo_top_depth_m = ifelse(SthermD <= 0.1, 0.1,
+                                   ifelse(SthermD <= 1.6, 1.6,
+                                          ifelse(SthermD <= 3.8, 3.8,
+                                                 ifelse(SthermD <= 5.0, 5.0,
+                                                        ifelse(SthermD <= 6.2, 6.2,
+                                                               ifelse(SthermD <= 8.0, 8.0,
+                                                                      ifelse(SthermD <= 9.0, 9.0, NA))))))))
+
+# Calculate Epi and Hypo outflow mass
+doc_box_data <- doc_box_data %>% 
+  mutate(Epi_outflow_g = DOC_0.1*full_flow_cms*60*60*24,
+         Hypo_outflow_g = ifelse(hypo_top_depth_m==0.1,DOC_0.1*full_flow_cms*60*60*24,
+                                 ifelse(hypo_top_depth_m==1.6,DOC_1.6*full_flow_cms*60*60*24,
+                                        ifelse(hypo_top_depth_m==3.8,DOC_3.8*full_flow_cms*60*60*24,
+                                               ifelse(hypo_top_depth_m==5.0,DOC_5*full_flow_cms*60*60*24,
+                                                      ifelse(hypo_top_depth_m==6.2,DOC_6.2*full_flow_cms*60*60*24,
+                                                             ifelse(hypo_top_depth_m==8.0,DOC_8*full_flow_cms*60*60*24,0)))))))
+
+### Calculate DOC/dt
+# First need to figure out how the thermocline is changing
+doc_box_data <- doc_box_data %>% 
+  mutate(epi_g = ifelse(epi_bottomg_depth_m==0.1,DOC_0.1_g,
+                        ifelse(epi_bottomg_depth_m==1.6,DOC_0.1_g+DOC_1.6_g,
+                               ifelse(epi_bottomg_depth_m==3.8,DOC_0.1_g+DOC_1.6_g+DOC_3.8_g,
+                                      ifelse(epi_bottomg_depth_m==5.0,DOC_0.1_g+DOC_1.6_g+DOC_3.8_g+DOC_5_g,
+                                             ifelse(epi_bottomg_depth_m==6.2,DOC_0.1_g+DOC_1.6_g+DOC_3.8_g+DOC_5_g+DOC_6.2_g,
+                                                    ifelse(epi_bottomg_depth_m==8.0,DOC_0.1_g+DOC_1.6_g+DOC_3.8_g+DOC_5_g+DOC_6.2_g+DOC_8_g,
+                                                           ifelse(epi_bottomg_depth_m==9.0,DOC_0.1_g+DOC_1.6_g+DOC_3.8_g+DOC_5_g+DOC_6.2_g+DOC_8_g+DOC_9_g,NA)))))))) %>% 
+  mutate(hypo_g = ifelse(hypo_top_depth_m==0.1,DOC_0.1_g+DOC_1.6_g+DOC_3.8_g+DOC_5_g+DOC_6.2_g+DOC_8_g+DOC_9_g,
+                         ifelse(hypo_top_depth_m==1.6,DOC_1.6_g+DOC_3.8_g+DOC_5_g+DOC_6.2_g+DOC_8_g+DOC_9_g,
+                                ifelse(hypo_top_depth_m==3.8,DOC_3.8_g+DOC_5_g+DOC_6.2_g+DOC_8_g+DOC_9_g,
+                                       ifelse(hypo_top_depth_m==5.0,DOC_5_g+DOC_6.2_g+DOC_8_g+DOC_9_g,
+                                              ifelse(hypo_top_depth_m==6.2,DOC_6.2_g+DOC_8_g+DOC_9_g,
+                                                     ifelse(hypo_top_depth_m==8.0,DOC_8_g+DOC_9_g,
+                                                            ifelse(hypo_top_depth_m==9.0,DOC_9_g,NA)))))))) %>% 
+  mutate(epi_vol_m3 = ifelse(epi_bottomg_depth_m==0.1,sum(vol_depths$Vol_m3[1]),
+                             ifelse(epi_bottomg_depth_m==1.6,sum(vol_depths$Vol_m3[1:2]),
+                                    ifelse(epi_bottomg_depth_m==3.8,sum(vol_depths$Vol_m3[1:3]),
+                                           ifelse(epi_bottomg_depth_m==5.0,sum(vol_depths$Vol_m3[1:4]),
+                                                  ifelse(epi_bottomg_depth_m==6.2,sum(vol_depths$Vol_m3[1:5]),
+                                                         ifelse(epi_bottomg_depth_m==8.0,sum(vol_depths$Vol_m3[1:6]),
+                                                                ifelse(epi_bottomg_depth_m==9.0,sum(vol_depths$Vol_m3[1:7]),NA)))))))) %>% 
+  mutate(hypo_vol_m3 = ifelse(hypo_top_depth_m==0.1,sum(vol_depths$Vol_m3[1:7]),
+                              ifelse(hypo_top_depth_m==1.6,sum(vol_depths$Vol_m3[1:6]),
+                                     ifelse(hypo_top_depth_m==3.8,sum(vol_depths$Vol_m3[1:5]),
+                                            ifelse(hypo_top_depth_m==5.0,sum(vol_depths$Vol_m3[1:4]),
+                                                   ifelse(hypo_top_depth_m==6.2,sum(vol_depths$Vol_m3[1:3]),
+                                                          ifelse(hypo_top_depth_m==8.0,sum(vol_depths$Vol_m3[1:2]),
+                                                                 ifelse(hypo_top_depth_m==9.0,sum(vol_depths$Vol_m3[1]),NA)))))))) %>% 
+  mutate(d_epi_g_dt = NA,
+         d_hypo_g_dt = NA,
+         Entr = NA,
+         DOC_entr_g= NA)
+
+# Calculate DOC/dt for epi and hypo
+for(i in 2:length(doc_box_data$DateTime)){
+  doc_box_data$d_epi_g_dt[i] = (doc_box_data$epi_g[i]-doc_box_data$epi_g[i-1])
+}
+
+for(i in 2:length(doc_box_data$DateTime)){
+  doc_box_data$d_hypo_g_dt[i] = (doc_box_data$hypo_g[i]-doc_box_data$hypo_g[i-1])
+}
+
+### Calculate change due to entrainment (movement of thermocline)
+# Loosely following FCR_DOCModel_edited_19May17 from Carey et al. 2018
+
+# Entrainment
+#if Entr is positive, then epi is getting bigger and hypo is getting smaller; 
+#if Entr is negative, then hypo is getting bigger and epi is getting smaller
+
+# First need to create data frame of mass by date and volume
+doc_entr <- doc_box_data %>% 
+  select(DateTime,DOC_0.1_g:DOC_9_g) %>% 
+  rename(DOC_0.1 = DOC_0.1_g, DOC_1.6 = DOC_1.6_g, DOC_3.8 = DOC_3.8_g, DOC_5 = DOC_5_g, DOC_6.2 = DOC_6.2_g, DOC_8 = DOC_8_g, DOC_9 = DOC_9_g) %>% 
+  mutate(DOC_0.138 = sum(DOC_1.6,DOC_3.8)) %>% #Create a new 'depth' where bottom of epi goes from 0.1 to 3.8 m (0.138)
+  mutate(DOC_0.15 = sum(DOC_1.6,DOC_3.8,DOC_5)) %>% # Create a new 'depth' where bottom of epi goes from 0.1 to 5 m (0.15)
+  mutate(DOC_0.162 = sum(DOC_1.6,DOC_3.8,DOC_5,DOC_6.2)) %>% # Creating a new 'depth' where bottom of epi goes from 0.1 to 6.2 m (0.162)
+  mutate(DOC_1.65 = sum(DOC_3.8,DOC_5)) %>% # Creating a new 'depth' where bottom of epi goes from 1.6 to 5 m (1.65)
+  mutate(DOC_1.662 = sum(DOC_3.8,DOC_5,DOC_6.2)) %>%# Create a new 'depth' where bottom of epi goes from 1.6 to 6.2 m (1.662)
+  mutate(DOC_3.862 = sum(DOC_5,DOC_6.2)) %>%# Creating a new 'depth' where bottom of epi goes from 3.8 to 6.2 m (3.862)
+  mutate(DOC_5.8 = sum(DOC_6.2,DOC_8)) %>% # Create a new 'depth' where bottom of epi goes from 5 to 8 m (5.8)
+  pivot_longer(!DateTime,names_to = "depth", values_to = "DOC_g",names_prefix ="DOC_") %>% 
+  mutate(vol_m3 = ifelse(depth == 0.1, 138000,
+                         ifelse(depth == 0.138, 148700,
+                                ifelse(depth == 0.15, 188900,
+                                       ifelse(depth == 0.162, 202910,
+                                              ifelse(depth == 1.6, 89100,
+                                                     ifelse(depth == 1.65, 99800,
+                                                            ifelse(depth == 1.662, 113810,
+                                                                   ifelse(depth == 3.8, 59600,
+                                                                          ifelse(depth == 3.862, 54210,
+                                                                                 ifelse(depth == 5, 40200,
+                                                                                        ifelse(depth == 5.8, 28010,
+                                                                                               ifelse(depth == 6.2, 14010,
+                                                                                                      ifelse(depth == 8, 14000,
+                                                                                                             ifelse(depth == 9, 1950, NA)))))))))))))))
+
+# Need to figure out: 1. When the thermocline is moving; 2. How far the thermocline moves; 3. Then calculate
+# how much mass is moved b/c of the change in thermocline
+for(i in 2:length(doc_box_data$DateTime)){
+  # 1. Figure out if the thermocline has moved
+  if(doc_box_data$epi_vol_m3[i] > doc_box_data$epi_vol_m3[i-1]){
+    doc_box_data$Entr[i] = doc_box_data$epi_vol_m3[i] - doc_box_data$epi_vol_m3[i-1]
+    x = which(doc_box_data$DateTime[i]==doc_entr$DateTime & abs(doc_box_data$Entr[i])==doc_entr$vol_m3)
+    doc_box_data$DOC_entr_g[i] = doc_entr$DOC_g[x]
+  }
+  else if(doc_box_data$epi_vol_m3[i] < doc_box_data$epi_vol_m3[i-1]){
+    doc_box_data$Entr[i] = doc_box_data$epi_vol_m3[i] - doc_box_data$epi_vol_m3[i-1]
+    x = which(doc_box_data$DateTime[i]==doc_entr$DateTime & abs(doc_box_data$Entr[i])==doc_entr$vol_m3)
+    doc_box_data$DOC_entr_g[i] = -doc_entr$DOC_g[x]
+  }
+  else{
+    doc_box_data$Entr[i] = 0
+    doc_box_data$DOC_entr_g[i] = 0
+  }
+}
+
+### Then calculate 'processing' for epi and hypo ----
+doc_box_data <- doc_box_data %>% 
+  mutate(epi_processing_g = d_epi_g_dt-DOC_100_g*0.74-Hypo_outflow_g*0.26+Epi_outflow_g*0.74-DOC_entr_g,
+         epi_processing_mgL = epi_processing_g/epi_vol_m3,
+         hypo_processing_g = d_hypo_g_dt-DOC_100_g*0.26+Hypo_outflow_g*0.26+DOC_entr_g,
+         hypo_processing_mgL = hypo_processing_g/hypo_vol_m3)
+
+# Plot
+ggplot(doc_box_data)+
+  geom_line(mapping=aes(x=DateTime,y=epi_processing_mgL,color="Epi"))+
+  geom_line(mapping=aes(x=DateTime,y=hypo_processing_mgL,color="Hypo"))+
   theme_classic(base_size=15)
 
-### Load in Inflow data ----
-# Weir discharge/temperature
-#inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/202/7/f5fa5de4b49bae8373f6e7c1773b026e" 
-#infile1 <- paste0(getwd(),"/Data/inflow_for_EDI_2013_10Jan2021.csv")
-#download.file(inUrl1,infile1,method="curl")
-
-inflow <- read.csv("./Data/inflow_for_EDI_2013_10Jan2021.csv",header=T) %>% 
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) %>% 
-  select(Reservoir:VT_Temp_C)
-
-# Average inflow by day
-inflow_daily <- inflow %>% 
-  group_by(DateTime) %>% 
-  summarize_all(funs(mean(.,na.rm=TRUE))) %>% 
-  filter(DateTime >= as.POSIXct("2015-01-01"))
+#####################################################################################
 
 ### Load in Flora data for Chla ----
 # Load from EDI: downloaded on 10 June 2021
@@ -398,211 +572,3 @@ ggplot()+
   geom_point(ctd_50_hypo,mapping=aes(x=time,y=VW_DO_mgL,color="VW Hypo"))+
   geom_line(ctd_50_hypo,mapping=aes(x=time,y=VW_DO_mgL,color="VW Hypo"))+
   theme_classic(base_size=15)
-
-### Calculate DOC processing for Epi and Hypo -----
-# First, separate by depth and convert to mass
-doc_box <- chem_50 %>% 
-  select(DateTime,Depth_m,DOC_mgL) %>% 
-  pivot_wider(names_from = Depth_m, values_from = DOC_mgL, values_fil = NA, values_fn = mean, names_prefix = "DOC_") %>% 
-  mutate(DOC_0.1 = na.fill(na.approx(DOC_0.1,na.rm=FALSE),"extend")) %>% 
-  mutate(DOC_1.6 = na.fill(na.approx(DOC_1.6,na.rm=FALSE),"extend")) %>% 
-  mutate(DOC_3.8 = na.fill(na.approx(DOC_3.8,na.rm=FALSE),"extend")) %>% 
-  mutate(DOC_5 = na.fill(na.approx(DOC_5,na.rm=FALSE),"extend")) %>% 
-  mutate(DOC_6.2 = na.fill(na.approx(DOC_6.2,na.rm=FALSE),"extend")) %>%   
-  mutate(DOC_8 = na.fill(na.approx(DOC_8,na.rm=FALSE),"extend")) %>% 
-  mutate(DOC_9 = na.fill(na.approx(DOC_9,na.rm=FALSE),"extend"))
-
-doc_box_full <- as.data.frame(seq(as.POSIXct("2015-01-01",tz="EST"),as.POSIXct("2020-12-31",tz="EST"),by="days"))
-doc_box_full <- doc_box_full %>% 
-  rename(DateTime = `seq(as.POSIXct("2015-01-01", tz = "EST"), as.POSIXct("2020-12-31", tz = "EST"), by = "days")`)
-doc_box_full <- left_join(doc_box_full,doc_box,by="DateTime")
-
-doc_box_full <- doc_box_full %>% 
-  mutate(DOC_0.1 = na.fill(na.approx(DOC_0.1,na.rm=FALSE),"extend")) %>% 
-  mutate(DOC_1.6 = na.fill(na.approx(DOC_1.6,na.rm=FALSE),"extend")) %>% 
-  mutate(DOC_3.8 = na.fill(na.approx(DOC_3.8,na.rm=FALSE),"extend")) %>% 
-  mutate(DOC_5 = na.fill(na.approx(DOC_5,na.rm=FALSE),"extend")) %>% 
-  mutate(DOC_6.2 = na.fill(na.approx(DOC_6.2,na.rm=FALSE),"extend")) %>%   
-  mutate(DOC_8 = na.fill(na.approx(DOC_8,na.rm=FALSE),"extend")) %>% 
-  mutate(DOC_9 = na.fill(na.approx(DOC_9,na.rm=FALSE),"extend"))
-
-doc_box_full <- doc_box_full %>% 
-  mutate(DOC_0.1_g = DOC_0.1*1.38*10^5,
-         DOC_1.6_g = DOC_1.6*8.91*10^4,
-         DOC_3.8_g = DOC_3.8*5.96*10^4,
-         DOC_5_g = DOC_5*4.02*10^4,
-         DOC_6.2_g = DOC_6.2*1.40*10^4,
-         DOC_8_g = DOC_8*1.40*10^4,
-         DOC_9_g = DOC_9*1.95*10^3)
-
-# Second, extrapolate inflow concentrations and calculate daily mass
-doc_inflow_full <- as.data.frame(seq(as.POSIXct("2015-01-01",tz="EST"),as.POSIXct("2020-12-31",tz="EST"),by="days"))
-doc_inflow_full <- doc_inflow_full %>% 
-  rename(DateTime = `seq(as.POSIXct("2015-01-01", tz = "EST"), as.POSIXct("2020-12-31", tz = "EST"), by = "days")`)
-
-doc_inflow_full <- left_join(doc_inflow_full,inflow_daily,by="DateTime") %>% 
-  select(DateTime,WVWA_Flow_cms,VT_Flow_cms) 
-
-doc_inflow_full <- doc_inflow_full %>%  
-  mutate(full_flow_cms = ifelse(WVWA_Flow_cms == "NaN", VT_Flow_cms, WVWA_Flow_cms))
-
-doc_inflow_full <- left_join(doc_inflow_full,chem_100,by="DateTime") %>% 
-  select(DateTime,full_flow_cms,DOC_mgL)
-
-doc_inflow_full <- doc_inflow_full %>% 
-  mutate(DOC_mgL = na.fill(na.approx(DOC_mgL,na.rm=FALSE),"extend"),
-         full_flow_cms = na.fill(na.approx(full_flow_cms,na.rm=FALSE),"extend")) %>% 
-  mutate(DOC_100_g = DOC_mgL*full_flow_cms*60*60*24)
-
-# DOC Box data
-doc_box_data <- left_join(doc_box_full, doc_inflow_full,by="DateTime")
-
-# Add in thermocline depth information
-doc_box_data <- left_join(doc_box_data,la_results,by="DateTime") %>% 
-  select(-St,-thermD,-N2,-SN2)
-
-doc_box_data <- doc_box_data %>% 
-  mutate(SthermD = na.fill(na.approx(SthermD, na.rm=FALSE),"extend"))
-
-# Create vector of different volumes for each depth
-vol_depths <- data.frame("Depth" = c(0.1,1.6,3.8,5.0,6.2,8.0,9.0), "Vol_m3" = c(1.38*10^5,8.91*10^4,5.96*10^4,4.02*10^4,1.40*10^4,1.40*10^4,1.95*10^3))
-
-### Thinking about how to designate Epi vs. Hypo what parameters depend on this:
-# Mass of Epi vs. Mass of Hypo
-# 'Outflow' to Epi from Hypo: concentration * outflow * scaled outflow = mass/day
-
-# First, determine outflow concentration
-doc_box_data <- doc_box_data %>% 
-  mutate(SthermD = round(SthermD,digits=1)) %>% 
-  mutate(epi_bottomg_depth_m = ifelse(SthermD > 9.0, 9.0,
-                                       ifelse(SthermD > 8.0, 8.0,
-                                              ifelse(SthermD > 6.2, 6.2,
-                                                     ifelse(SthermD > 5.0, 5.0,
-                                                            ifelse(SthermD > 3.8, 3.8,
-                                                                   ifelse(SthermD >1.6, 1.6,
-                                                                          ifelse(SthermD > 0.1, 0.1,NA)))))))) %>% 
-  mutate(hypo_top_depth_m = ifelse(SthermD <= 0.1, 0.1,
-                                   ifelse(SthermD <= 1.6, 1.6,
-                                          ifelse(SthermD <= 3.8, 3.8,
-                                                 ifelse(SthermD <= 5.0, 5.0,
-                                                        ifelse(SthermD <= 6.2, 6.2,
-                                                               ifelse(SthermD <= 8.0, 8.0,
-                                                                      ifelse(SthermD <= 9.0, 9.0, NA))))))))
-
-# Calculate Epi and Hypo outflow mass
-doc_box_data <- doc_box_data %>% 
-  mutate(Epi_outflow_g = DOC_0.1*full_flow_cms*60*60*24,
-         Hypo_outflow_g = ifelse(hypo_top_depth_m==0.1,DOC_0.1*full_flow_cms*60*60*24,
-                                 ifelse(hypo_top_depth_m==1.6,DOC_1.6*full_flow_cms*60*60*24,
-                                        ifelse(hypo_top_depth_m==3.8,DOC_3.8*full_flow_cms*60*60*24,
-                                               ifelse(hypo_top_depth_m==5.0,DOC_5*full_flow_cms*60*60*24,
-                                                      ifelse(hypo_top_depth_m==6.2,DOC_6.2*full_flow_cms*60*60*24,
-                                                             ifelse(hypo_top_depth_m==8.0,DOC_8*full_flow_cms*60*60*24,0)))))))
-
-### Calculate DOC/dt
-# First need to figure out how the thermocline is changing
-doc_box_data <- doc_box_data %>% 
-  mutate(epi_g = ifelse(epi_bottomg_depth_m==0.1,DOC_0.1_g,
-                         ifelse(epi_bottomg_depth_m==1.6,DOC_0.1_g+DOC_1.6_g,
-                                ifelse(epi_bottomg_depth_m==3.8,DOC_0.1_g+DOC_1.6_g+DOC_3.8_g,
-                                       ifelse(epi_bottomg_depth_m==5.0,DOC_0.1_g+DOC_1.6_g+DOC_3.8_g+DOC_5_g,
-                                              ifelse(epi_bottomg_depth_m==6.2,DOC_0.1_g+DOC_1.6_g+DOC_3.8_g+DOC_5_g+DOC_6.2_g,
-                                                     ifelse(epi_bottomg_depth_m==8.0,DOC_0.1_g+DOC_1.6_g+DOC_3.8_g+DOC_5_g+DOC_6.2_g+DOC_8_g,
-                                                            ifelse(epi_bottomg_depth_m==9.0,DOC_0.1_g+DOC_1.6_g+DOC_3.8_g+DOC_5_g+DOC_6.2_g+DOC_8_g+DOC_9_g,NA)))))))) %>% 
-  mutate(hypo_g = ifelse(hypo_top_depth_m==0.1,DOC_0.1_g+DOC_1.6_g+DOC_3.8_g+DOC_5_g+DOC_6.2_g+DOC_8_g+DOC_9_g,
-                         ifelse(hypo_top_depth_m==1.6,DOC_1.6_g+DOC_3.8_g+DOC_5_g+DOC_6.2_g+DOC_8_g+DOC_9_g,
-                                ifelse(hypo_top_depth_m==3.8,DOC_3.8_g+DOC_5_g+DOC_6.2_g+DOC_8_g+DOC_9_g,
-                                       ifelse(hypo_top_depth_m==5.0,DOC_5_g+DOC_6.2_g+DOC_8_g+DOC_9_g,
-                                              ifelse(hypo_top_depth_m==6.2,DOC_6.2_g+DOC_8_g+DOC_9_g,
-                                                     ifelse(hypo_top_depth_m==8.0,DOC_8_g+DOC_9_g,
-                                                            ifelse(hypo_top_depth_m==9.0,DOC_9_g,NA)))))))) %>% 
-  mutate(epi_vol_m3 = ifelse(epi_bottomg_depth_m==0.1,sum(vol_depths$Vol_m3[1]),
-                             ifelse(epi_bottomg_depth_m==1.6,sum(vol_depths$Vol_m3[1:2]),
-                                    ifelse(epi_bottomg_depth_m==3.8,sum(vol_depths$Vol_m3[1:3]),
-                                           ifelse(epi_bottomg_depth_m==5.0,sum(vol_depths$Vol_m3[1:4]),
-                                                  ifelse(epi_bottomg_depth_m==6.2,sum(vol_depths$Vol_m3[1:5]),
-                                                         ifelse(epi_bottomg_depth_m==8.0,sum(vol_depths$Vol_m3[1:6]),
-                                                                ifelse(epi_bottomg_depth_m==9.0,sum(vol_depths$Vol_m3[1:7]),NA)))))))) %>% 
-  mutate(hypo_vol_m3 = ifelse(hypo_top_depth_m==0.1,sum(vol_depths$Vol_m3[1:7]),
-                              ifelse(hypo_top_depth_m==1.6,sum(vol_depths$Vol_m3[1:6]),
-                                     ifelse(hypo_top_depth_m==3.8,sum(vol_depths$Vol_m3[1:5]),
-                                            ifelse(hypo_top_depth_m==5.0,sum(vol_depths$Vol_m3[1:4]),
-                                                   ifelse(hypo_top_depth_m==6.2,sum(vol_depths$Vol_m3[1:3]),
-                                                          ifelse(hypo_top_depth_m==8.0,sum(vol_depths$Vol_m3[1:2]),
-                                                                 ifelse(hypo_top_depth_m==9.0,sum(vol_depths$Vol_m3[1]),NA)))))))) %>% 
-  mutate(d_epi_g_dt = NA,
-         d_hypo_g_dt = NA,
-         Entr = NA,
-         DOC_entr_g= NA)
-
-# Calculate DOC/dt for epi and hypo
-for(i in 2:length(doc_box_data$DateTime)){
-  doc_box_data$d_epi_g_dt[i] = (doc_box_data$epi_g[i]-doc_box_data$epi_g[i-1])
-}
-
-for(i in 2:length(doc_box_data$DateTime)){
-  doc_box_data$d_hypo_g_dt[i] = (doc_box_data$hypo_g[i]-doc_box_data$hypo_g[i-1])
-}
-
-### Calculate change due to entrainment (movement of thermocline)
-# Loosely following FCR_DOCModel_edited_19May17 from Carey et al. 2018
-
-# Entrainment
-#if Entr is positive, then epi is getting bigger and hypo is getting smaller; 
-#if Entr is negative, then hypo is getting bigger and epi is getting smaller
-
-# First need to create data frame of mass by date and volume
-doc_entr <- doc_box_data %>% 
-  select(DateTime,DOC_0.1_g:DOC_9_g) %>% 
-  rename(DOC_0.1 = DOC_0.1_g, DOC_1.6 = DOC_1.6_g, DOC_3.8 = DOC_3.8_g, DOC_5 = DOC_5_g, DOC_6.2 = DOC_6.2_g, DOC_8 = DOC_8_g, DOC_9 = DOC_9_g) %>% 
-  pivot_longer(!DateTime,names_to = "depth", values_to = "DOC_g",names_prefix ="DOC_")
-
-# Need to figure out: 1. When the thermocline is moving; 2. How far the thermocline moves; 3. Then calculate
-# how much mass is moved b/c of the change in thermocline
-for(i in 2:length(doc_box_data$DateTime)){
-  # 1. Figure out if the thermocline has moved
-  if(doc_box_data$epi_bottomg_depth_m[i] == doc_box_data$epi_bottomg_depth_m[i-1]){
-    doc_box_data$Entr[i] = 0
-    doc_box_data$DOC_entr_g = 0
-  }
-  else if(doc_box_data$epi_bottomg_depth_m[i] > doc_box_data$epi_bottomg_depth_m[i-1]){
-    doc_box_data$Entr[i] = 1
-  }
-  else if(doc_box_data$epi_bottomg_depth_m[i] < doc_box_data$epi_bottomg_depth_m[i-1]){
-    doc_box_data$Entr[i] = -1
-  }
-}
-
-
-for(i in 2:length(doc_box_data$DateTime)){
-  doc_box_data$Entr[i] = (doc_box_data$epi_bottomg_depth_m[i]-doc_box_data$epi_bottomg_depth_m[i-1])
-  if(doc_box_data$Entr[i] >= 0){
-    # Entrainment is positive and goes to epi: epi gains and hypo loses!
-    doc_box_data$Entr2[i] = -1 * (doc_box_data$hypo_vol_m3[i]-doc_box_data$hypo_vol_m3)
-  }
-}
-
-
-
-
-if (hypoVol[i-1]>0 & i>2){
-  Entr <- (epiVol[i-1]-epiVol[i-2])/epiVol[i-1] # Check to see whether there is entrainment
-  if(Entr>=0){
-    # Entrainment goes to epi; note the hypo source and Entr is positive
-    # First calc the proportion of hypo lost
-    Entr2 <- -1 * (hypoVol[i-1]-hypoVol[i-2])/hypoVol[i-2] 
-    DOCHEntr <- Entr2 * results$DOCH[i-1] * EntrEfficiency
-    CO2HEntr <- Entr2 * results$CO2H[i-1] * EntrEfficiency
-    O2HEntr  <- Entr2 * results$O2H[i-1] * EntrEfficiency
-  }
-  else{
-    # Entrainment goes to hypo; note the epi source and Entr is negative
-    DOCHEntr <- Entr * results$DOCE[i-1] * EntrEfficiency
-    CO2HEntr <- Entr * results$CO2E[i-1] * EntrEfficiency
-    O2HEntr  <- Entr * results$O2E[i-1] * EntrEfficiency
-  }
-}else{
-  DOCHEntr <- 0
-  CO2HEntr <- 0
-  O2HEntr  <- 0
-}
