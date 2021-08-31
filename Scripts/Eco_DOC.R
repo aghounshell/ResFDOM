@@ -73,7 +73,7 @@ chem_50 <- chem %>%
   filter(DOC_mgL <= 15)
 
 # Create vector of different volumes for each depth: based on L&O-L 2020 paper
-vol_depths <- data.frame("Depth" = c(0.1,1.6,3.8,5.0,6.2,8.0,9.0), "Vol_m3" = c(1.38*10^5,8.91*10^4,5.96*10^4,4.02*10^4,1.401*10^4,1.40*10^4,1.95*10^3))
+vol_depths <- data.frame("Depth" = c(0.1,1.6,3.8,5.0,6.2,8.0,9.0), "Vol_m3" = c(138486.51,89053.28,59619.35,40197.90,13943.82,14038.52,1954.71))
 
 ### Calculate DOC processing for Epi and Hypo -----
 # First, separate by depth and convert to mass
@@ -103,13 +103,13 @@ doc_box_full <- doc_box_full %>%
   mutate(DOC_9 = na.fill(na.approx(DOC_9,na.rm=FALSE),"extend"))
 
 doc_box_full <- doc_box_full %>% 
-  mutate(DOC_0.1_g = DOC_0.1*1.38*10^5,
-         DOC_1.6_g = DOC_1.6*8.91*10^4,
-         DOC_3.8_g = DOC_3.8*5.96*10^4,
-         DOC_5_g = DOC_5*4.02*10^4,
-         DOC_6.2_g = DOC_6.2*1.40*10^4,
-         DOC_8_g = DOC_8*1.40*10^4,
-         DOC_9_g = DOC_9*1.95*10^3)
+  mutate(DOC_0.1_g = DOC_0.1*vol_depths$Vol_m3[1],
+         DOC_1.6_g = DOC_1.6*vol_depths$Vol_m3[2],
+         DOC_3.8_g = DOC_3.8*vol_depths$Vol_m3[3],
+         DOC_5_g = DOC_5*vol_depths$Vol_m3[4],
+         DOC_6.2_g = DOC_6.2*vol_depths$Vol_m3[5],
+         DOC_8_g = DOC_8*vol_depths$Vol_m3[6],
+         DOC_9_g = DOC_9*vol_depths$Vol_m3[7])
 
 # Second, extrapolate inflow concentrations and calculate daily mass
 doc_inflow_full <- as.data.frame(seq(as.POSIXct("2015-01-01",tz="EST"),as.POSIXct("2020-12-31",tz="EST"),by="days"))
@@ -148,18 +148,18 @@ doc_box_data <- doc_box_data %>%
 doc_box_data <- doc_box_data %>% 
   mutate(SthermD = round(SthermD,digits=1)) %>% 
   mutate(epi_bottomg_depth_m = ifelse(SthermD > 9.0, 9.0,
-                                      ifelse(SthermD > 8.0, 8.0,
-                                             ifelse(SthermD > 6.2, 6.2,
-                                                    ifelse(SthermD > 5.0, 5.0,
-                                                           ifelse(SthermD > 3.8, 3.8,
-                                                                  ifelse(SthermD >1.6, 1.6,
-                                                                         ifelse(SthermD > 0.1, 0.1,NA)))))))) %>% 
-  mutate(hypo_top_depth_m = ifelse(SthermD <= 0.1, 0.1,
+                                      ifelse(SthermD > 7.0, 8.0,
+                                             ifelse(SthermD > 6.0, 6.2,
+                                                    ifelse(SthermD > 4.4, 5.0,
+                                                           ifelse(SthermD > 3.0, 3.8,
+                                                                  ifelse(SthermD > 1.6, 1.6,
+                                                                         ifelse(SthermD > 0.0, 0.1, NA)))))))) %>% 
+  mutate(hypo_top_depth_m = ifelse(SthermD <= 0.0, 0.1,
                                    ifelse(SthermD <= 1.6, 1.6,
-                                          ifelse(SthermD <= 3.8, 3.8,
-                                                 ifelse(SthermD <= 5.0, 5.0,
-                                                        ifelse(SthermD <= 6.2, 6.2,
-                                                               ifelse(SthermD <= 8.0, 8.0,
+                                          ifelse(SthermD <= 3.0, 3.8,
+                                                 ifelse(SthermD <= 4.4, 5.0,
+                                                        ifelse(SthermD <= 6.0, 6.2,
+                                                               ifelse(SthermD <= 7.0, 8.0,
                                                                       ifelse(SthermD <= 9.0, 9.0, NA))))))))
 
 # Calculate Epi and Hypo outflow mass
@@ -170,7 +170,8 @@ doc_box_data <- doc_box_data %>%
                                         ifelse(hypo_top_depth_m==3.8,DOC_3.8*full_flow_cms*60*60*24,
                                                ifelse(hypo_top_depth_m==5.0,DOC_5*full_flow_cms*60*60*24,
                                                       ifelse(hypo_top_depth_m==6.2,DOC_6.2*full_flow_cms*60*60*24,
-                                                             ifelse(hypo_top_depth_m==8.0,DOC_8*full_flow_cms*60*60*24,0)))))))
+                                                             ifelse(hypo_top_depth_m==8.0,DOC_8*full_flow_cms*60*60*24,
+                                                                    ifelse(hypo_top_depth_m==9.0,DOC_9*full_flow_cms*60*60*24,0))))))))
 
 ### Calculate DOC/dt
 # First need to figure out how the thermocline is changing
@@ -197,12 +198,12 @@ doc_box_data <- doc_box_data %>%
                                                          ifelse(epi_bottomg_depth_m==8.0,sum(vol_depths$Vol_m3[1:6]),
                                                                 ifelse(epi_bottomg_depth_m==9.0,sum(vol_depths$Vol_m3[1:7]),NA)))))))) %>% 
   mutate(hypo_vol_m3 = ifelse(hypo_top_depth_m==0.1,sum(vol_depths$Vol_m3[1:7]),
-                              ifelse(hypo_top_depth_m==1.6,sum(vol_depths$Vol_m3[1:6]),
-                                     ifelse(hypo_top_depth_m==3.8,sum(vol_depths$Vol_m3[1:5]),
-                                            ifelse(hypo_top_depth_m==5.0,sum(vol_depths$Vol_m3[1:4]),
-                                                   ifelse(hypo_top_depth_m==6.2,sum(vol_depths$Vol_m3[1:3]),
-                                                          ifelse(hypo_top_depth_m==8.0,sum(vol_depths$Vol_m3[1:2]),
-                                                                 ifelse(hypo_top_depth_m==9.0,sum(vol_depths$Vol_m3[1]),NA)))))))) %>% 
+                              ifelse(hypo_top_depth_m==1.6,sum(vol_depths$Vol_m3[2:7]),
+                                     ifelse(hypo_top_depth_m==3.8,sum(vol_depths$Vol_m3[3:7]),
+                                            ifelse(hypo_top_depth_m==5.0,sum(vol_depths$Vol_m3[4:7]),
+                                                   ifelse(hypo_top_depth_m==6.2,sum(vol_depths$Vol_m3[5:7]),
+                                                          ifelse(hypo_top_depth_m==8.0,sum(vol_depths$Vol_m3[6:7]),
+                                                                 ifelse(hypo_top_depth_m==9.0,sum(vol_depths$Vol_m3[7]),NA)))))))) %>% 
   mutate(d_epi_g_dt = NA,
          d_hypo_g_dt = NA,
          Entr = NA,
@@ -231,38 +232,44 @@ doc_entr <- doc_box_data %>%
   mutate(DOC_0.138 = sum(DOC_1.6,DOC_3.8)) %>% #Create a new 'depth' where bottom of epi goes from 0.1 to 3.8 m (0.138)
   mutate(DOC_0.15 = sum(DOC_1.6,DOC_3.8,DOC_5)) %>% # Create a new 'depth' where bottom of epi goes from 0.1 to 5 m (0.15)
   mutate(DOC_0.162 = sum(DOC_1.6,DOC_3.8,DOC_5,DOC_6.2)) %>% # Creating a new 'depth' where bottom of epi goes from 0.1 to 6.2 m (0.162)
+  mutate(DOC_0.18 = sum(DOC_1.6,DOC_3.8,DOC_5,DOC_6.2,DOC_8)) %>% # Create a new depth where bottom of epi goes from 0.1 to 8 m (0.18)
   mutate(DOC_1.65 = sum(DOC_3.8,DOC_5)) %>% # Creating a new 'depth' where bottom of epi goes from 1.6 to 5 m (1.65)
   mutate(DOC_1.662 = sum(DOC_3.8,DOC_5,DOC_6.2)) %>%# Create a new 'depth' where bottom of epi goes from 1.6 to 6.2 m (1.662)
+  mutate(DOC_1.68 = sum(DOC_3.8,DOC_5,DOC_6.2,DOC_8)) %>% # Create a new depth where bottom of epi goes from 1.6 to 8 m (1.68)
   mutate(DOC_3.862 = sum(DOC_5,DOC_6.2)) %>%# Creating a new 'depth' where bottom of epi goes from 3.8 to 6.2 m (3.862)
   mutate(DOC_5.8 = sum(DOC_6.2,DOC_8)) %>% # Create a new 'depth' where bottom of epi goes from 5 to 8 m (5.8)
   pivot_longer(!DateTime,names_to = "depth", values_to = "DOC_g",names_prefix ="DOC_") %>% 
-  mutate(vol_m3 = ifelse(depth == 0.1, 138000,
-                         ifelse(depth == 0.138, 148700,
-                                ifelse(depth == 0.15, 188900,
-                                       ifelse(depth == 0.162, 202910,
-                                              ifelse(depth == 1.6, 89100,
-                                                     ifelse(depth == 1.65, 99800,
-                                                            ifelse(depth == 1.662, 113810,
-                                                                   ifelse(depth == 3.8, 59600,
-                                                                          ifelse(depth == 3.862, 54210,
-                                                                                 ifelse(depth == 5, 40200,
-                                                                                        ifelse(depth == 5.8, 28010,
-                                                                                               ifelse(depth == 6.2, 14010,
-                                                                                                      ifelse(depth == 8, 14000,
-                                                                                                             ifelse(depth == 9, 1950, NA)))))))))))))))
+  mutate(vol_m3 = ifelse(depth == 0.1, vol_depths$Vol_m3[1],
+                         ifelse(depth == 0.138, sum(vol_depths$Vol_m3[2:3]),
+                                ifelse(depth == 0.15, sum(vol_depths$Vol_m3[2:4]),
+                                       ifelse(depth == 0.162, sum(vol_depths$Vol_m3[2:5]),
+                                              ifelse(depth == 0.18, sum(vol_depths$Vol_m3[2:6]),
+                                                     ifelse(depth == 1.6, vol_depths$Vol_m3[2],
+                                                            ifelse(depth == 1.65, sum(vol_depths$Vol_m3[3:4]),
+                                                                   ifelse(depth == 1.662, sum(vol_depths$Vol_m3[3:5]),
+                                                                          ifelse(depth == 1.68, sum(vol_depths$Vol_m3[3:6]),
+                                                                                 ifelse(depth == 3.8, vol_depths$Vol_m3[3],
+                                                                                        ifelse(depth == 3.862, sum(vol_depths$Vol_m3[4:5]),
+                                                                                               ifelse(depth == 5, vol_depths$Vol_m3[4],
+                                                                                                      ifelse(depth == 5.8, sum(vol_depths$Vol_m3[5:6]),
+                                                                                                             ifelse(depth == 6.2, vol_depths$Vol_m3[5],
+                                                                                                                    ifelse(depth == 8, vol_depths$Vol_m3[6],
+                                                                                                                           ifelse(depth == 9, vol_depths$Vol_m3[7], NA)))))))))))))))))
 
 # Need to figure out: 1. When the thermocline is moving; 2. How far the thermocline moves; 3. Then calculate
 # how much mass is moved b/c of the change in thermocline
+doc_entr <- as.data.frame(doc_entr)
+doc_box_data <- as.data.frame(doc_box_data)
 for(i in 2:length(doc_box_data$DateTime)){
   # 1. Figure out if the thermocline has moved
   if(doc_box_data$epi_vol_m3[i] > doc_box_data$epi_vol_m3[i-1]){
     doc_box_data$Entr[i] = doc_box_data$epi_vol_m3[i] - doc_box_data$epi_vol_m3[i-1]
-    x = which(doc_box_data$DateTime[i]==doc_entr$DateTime & abs(doc_box_data$Entr[i])==doc_entr$vol_m3)
+    x = which(doc_box_data$DateTime[i]==doc_entr$DateTime & abs(round(doc_box_data$Entr[i],2))==round(doc_entr$vol_m3,2))
     doc_box_data$DOC_entr_g[i] = doc_entr$DOC_g[x]
   }
   else if(doc_box_data$epi_vol_m3[i] < doc_box_data$epi_vol_m3[i-1]){
     doc_box_data$Entr[i] = doc_box_data$epi_vol_m3[i] - doc_box_data$epi_vol_m3[i-1]
-    x = which(doc_box_data$DateTime[i]==doc_entr$DateTime & abs(doc_box_data$Entr[i])==doc_entr$vol_m3)
+    x = which(doc_box_data$DateTime[i]==doc_entr$DateTime & abs(round(doc_box_data$Entr[i],2))==round(doc_entr$vol_m3,2))
     doc_box_data$DOC_entr_g[i] = -doc_entr$DOC_g[x]
   }
   else{
@@ -275,13 +282,46 @@ for(i in 2:length(doc_box_data$DateTime)){
 doc_box_data <- doc_box_data %>% 
   mutate(epi_processing_g = d_epi_g_dt-DOC_100_g*0.74-Hypo_outflow_g*0.26+Epi_outflow_g*0.74-DOC_entr_g,
          epi_processing_mgL = epi_processing_g/epi_vol_m3,
+         epi_DOC_mgL = epi_g/epi_vol_m3,
          hypo_processing_g = d_hypo_g_dt-DOC_100_g*0.26+Hypo_outflow_g*0.26+DOC_entr_g,
-         hypo_processing_mgL = hypo_processing_g/hypo_vol_m3)
+         hypo_processing_mgL = hypo_processing_g/hypo_vol_m3,
+         hypo_DOC_mgL = hypo_g/hypo_vol_m3)
 
-# Plot
+# Plot all Epi and Hypo Processing (mg/L)
 ggplot(doc_box_data)+
-  geom_line(mapping=aes(x=DateTime,y=epi_processing_mgL,color="Epi"))+
-  geom_line(mapping=aes(x=DateTime,y=hypo_processing_mgL,color="Hypo"))+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_line(mapping=aes(x=DateTime,y=epi_processing_mgL,color="Epi"),size=1)+
+  geom_line(mapping=aes(x=DateTime,y=hypo_processing_mgL,color="Hypo"),size=1)+
+  ylim(-6,3)+
+  theme_classic(base_size=15)
+
+# Plot Epi and Hypo DOC VW concentrations (mg/L)
+ggplot(doc_box_data)+
+  geom_line(mapping=aes(x=DateTime,y=epi_DOC_mgL,color="Epi"),size=1)+
+  geom_line(mapping=aes(x=DateTime,y=hypo_DOC_mgL,color="Hypo"),size=1)+
+  theme_classic(base_size=15)
+
+# Plot Epi and Hypo processing for days w/ data
+doc_box_sel <- chem_50 %>% 
+  filter(Depth_m == 0.1) %>% 
+  select(DateTime)
+
+doc_box_sel <- left_join(doc_box_sel,doc_box_data)
+
+ggplot(doc_box_sel)+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_line(mapping=aes(x=DateTime,y=epi_processing_mgL,color="Epi"),size=1)+
+  geom_point(mapping=aes(x=DateTime,y=epi_processing_mgL,color="Epi"))+
+  geom_line(mapping=aes(x=DateTime,y=hypo_processing_mgL,color="Hypo"),size=1)+
+  geom_point(mapping=aes(x=DateTime,y=hypo_processing_mgL,color="Hypo"))+
+  ylim(-2,2)+
+  theme_classic(base_size=15)
+
+ggplot(doc_box_sel)+
+  geom_line(mapping=aes(x=DateTime,y=epi_DOC_mgL,color="Epi"),size=1)+
+  geom_point(mapping=aes(x=DateTime,y=epi_DOC_mgL,color="Epi"))+
+  geom_line(mapping=aes(x=DateTime,y=hypo_DOC_mgL,color="Hypo"),size=1)+
+  geom_point(mapping=aes(x=DateTime,y=hypo_DOC_mgL,color="Hypo"))+
   theme_classic(base_size=15)
 
 #####################################################################################
