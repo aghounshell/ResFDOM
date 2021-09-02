@@ -229,6 +229,7 @@ for(i in 2:length(doc_box_data$DateTime)){
 doc_entr <- doc_box_data %>% 
   select(DateTime,DOC_0.1_g:DOC_9_g) %>% 
   rename(DOC_0.1 = DOC_0.1_g, DOC_1.6 = DOC_1.6_g, DOC_3.8 = DOC_3.8_g, DOC_5 = DOC_5_g, DOC_6.2 = DOC_6.2_g, DOC_8 = DOC_8_g, DOC_9 = DOC_9_g) %>% 
+  rowwise() %>% 
   mutate(DOC_0.138 = sum(DOC_1.6,DOC_3.8)) %>% #Create a new 'depth' where bottom of epi goes from 0.1 to 3.8 m (0.138)
   mutate(DOC_0.15 = sum(DOC_1.6,DOC_3.8,DOC_5)) %>% # Create a new 'depth' where bottom of epi goes from 0.1 to 5 m (0.15)
   mutate(DOC_0.162 = sum(DOC_1.6,DOC_3.8,DOC_5,DOC_6.2)) %>% # Creating a new 'depth' where bottom of epi goes from 0.1 to 6.2 m (0.162)
@@ -280,51 +281,88 @@ for(i in 2:length(doc_box_data$DateTime)){
 
 ### Then calculate 'processing' for epi and hypo ----
 doc_box_data <- doc_box_data %>% 
-  mutate(epi_processing_g = d_epi_g_dt-DOC_100_g*0.74-Hypo_outflow_g*0.26+Epi_outflow_g*0.74-DOC_entr_g,
+  mutate(epi_processing_g = d_epi_g_dt-DOC_100_g*0.74-Hypo_outflow_g*0.26+Epi_outflow_g-DOC_entr_g,
          epi_processing_mgL = epi_processing_g/epi_vol_m3,
          epi_DOC_mgL = epi_g/epi_vol_m3,
          hypo_processing_g = d_hypo_g_dt-DOC_100_g*0.26+Hypo_outflow_g*0.26+DOC_entr_g,
          hypo_processing_mgL = hypo_processing_g/hypo_vol_m3,
-         hypo_DOC_mgL = hypo_g/hypo_vol_m3)
-
-# Plot all Epi and Hypo Processing (mg/L)
-ggplot(doc_box_data)+
-  geom_hline(yintercept = 0, linetype = "dashed")+
-  geom_line(mapping=aes(x=DateTime,y=epi_processing_mgL,color="Epi"),size=1)+
-  geom_line(mapping=aes(x=DateTime,y=hypo_processing_mgL,color="Hypo"),size=1)+
-  ylim(-6,3)+
-  theme_classic(base_size=15)
-
-# Plot Epi and Hypo DOC VW concentrations (mg/L)
-ggplot(doc_box_data)+
-  geom_line(mapping=aes(x=DateTime,y=epi_DOC_mgL,color="Epi"),size=1)+
-  geom_line(mapping=aes(x=DateTime,y=hypo_DOC_mgL,color="Hypo"),size=1)+
-  theme_classic(base_size=15)
+         hypo_DOC_mgL = hypo_g/hypo_vol_m3,
+         DOC_entr_mgL = DOC_entr_g/abs(Entr))
 
 # Plot Epi and Hypo processing for days w/ data
 doc_box_sel <- chem_50 %>% 
-  filter(Depth_m == 0.1) %>% 
-  select(DateTime)
+  distinct(DateTime)
 
-doc_box_sel <- left_join(doc_box_sel,doc_box_data)
+doc_box_sel <- left_join(doc_box_sel,doc_box_data,by="DateTime")
 
-ggplot(doc_box_sel)+
+# Plot Epi and Hypo DOC VW concentrations (mg/L)
+doc_conc <- ggplot(chem_50,mapping=aes(x=DateTime,y=DOC_mgL,color=as.factor(Depth_m)))+
+  geom_line()+
+  geom_point()
+
+doc_box_conc <- ggplot(doc_box_data)+
+  geom_line(mapping=aes(x=DateTime,y=epi_DOC_mgL,color="Epi"))+
+  geom_point(doc_box_sel,mapping=aes(x=DateTime,y=epi_DOC_mgL,color="Epi"))+
+  geom_line(mapping=aes(x=DateTime,y=hypo_DOC_mgL,color="Hypo"))+
+  geom_point(doc_box_sel,mapping=aes(x=DateTime,y=hypo_DOC_mgL,color="Hypo"))
+
+ggarrange(doc_conc,doc_box_conc,nrow=2,ncol=1)
+
+ggsave("./Fig_Output/DOC_Concentrations.jpg",width=10,height=12,units="in",dpi=320)
+
+# Plot all processes for the epi
+epi_flows <- ggplot(doc_box_data)+
+  geom_line(mapping=aes(x=DateTime,y=DOC_100_g*0.74,color="Epi_Inflow"))+
+  geom_point(doc_box_sel,mapping=aes(x=DateTime,y=DOC_100_g*0.74,color="Epi_Inflow"))+
+  geom_line(mapping=aes(x=DateTime,y=Epi_outflow_g,color="Epi_Outflow"))+
+  geom_point(doc_box_sel,mapping=aes(x=DateTime,y=Epi_outflow_g,color="Epi_Outflow"))+
+  geom_line(mapping=aes(x=DateTime,y=Hypo_outflow_g*0.26,color="Hypo_Inflow"))+
+  geom_point(doc_box_sel,mapping=aes(x=DateTime,y=Hypo_outflow_g*0.26,color="Hypo_Inflow"))
+  
+epi_change <- ggplot(doc_box_data)+
+  geom_line(mapping=aes(x=DateTime,y=d_epi_g_dt,color="DOC/dt"))+
+  geom_point(doc_box_sel,mapping=aes(x=DateTime,y=d_epi_g_dt,color="DOC/dt"))+
+  geom_line(mapping=aes(x=DateTime,y=DOC_entr_g,color="Entrain"))+
+  geom_point(doc_box_sel,mapping=aes(x=DateTime,y=DOC_entr_g,color="Entrain"))
+
+epi_process <- ggplot(doc_box_data,mapping=aes(x=DateTime,y=epi_processing_mgL,color="Epi_Processing"))+
   geom_hline(yintercept = 0, linetype = "dashed")+
-  geom_line(mapping=aes(x=DateTime,y=epi_processing_mgL,color="Epi"),size=1)+
-  geom_point(mapping=aes(x=DateTime,y=epi_processing_mgL,color="Epi"))+
-  geom_line(mapping=aes(x=DateTime,y=hypo_processing_mgL,color="Hypo"),size=1)+
-  geom_point(mapping=aes(x=DateTime,y=hypo_processing_mgL,color="Hypo"))+
-  ylim(-2,2)+
-  theme_classic(base_size=15)
+  geom_line()+
+  geom_point(doc_box_sel,mapping=aes(x=DateTime,y=epi_processing_mgL,color="Epi_Processing"))
 
-ggplot(doc_box_sel)+
-  geom_line(mapping=aes(x=DateTime,y=epi_DOC_mgL,color="Epi"),size=1)+
-  geom_point(mapping=aes(x=DateTime,y=epi_DOC_mgL,color="Epi"))+
-  geom_line(mapping=aes(x=DateTime,y=hypo_DOC_mgL,color="Hypo"),size=1)+
-  geom_point(mapping=aes(x=DateTime,y=hypo_DOC_mgL,color="Hypo"))+
-  theme_classic(base_size=15)
+ggarrange(epi_flows,epi_change,epi_process,nrow=3,ncol=1)
+
+ggsave("./Fig_Output/Epi_DOC_Processes.jpg",width=10,height=12,units="in",dpi=320)
+
+# Plot all processes for the hypo
+hypo_flows <- ggplot(doc_box_data)+
+  geom_line(mapping=aes(x=DateTime,y=DOC_100_g*0.26,color="Hypo_Inflow"))+
+  geom_point(doc_box_sel,mapping=aes(x=DateTime,y=DOC_100_g*0.26,color="Hypo_Inflow"))+
+  geom_line(mapping=aes(x=DateTime,y=Hypo_outflow_g*0.26,color="Hypo_Outflow"))+
+  geom_point(doc_box_sel,mapping=aes(x=DateTime,y=Hypo_outflow_g*0.26,color="Hypo_Outflow"))
+
+hypo_change <- ggplot(doc_box_data)+
+  geom_line(mapping=aes(x=DateTime,y=d_hypo_g_dt,color="DOC/dt"))+
+  geom_point(doc_box_sel,mapping=aes(x=DateTime,y=d_hypo_g_dt,color="DOC/dt"))+
+  geom_line(mapping=aes(x=DateTime,y=-1*DOC_entr_g,color="Entrain"))+
+  geom_point(doc_box_sel,mapping=aes(x=DateTime,y=-1*DOC_entr_g,color="Entrain"))
+
+hypo_process <- ggplot(doc_box_data)+
+  geom_line(mapping=aes(x=DateTime,y=hypo_processing_mgL,color="Hypo_Processing"))+
+  geom_point(doc_box_sel,mapping=aes(x=DateTime,y=hypo_processing_mgL,color="Hypo_Processing"))
+
+ggarrange(hypo_flows,hypo_change,hypo_process,nrow=3,ncol=1)
+
+ggsave("./Fig_Output/Hypo_DOC_Processes.jpg",width=10,height=12,units="in",dpi=320)
 
 #####################################################################################
+
+# Plot stratification
+ggplot(la_results)+
+  geom_line(mapping=aes(x=DateTime,y=-SthermD))+
+  geom_point(mapping=aes(x=DateTime,y=-SthermD))+
+  xlim(as.POSIXct("2015-01-01"),as.POSIXct("2020-12-31"))+
+  theme_classic(base_size = 15)
 
 ### Load in Flora data for Chla ----
 # Load from EDI: downloaded on 10 June 2021
@@ -383,37 +421,87 @@ flora_depths <- as.data.frame(super_final) %>%
 flora_depths$TotalConc_ugL <- as.numeric(flora_depths$TotalConc_ugL)
 flora_depths$new_depth <- as.numeric(flora_depths$new_depth)
 
-# Separate and calculate VW [DOC] for Epi and Hypo: from 2016 to 2020
-flora_epi <- flora_depths %>% 
-  select(DateTime,new_depth,TotalConc_ugL) %>% 
-  drop_na() %>% 
-  filter(new_depth %in% c(0.1,1.6,3.8)) %>% 
+# Format long
+flora_depths_2 <- flora_depths %>% 
+  select(DateTime,TotalConc_ugL,new_depth) %>% 
+  relocate(new_depth,.before=TotalConc_ugL) %>% 
   pivot_wider(names_from = new_depth, values_from = TotalConc_ugL, values_fil = NA, values_fn = mean, names_prefix = "Chla_") %>% 
-  mutate(Chla_0.1 = na.fill(na.approx(Chla_0.1,na.rm=FALSE),"extend")) %>% 
-  mutate(Chla_1.6 = na.fill(na.approx(Chla_1.6,na.rm=FALSE),"extend")) %>% 
-  mutate(Chla_3.8 = na.fill(na.approx(Chla_3.8,na.rm=FALSE),"extend")) %>% 
-  mutate(VW_Epi_Chla_mgL = ((Chla_0.1*1.38*10^5)+(Chla_1.6*8.91*10^4)+(Chla_3.8*5.96*10^4))/((1.38*10^5)+(8.91*10^4)+(5.96*10^4))) %>% 
-  mutate(month = month(DateTime))
+  mutate(Chla_0.1_ug = Chla_0.1*vol_depths$Vol_m3[1]*1000) %>% 
+  mutate(Chla_1.6_ug = Chla_1.6*vol_depths$Vol_m3[2]*1000) %>% 
+  mutate(Chla_3.8_ug = Chla_3.8*vol_depths$Vol_m3[3]*1000) %>% 
+  mutate(Chla_5_ug = Chla_5*vol_depths$Vol_m3[4]*1000) %>% 
+  mutate(Chla_6.2_ug = Chla_6.2*vol_depths$Vol_m3[5]*1000) %>% 
+  mutate(Chla_8_ug = Chla_8*vol_depths$Vol_m3[6]*1000) %>% 
+  mutate(Chla_9_ug = Chla_9*vol_depths$Vol_m3[7]*1000)
 
-flora_hypo <- flora_depths %>% 
-  select(DateTime,new_depth,TotalConc_ugL) %>% 
-  drop_na() %>% 
-  filter(new_depth %in% c(5,6.2,8,9)) %>% 
-  pivot_wider(names_from = new_depth, values_from = TotalConc_ugL, values_fil = NA, values_fn = mean, names_prefix = "Chla_") %>% 
-  mutate(Chla_5 = na.fill(na.approx(Chla_5,na.rm=FALSE),"extend")) %>% 
-  mutate(Chla_6.2 = na.fill(na.approx(Chla_6.2,na.rm=FALSE),"extend")) %>%   
-  mutate(Chla_8 = na.fill(na.approx(Chla_8,na.rm=FALSE),"extend")) %>% 
-  mutate(Chla_9 = na.fill(na.approx(Chla_9,na.rm=FALSE),"extend")) %>% 
-  mutate(VW_Hypo_Chla_mgL = ((Chla_5*4.02*10^4)+(Chla_6.2*1.40*10^4)+(Chla_8*1.40*10^4)+(Chla_9*1.95*10^3))/((4.02*10^4)+(1.40*10^4)+(1.40*10^4)+(1.95*10^3))) %>% 
-  mutate(month = month(DateTime))
+# Add in thermocline depth information
+flora_depths_3 <- left_join(flora_depths_2,la_results,by="DateTime") %>% 
+  select(-St,-thermD,-N2,-SN2,-metaT,-metaB,-SmetaB,-SmetaT) %>% 
+  mutate(SthermD = na.fill(na.approx(SthermD, na.rm=FALSE),"extend"))
 
-# Plot VW Epi and VW Hypo: WILL NEED TO UPDATE FOR MS
-ggplot()+
-  geom_point(flora_epi,mapping=aes(x=DateTime,y=VW_Epi_Chla_mgL,color="VW Epi"))+
-  geom_line(flora_epi,mapping=aes(x=DateTime,y=VW_Epi_Chla_mgL,color="VW Epi"))+
-  geom_point(flora_hypo,mapping=aes(x=DateTime,y=VW_Hypo_Chla_mgL,color="VW Hypo"))+
-  geom_line(flora_hypo,mapping=aes(x=DateTime,y=VW_Hypo_Chla_mgL,color="VW Hypo"))+
-  theme_classic(base_size=15)
+### Thinking about how to designate Epi vs. Hypo what parameters depend on this:
+# Mass of Epi vs. Mass of Hypo
+# 'Outflow' to Epi from Hypo: concentration * outflow * scaled outflow = mass/day
+
+# First, determine outflow concentration
+flora_depths_3 <- flora_depths_3 %>% 
+  mutate(SthermD = round(SthermD,digits=1)) %>% 
+  mutate(epi_bottomg_depth_m = ifelse(SthermD > 9.0, 9.0,
+                                      ifelse(SthermD > 7.0, 8.0,
+                                             ifelse(SthermD > 6.0, 6.2,
+                                                    ifelse(SthermD > 4.4, 5.0,
+                                                           ifelse(SthermD > 3.0, 3.8,
+                                                                  ifelse(SthermD > 1.6, 1.6,
+                                                                         ifelse(SthermD > 0.0, 0.1, NA)))))))) %>% 
+  mutate(hypo_top_depth_m = ifelse(SthermD <= 0.0, 0.1,
+                                   ifelse(SthermD <= 1.6, 1.6,
+                                          ifelse(SthermD <= 3.0, 3.8,
+                                                 ifelse(SthermD <= 4.4, 5.0,
+                                                        ifelse(SthermD <= 6.0, 6.2,
+                                                               ifelse(SthermD <= 7.0, 8.0,
+                                                                      ifelse(SthermD <= 9.0, 9.0, NA))))))))
+
+
+### Calculate DOC/dt
+# First need to figure out how the thermocline is changing
+flora_depths_3 <- flora_depths_3 %>% 
+  mutate(epi_ug = ifelse(epi_bottomg_depth_m==0.1,Chla_0.1_ug,
+                        ifelse(epi_bottomg_depth_m==1.6,Chla_0.1_ug+Chla_1.6_ug,
+                               ifelse(epi_bottomg_depth_m==3.8,Chla_0.1_ug+Chla_1.6_ug+Chla_3.8_ug,
+                                      ifelse(epi_bottomg_depth_m==5.0,Chla_0.1_ug+Chla_1.6_ug+Chla_3.8_ug+Chla_5_ug,
+                                             ifelse(epi_bottomg_depth_m==6.2,Chla_0.1_ug+Chla_1.6_ug+Chla_3.8_ug+Chla_5_ug+Chla_6.2_ug,
+                                                    ifelse(epi_bottomg_depth_m==8.0,Chla_0.1_ug+Chla_1.6_ug+Chla_3.8_ug+Chla_5_ug+Chla_6.2_ug+Chla_8_ug,
+                                                           ifelse(epi_bottomg_depth_m==9.0,Chla_0.1_ug+Chla_1.6_ug+Chla_3.8_ug+Chla_5_ug+Chla_6.2_ug+Chla_8_ug+Chla_9_ug,NA)))))))) %>% 
+  mutate(hypo_ug = ifelse(hypo_top_depth_m==0.1,Chla_0.1_ug+Chla_1.6_ug+Chla_3.8_ug+Chla_5_ug+Chla_6.2_ug+Chla_8_ug+Chla_9_ug,
+                         ifelse(hypo_top_depth_m==1.6,Chla_1.6_ug+Chla_3.8_ug+Chla_5_ug+Chla_6.2_ug+Chla_8_ug+Chla_9_ug,
+                                ifelse(hypo_top_depth_m==3.8,Chla_3.8_ug+Chla_5_ug+Chla_6.2_ug+Chla_8_ug+Chla_9_ug,
+                                       ifelse(hypo_top_depth_m==5.0,Chla_5_ug+Chla_6.2_ug+Chla_8_ug+Chla_9_ug,
+                                              ifelse(hypo_top_depth_m==6.2,Chla_6.2_ug+Chla_8_ug+Chla_9_ug,
+                                                     ifelse(hypo_top_depth_m==8.0,Chla_8_ug+Chla_9_ug,
+                                                            ifelse(hypo_top_depth_m==9.0,Chla_9_ug,NA)))))))) %>% 
+  mutate(epi_vol_m3 = ifelse(epi_bottomg_depth_m==0.1,sum(vol_depths$Vol_m3[1]),
+                             ifelse(epi_bottomg_depth_m==1.6,sum(vol_depths$Vol_m3[1:2]),
+                                    ifelse(epi_bottomg_depth_m==3.8,sum(vol_depths$Vol_m3[1:3]),
+                                           ifelse(epi_bottomg_depth_m==5.0,sum(vol_depths$Vol_m3[1:4]),
+                                                  ifelse(epi_bottomg_depth_m==6.2,sum(vol_depths$Vol_m3[1:5]),
+                                                         ifelse(epi_bottomg_depth_m==8.0,sum(vol_depths$Vol_m3[1:6]),
+                                                                ifelse(epi_bottomg_depth_m==9.0,sum(vol_depths$Vol_m3[1:7]),NA)))))))) %>% 
+  mutate(hypo_vol_m3 = ifelse(hypo_top_depth_m==0.1,sum(vol_depths$Vol_m3[1:7]),
+                              ifelse(hypo_top_depth_m==1.6,sum(vol_depths$Vol_m3[2:7]),
+                                     ifelse(hypo_top_depth_m==3.8,sum(vol_depths$Vol_m3[3:7]),
+                                            ifelse(hypo_top_depth_m==5.0,sum(vol_depths$Vol_m3[4:7]),
+                                                   ifelse(hypo_top_depth_m==6.2,sum(vol_depths$Vol_m3[5:7]),
+                                                          ifelse(hypo_top_depth_m==8.0,sum(vol_depths$Vol_m3[6:7]),
+                                                                 ifelse(hypo_top_depth_m==9.0,sum(vol_depths$Vol_m3[7]),NA)))))))) %>% 
+  mutate(epi_ugL = epi_ug/epi_vol_m3/1000,
+         hypo_ugL = hypo_ug/hypo_vol_m3/1000)
+
+# Plot!
+ggplot(flora_depths_3)+
+  geom_line(mapping=aes(x=DateTime,y=epi_ugL,color="Epi"))+
+  geom_point(mapping=aes(x=DateTime,y=epi_ugL,color="Epi"))+
+  geom_line(mapping=aes(x=DateTime,y=hypo_ugL,color="Hypo"))+
+  geom_point(mapping=aes(x=DateTime,y=hypo_ugL,color="Hypo"))
 
 ### Load in CTD and YSI data ----
 #need to import CTD observations from EDI
