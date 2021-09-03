@@ -496,13 +496,6 @@ flora_depths_3 <- flora_depths_3 %>%
   mutate(epi_ugL = epi_ug/epi_vol_m3/1000,
          hypo_ugL = hypo_ug/hypo_vol_m3/1000)
 
-# Plot!
-ggplot(flora_depths_3)+
-  geom_line(mapping=aes(x=DateTime,y=epi_ugL,color="Epi"))+
-  geom_point(mapping=aes(x=DateTime,y=epi_ugL,color="Epi"))+
-  geom_line(mapping=aes(x=DateTime,y=hypo_ugL,color="Hypo"))+
-  geom_point(mapping=aes(x=DateTime,y=hypo_ugL,color="Hypo"))
-
 ### Load in CTD and YSI data ----
 #need to import CTD observations from EDI
 #inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/200/11/d771f5e9956304424c3bc0a39298a5ce" 
@@ -648,55 +641,166 @@ ctd_50_depths_2 <- ctd_50_depths_2 %>%
 
 ctd_50_depths_2$calc_DO_pSat <- as.numeric(ctd_50_depths_2$calc_DO_pSat)
 
+# Filter out 2019-05-30: Funky cast!
+ctd_50_depths_2 <- ctd_50_depths_2 %>% 
+  filter(time != as.POSIXct("2019-05-30"))
+
 # Calculate VW Epi and VW Hypo
-ctd_50_epi <- ctd_50_depths_2 %>% 
-  filter(depth %in% c(0.1,1.6,3.8)) %>% 
+ctd_50_depths_3 <- ctd_50_depths_2 %>% 
   filter(time >= as.POSIXct("2015-01-01")) %>% 
   select(time,Temp_C,DO_mgL,calc_DO_pSat,depth) %>% 
   pivot_wider(names_from = depth, values_from = c(Temp_C,DO_mgL,calc_DO_pSat), values_fil = NA, values_fn = mean)
 
-ctd_50_epi <- na.omit(ctd_50_epi)
+ctd_50_depths_3 <- na.omit(ctd_50_depths_3)
 
-ctd_50_epi <- ctd_50_epi %>% 
-  mutate(VW_temp_c = ((Temp_C_0.1*1.38*10^5)+(Temp_C_1.6*8.91*10^4)+(Temp_C_3.8*5.96*10^4))/((1.38*10^5)+(8.91*10^4)+(5.96*10^4))) %>% 
-  mutate(VW_DO_mgL = ((DO_mgL_0.1*1.38*10^5)+(DO_mgL_1.6*8.91*10^4)+(DO_mgL_3.8*5.96*10^4))/((1.38*10^5)+(8.91*10^4)+(5.96*10^4))) %>% 
-  mutate(VW_pSat_DO = ((calc_DO_pSat_0.1*1.38*10^5)+(calc_DO_pSat_1.6*8.91*10^4)+(calc_DO_pSat_3.8*5.96*10^4))/((1.38*10^5)+(8.91*10^4)+(5.96*10^4))) %>% 
-  mutate(month = month(time))
+ctd_50_depths_3 <- ctd_50_depths_3 %>% 
+  mutate(Temp_C_0.1 = Temp_C_0.1*vol_depths$Vol_m3[1]*1000) %>% 
+  mutate(Temp_C_1.6 = Temp_C_1.6*vol_depths$Vol_m3[2]*1000) %>% 
+  mutate(Temp_C_3.8 = Temp_C_3.8*vol_depths$Vol_m3[3]*1000) %>% 
+  mutate(Temp_C_5 = Temp_C_5*vol_depths$Vol_m3[4]*1000) %>% 
+  mutate(Temp_C_6.2 = Temp_C_6.2*vol_depths$Vol_m3[5]*1000) %>% 
+  mutate(Temp_C_8 = Temp_C_8*vol_depths$Vol_m3[6]*1000) %>% 
+  mutate(Temp_C_9 = Temp_C_9*vol_depths$Vol_m3[7]*1000) %>% 
+  mutate(DO_0.1_mg = DO_mgL_0.1*vol_depths$Vol_m3[1]*1000) %>% 
+  mutate(DO_1.6_mg = DO_mgL_1.6*vol_depths$Vol_m3[2]*1000) %>% 
+  mutate(DO_3.8_mg = DO_mgL_3.8*vol_depths$Vol_m3[3]*1000) %>% 
+  mutate(DO_5_mg = DO_mgL_5*vol_depths$Vol_m3[4]*1000) %>% 
+  mutate(DO_6.2_mg = DO_mgL_6.2*vol_depths$Vol_m3[5]*1000) %>% 
+  mutate(DO_8_mg = DO_mgL_8*vol_depths$Vol_m3[6]*1000) %>% 
+  mutate(DO_9_mg = DO_mgL_9*vol_depths$Vol_m3[7]*1000) %>% 
+  mutate(calc_DO_pSat_0.1 = calc_DO_pSat_0.1*vol_depths$Vol_m3[1]*1000) %>% 
+  mutate(calc_DO_pSat_1.6 = calc_DO_pSat_1.6*vol_depths$Vol_m3[2]*1000) %>% 
+  mutate(calc_DO_pSat_3.8 = calc_DO_pSat_3.8*vol_depths$Vol_m3[3]*1000) %>% 
+  mutate(calc_DO_pSat_5 = calc_DO_pSat_5*vol_depths$Vol_m3[4]*1000) %>% 
+  mutate(calc_DO_pSat_6.2 = calc_DO_pSat_6.2*vol_depths$Vol_m3[5]*1000) %>% 
+  mutate(calc_DO_pSat_8 = calc_DO_pSat_8*vol_depths$Vol_m3[6]*1000) %>% 
+  mutate(calc_DO_pSat_9 = calc_DO_pSat_9*vol_depths$Vol_m3[7]*1000) %>% 
+  rename(DateTime = time)
 
-ctd_50_hypo <- ctd_50_depths_2 %>% 
-  filter(depth %in% c(5.0,6.2,8.0,9.0)) %>% 
-  filter(time >= as.POSIXct("2015-01-01")) %>% 
-  select(time,Temp_C,DO_mgL,calc_DO_pSat,depth) %>% 
-  pivot_wider(names_from = depth, values_from = c(Temp_C,DO_mgL,calc_DO_pSat), values_fil = NA, values_fn = mean)
+# Add in thermocline depth information
+ctd_depths <- left_join(ctd_50_depths_3,la_results,by="DateTime") %>% 
+  select(-St,-thermD,-N2,-SN2,-metaT,-metaB,-SmetaB,-SmetaT) %>% 
+  mutate(SthermD = na.fill(na.approx(SthermD, na.rm=FALSE),"extend"))
 
-ctd_50_hypo <- na.omit(ctd_50_hypo)
+### Thinking about how to designate Epi vs. Hypo what parameters depend on this:
+# Mass of Epi vs. Mass of Hypo
+# 'Outflow' to Epi from Hypo: concentration * outflow * scaled outflow = mass/day
 
-ctd_50_hypo <- ctd_50_hypo %>% 
-  mutate(VW_temp_c = ((Temp_C_5*4.02*10^4)+(Temp_C_6.2*1.40*10^4)+(Temp_C_8*1.40*10^4)+(Temp_C_9*1.95*10^3))/((4.02*10^4)+(1.40*10^4)+(1.40*10^4)+(1.95*10^3))) %>% 
-  mutate(VW_DO_mgL = ((DO_mgL_5*4.02*10^4)+(DO_mgL_6.2*1.40*10^4)+(DO_mgL_8*1.40*10^4)+(DO_mgL_9*1.95*10^3))/((4.02*10^4)+(1.40*10^4)+(1.40*10^4)+(1.95*10^3))) %>% 
-  mutate(VW_pSat_DO = ((calc_DO_pSat_5*4.02*10^4)+(calc_DO_pSat_6.2*1.40*10^4)+(calc_DO_pSat_8*1.40*10^4)+(calc_DO_pSat_9*1.95*10^3))/((4.02*10^4)+(1.40*10^4)+(1.40*10^4)+(1.95*10^3))) %>% 
-  mutate(month = month(time))
+# First, determine outflow concentration
+ctd_depths <- ctd_depths %>% 
+  mutate(SthermD = round(SthermD,digits=1)) %>% 
+  mutate(epi_bottomg_depth_m = ifelse(SthermD > 9.0, 9.0,
+                                      ifelse(SthermD > 7.0, 8.0,
+                                             ifelse(SthermD > 6.0, 6.2,
+                                                    ifelse(SthermD > 4.4, 5.0,
+                                                           ifelse(SthermD > 3.0, 3.8,
+                                                                  ifelse(SthermD > 1.6, 1.6,
+                                                                         ifelse(SthermD > 0.0, 0.1, NA)))))))) %>% 
+  mutate(hypo_top_depth_m = ifelse(SthermD <= 0.0, 0.1,
+                                   ifelse(SthermD <= 1.6, 1.6,
+                                          ifelse(SthermD <= 3.0, 3.8,
+                                                 ifelse(SthermD <= 4.4, 5.0,
+                                                        ifelse(SthermD <= 6.0, 6.2,
+                                                               ifelse(SthermD <= 7.0, 8.0,
+                                                                      ifelse(SthermD <= 9.0, 9.0, NA))))))))
 
-# Plot for now: VW Temp
-ggplot()+
-  geom_point(ctd_50_epi,mapping=aes(x=time,y=VW_temp_c,color="VW Epi"))+
-  geom_line(ctd_50_epi,mapping=aes(x=time,y=VW_temp_c,color="VW Epi"))+
-  geom_point(ctd_50_hypo,mapping=aes(x=time,y=VW_temp_c,color="VW Hypo"))+
-  geom_line(ctd_50_hypo,mapping=aes(x=time,y=VW_temp_c,color="VW Hypo"))+
-  theme_classic(base_size=15)
 
-# Plot VW DO_Sat
-ggplot()+
-  geom_point(ctd_50_epi,mapping=aes(x=time,y=VW_pSat_DO,color="VW Epi"))+
-  geom_line(ctd_50_epi,mapping=aes(x=time,y=VW_pSat_DO,color="VW Epi"))+
-  geom_point(ctd_50_hypo,mapping=aes(x=time,y=VW_pSat_DO,color="VW Hypo"))+
-  geom_line(ctd_50_hypo,mapping=aes(x=time,y=VW_pSat_DO,color="VW Hypo"))+
-  theme_classic(base_size=15)
+### Calculate DOC/dt
+# First need to figure out how the thermocline is changing
+ctd_depths <- ctd_depths %>% 
+  mutate(epi_Temp_C = ifelse(epi_bottomg_depth_m==0.1,Temp_C_0.1,
+                         ifelse(epi_bottomg_depth_m==1.6,Temp_C_0.1+Temp_C_1.6,
+                                ifelse(epi_bottomg_depth_m==3.8,Temp_C_0.1+Temp_C_1.6+Temp_C_3.8,
+                                       ifelse(epi_bottomg_depth_m==5.0,Temp_C_0.1+Temp_C_1.6+Temp_C_3.8+Temp_C_5,
+                                              ifelse(epi_bottomg_depth_m==6.2,Temp_C_0.1+Temp_C_1.6+Temp_C_3.8+Temp_C_5+Temp_C_6.2,
+                                                     ifelse(epi_bottomg_depth_m==8.0,Temp_C_0.1+Temp_C_1.6+Temp_C_3.8+Temp_C_5+Temp_C_6.2+Temp_C_8,
+                                                            ifelse(epi_bottomg_depth_m==9.0,Temp_C_0.1+Temp_C_1.6+Temp_C_3.8+Temp_C_5+Temp_C_6.2+Temp_C_8+Temp_C_9,NA)))))))) %>% 
+  mutate(hypo_Temp_C = ifelse(hypo_top_depth_m==0.1,Temp_C_0.1+Temp_C_1.6+Temp_C_3.8+Temp_C_5+Temp_C_6.2+Temp_C_8+Temp_C_9,
+                          ifelse(hypo_top_depth_m==1.6,Temp_C_1.6+Temp_C_3.8+Temp_C_5+Temp_C_6.2+Temp_C_8+Temp_C_9,
+                                 ifelse(hypo_top_depth_m==3.8,Temp_C_3.8+Temp_C_5+Temp_C_6.2+Temp_C_8+Temp_C_9,
+                                        ifelse(hypo_top_depth_m==5.0,Temp_C_5+Temp_C_6.2+Temp_C_8+Temp_C_9,
+                                               ifelse(hypo_top_depth_m==6.2,Temp_C_6.2+Temp_C_8+Temp_C_9,
+                                                      ifelse(hypo_top_depth_m==8.0,Temp_C_8+Temp_C_9,
+                                                             ifelse(hypo_top_depth_m==9.0,Temp_C_9,NA)))))))) %>% 
+  mutate(epi_DO_mg = ifelse(epi_bottomg_depth_m==0.1,DO_0.1_mg,
+                             ifelse(epi_bottomg_depth_m==1.6,DO_0.1_mg+DO_1.6_mg,
+                                    ifelse(epi_bottomg_depth_m==3.8,DO_0.1_mg+DO_1.6_mg+DO_3.8_mg,
+                                           ifelse(epi_bottomg_depth_m==5.0,DO_0.1_mg+DO_1.6_mg+DO_3.8_mg+DO_5_mg,
+                                                  ifelse(epi_bottomg_depth_m==6.2,DO_0.1_mg+DO_1.6_mg+DO_3.8_mg+DO_5_mg+DO_6.2_mg,
+                                                         ifelse(epi_bottomg_depth_m==8.0,DO_0.1_mg+DO_1.6_mg+DO_3.8_mg+DO_5_mg+DO_6.2_mg+DO_8_mg,
+                                                                ifelse(epi_bottomg_depth_m==9.0,DO_0.1_mg+DO_1.6_mg+DO_3.8_mg+DO_5_mg+DO_6.2_mg+DO_8_mg+DO_9_mg,NA)))))))) %>% 
+  mutate(hypo_DO_mg = ifelse(hypo_top_depth_m==0.1,DO_0.1_mg+DO_1.6_mg+DO_3.8_mg+DO_5_mg+DO_6.2_mg+DO_8_mg+DO_9_mg,
+                              ifelse(hypo_top_depth_m==1.6,DO_1.6_mg+DO_3.8_mg+DO_5_mg+DO_6.2_mg+DO_8_mg+DO_9_mg,
+                                     ifelse(hypo_top_depth_m==3.8,DO_3.8_mg+DO_5_mg+DO_6.2_mg+DO_8_mg+DO_9_mg,
+                                            ifelse(hypo_top_depth_m==5.0,DO_5_mg+DO_6.2_mg+DO_8_mg+DO_9_mg,
+                                                   ifelse(hypo_top_depth_m==6.2,DO_6.2_mg+DO_8_mg+DO_9_mg,
+                                                          ifelse(hypo_top_depth_m==8.0,DO_8_mg+DO_9_mg,
+                                                                 ifelse(hypo_top_depth_m==9.0,DO_9_mg,NA)))))))) %>% 
+  mutate(epi_calc_DO_pSat = ifelse(epi_bottomg_depth_m==0.1,calc_DO_pSat_0.1,
+                             ifelse(epi_bottomg_depth_m==1.6,calc_DO_pSat_0.1+calc_DO_pSat_1.6,
+                                    ifelse(epi_bottomg_depth_m==3.8,calc_DO_pSat_0.1+calc_DO_pSat_1.6+calc_DO_pSat_3.8,
+                                           ifelse(epi_bottomg_depth_m==5.0,calc_DO_pSat_0.1+calc_DO_pSat_1.6+calc_DO_pSat_3.8+calc_DO_pSat_5,
+                                                  ifelse(epi_bottomg_depth_m==6.2,calc_DO_pSat_0.1+calc_DO_pSat_1.6+calc_DO_pSat_3.8+calc_DO_pSat_5+calc_DO_pSat_6.2,
+                                                         ifelse(epi_bottomg_depth_m==8.0,calc_DO_pSat_0.1+calc_DO_pSat_1.6+calc_DO_pSat_3.8+calc_DO_pSat_5+calc_DO_pSat_6.2+calc_DO_pSat_8,
+                                                                ifelse(epi_bottomg_depth_m==9.0,calc_DO_pSat_0.1+calc_DO_pSat_1.6+calc_DO_pSat_3.8+calc_DO_pSat_5+calc_DO_pSat_6.2+calc_DO_pSat_8+calc_DO_pSat_9,NA)))))))) %>% 
+  mutate(hypo_calc_DO_pSat = ifelse(hypo_top_depth_m==0.1,calc_DO_pSat_0.1+calc_DO_pSat_1.6+calc_DO_pSat_3.8+calc_DO_pSat_5+calc_DO_pSat_6.2+calc_DO_pSat_8+calc_DO_pSat_9,
+                              ifelse(hypo_top_depth_m==1.6,calc_DO_pSat_1.6+calc_DO_pSat_3.8+calc_DO_pSat_5+calc_DO_pSat_6.2+calc_DO_pSat_8+calc_DO_pSat_9,
+                                     ifelse(hypo_top_depth_m==3.8,calc_DO_pSat_3.8+calc_DO_pSat_5+calc_DO_pSat_6.2+calc_DO_pSat_8+calc_DO_pSat_9,
+                                            ifelse(hypo_top_depth_m==5.0,calc_DO_pSat_5+calc_DO_pSat_6.2+calc_DO_pSat_8+calc_DO_pSat_9,
+                                                   ifelse(hypo_top_depth_m==6.2,calc_DO_pSat_6.2+calc_DO_pSat_8+calc_DO_pSat_9,
+                                                          ifelse(hypo_top_depth_m==8.0,calc_DO_pSat_8+calc_DO_pSat_9,
+                                                                 ifelse(hypo_top_depth_m==9.0,calc_DO_pSat_9,NA)))))))) %>% 
+  mutate(epi_vol_m3 = ifelse(epi_bottomg_depth_m==0.1,sum(vol_depths$Vol_m3[1]),
+                             ifelse(epi_bottomg_depth_m==1.6,sum(vol_depths$Vol_m3[1:2]),
+                                    ifelse(epi_bottomg_depth_m==3.8,sum(vol_depths$Vol_m3[1:3]),
+                                           ifelse(epi_bottomg_depth_m==5.0,sum(vol_depths$Vol_m3[1:4]),
+                                                  ifelse(epi_bottomg_depth_m==6.2,sum(vol_depths$Vol_m3[1:5]),
+                                                         ifelse(epi_bottomg_depth_m==8.0,sum(vol_depths$Vol_m3[1:6]),
+                                                                ifelse(epi_bottomg_depth_m==9.0,sum(vol_depths$Vol_m3[1:7]),NA)))))))) %>% 
+  mutate(hypo_vol_m3 = ifelse(hypo_top_depth_m==0.1,sum(vol_depths$Vol_m3[1:7]),
+                              ifelse(hypo_top_depth_m==1.6,sum(vol_depths$Vol_m3[2:7]),
+                                     ifelse(hypo_top_depth_m==3.8,sum(vol_depths$Vol_m3[3:7]),
+                                            ifelse(hypo_top_depth_m==5.0,sum(vol_depths$Vol_m3[4:7]),
+                                                   ifelse(hypo_top_depth_m==6.2,sum(vol_depths$Vol_m3[5:7]),
+                                                          ifelse(hypo_top_depth_m==8.0,sum(vol_depths$Vol_m3[6:7]),
+                                                                 ifelse(hypo_top_depth_m==9.0,sum(vol_depths$Vol_m3[7]),NA)))))))) %>% 
+  mutate(epi_Temp_C_vw = epi_Temp_C/epi_vol_m3/1000,
+         hypo_Temp_C_vw = hypo_Temp_C/hypo_vol_m3/1000,
+         epi_DO_mgL = epi_DO_mg/epi_vol_m3/1000,
+         hypo_DO_mgL = hypo_DO_mg/hypo_vol_m3/1000,
+         epi_DO_pSat_vw = epi_calc_DO_pSat/epi_vol_m3/1000,
+         hypo_DO_pSat_vw = hypo_calc_DO_pSat/hypo_vol_m3/1000)
 
-# DO_mgL
-ggplot()+
-  geom_point(ctd_50_epi,mapping=aes(x=time,y=VW_DO_mgL,color="VW Epi"))+
-  geom_line(ctd_50_epi,mapping=aes(x=time,y=VW_DO_mgL,color="VW Epi"))+
-  geom_point(ctd_50_hypo,mapping=aes(x=time,y=VW_DO_mgL,color="VW Hypo"))+
-  geom_line(ctd_50_hypo,mapping=aes(x=time,y=VW_DO_mgL,color="VW Hypo"))+
-  theme_classic(base_size=15)
+# Remove 2019-05-30: weird cast!
+ctd_depths <- ctd_depths %>% 
+  filter(DateTime != as.POSIXct("2019-05-30 EST"))
+
+# Plot!
+temp <- ggplot(ctd_depths)+
+  geom_line(mapping=aes(x=DateTime,y=epi_Temp_C_vw,color="Epi"))+
+  geom_point(mapping=aes(x=DateTime,y=epi_Temp_C_vw,color="Epi"))+
+  geom_line(mapping=aes(x=DateTime,y=hypo_Temp_C_vw,color="Hypo"))+
+  geom_point(mapping=aes(x=DateTime,y=hypo_Temp_C_vw,color="Hypo"))
+
+do_mgL <- ggplot(ctd_depths)+
+  geom_line(mapping=aes(x=DateTime,y=epi_DO_mgL,color="Epi"))+
+  geom_point(mapping=aes(x=DateTime,y=epi_DO_mgL,color="Epi"))+
+  geom_line(mapping=aes(x=DateTime,y=hypo_DO_mgL,color="Hypo"))+
+  geom_point(mapping=aes(x=DateTime,y=hypo_DO_mgL,color="Hypo"))
+
+do_sat <- ggplot(ctd_depths)+
+  geom_line(mapping=aes(x=DateTime,y=epi_DO_pSat_vw,color="Epi"))+
+  geom_point(mapping=aes(x=DateTime,y=epi_DO_pSat_vw,color="Epi"))+
+  geom_line(mapping=aes(x=DateTime,y=hypo_DO_pSat_vw,color="Hypo"))+
+  geom_point(mapping=aes(x=DateTime,y=hypo_DO_pSat_vw,color="Hypo"))
+
+# Plus Flora plots
+flora <- ggplot(flora_depths_3)+
+  geom_line(mapping=aes(x=DateTime,y=epi_ugL,color="Epi"))+
+  geom_point(mapping=aes(x=DateTime,y=epi_ugL,color="Epi"))+
+  geom_line(mapping=aes(x=DateTime,y=hypo_ugL,color="Hypo"))+
+  geom_point(mapping=aes(x=DateTime,y=hypo_ugL,color="Hypo"))
+
+ggarrange(temp,do_mgL,do_sat,flora,nrow=4,ncol=1)
+
+ggsave("./Fig_Output/Env_Params.jpg",width=10,height=12,units="in",dpi=320)
