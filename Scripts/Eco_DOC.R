@@ -52,16 +52,39 @@ inflow <- read.csv("./Data/inflow_for_EDI_2013_10Jan2021.csv",header=T) %>%
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) %>% 
   select(Reservoir:VT_Temp_C)
 
+# Plot WVWA vs. VT inflow
+ggplot(inflow,aes(x=WVWA_Flow_cms,y=VT_Flow_cms))+
+  geom_point()
+
+# Find relationship between WVWA and VT flow
+# Use to fill in any missing WVWA values with VT flow (where possible)
+flow_lm <- lm(WVWA_Flow_cms ~ VT_Flow_cms, data = inflow)
+
+inflow <- inflow %>% 
+  mutate(WVWA_Flow_cms = ifelse(is.na(WVWA_Flow_cms), 9.790e-01*VT_Flow_cms-3.765e-06, WVWA_Flow_cms)) %>% 
+  mutate(flow_diff = abs(VT_Flow_cms - WVWA_Flow_cms))
+
 # Average inflow by day
 inflow_daily <- inflow %>% 
   group_by(DateTime) %>% 
-  summarize_all(funs(mean(.,na.rm=TRUE))) %>% 
+  summarize_at(vars("WVWA_Flow_cms"),funs(mean(.,na.rm=TRUE),sd)) %>% 
   filter(DateTime >= as.POSIXct("2015-01-01"))
 
-inflow_daily_sd <- inflow %>% 
-  group_by(DateTime) %>% 
-  summarize_all(funs(sd(.,na.rm=TRUE))) %>% 
-  filter(DateTime >= as.POSIXct("2015-01-01"))
+# Calculate total variance - daily sd + difference between WVWA and VT inflow (0.002 cms)
+inflow_daily <- inflow_daily %>% 
+  mutate(total_sd = sqrt((sd^2)+((mean(inflow$flow_diff,na.rm=TRUE))^2)))
+
+# Create matrix of random variables from mean and total_sd
+inflow_model_input <- data.frame(matrix(ncol = 1002, nrow = 2161))
+
+inflow_model_input[,1] <- inflow_daily$DateTime
+inflow_model_input[,2] <- inflow_daily$mean
+
+#### WORK ON THIS!!! NEED TO GET INDEXING RIGHT!####
+
+for (i in 3:1001){
+  inflow_model_input[i,3:1002] <- rnorm(1000,mean=inflow_daily$mean[i],sd=inflow_daily$sd[i])
+}
 
 ### Load DOC data ----
 # Updated: 19 Apr 2021 with 2020 data!
@@ -245,9 +268,6 @@ qcharge <- ggplot()+
 ggarrange(thermo,qcharge,ncol=1,nrow=2)
 
 ggsave("./Fig_Output/SI_ThermoDepth_Q.png",dpi=800,width=9,height=8)
-
-
-################# STOPPED HERE ##########################
 
 # Create vector of different volumes for each depth: based on L&O-L 2020 paper
 vol_depths <- data.frame("Depth" = c(0.1,1.6,3.8,5.0,6.2,8.0,9.0), "Vol_m3" = c(138486.51,89053.28,59619.35,40197.90,13943.82,14038.52,1954.71))
