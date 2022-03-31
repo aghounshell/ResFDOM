@@ -15,7 +15,7 @@ setwd(wd)
 
 # Load libraries
 pacman::p_load(tidyverse,ggplot2,ggpubr,rMR,lme4,PerformanceAnalytics,astsa,cowplot,lubridate,dplR,zoo,naniar,
-               DescTools,MuMIn,rsq,Metrics)
+               DescTools,MuMIn,rsq,Metrics,truncnorm)
 
 ### Define boxes (epi vs. hypo) ----
 # Important Lake Analyzer thermocline results to determine median thermocline depth
@@ -70,20 +70,23 @@ inflow_daily <- inflow %>%
   summarize_at(vars("WVWA_Flow_cms"),funs(mean(.,na.rm=TRUE),sd)) %>% 
   filter(DateTime >= as.POSIXct("2015-01-01"))
 
+inflow_daily_full <- as.data.frame(seq(as.POSIXct("2015-01-01",tz="EST"),as.POSIXct("2020-12-31",tz="EST"),by="days"))
+inflow_daily_full <- inflow_daily_full %>% 
+  rename(DateTime = `seq(as.POSIXct("2015-01-01", tz = "EST"), as.POSIXct("2020-12-31", tz = "EST"), by = "days")`)
+inflow_daily_full <- left_join(inflow_daily_full, inflow_daily,by="DateTime")
+
 # Calculate total variance - daily sd + difference between WVWA and VT inflow (0.002 cms)
-inflow_daily <- inflow_daily %>% 
+inflow_daily_full <- inflow_daily_full %>% 
   mutate(total_sd = sqrt((sd^2)+((mean(inflow$flow_diff,na.rm=TRUE))^2)))
 
-# Create matrix of random variables from mean and total_sd
-inflow_model_input <- data.frame(matrix(ncol = 1002, nrow = 2161))
+# Create 3D array of random variables from mean and total_sd
+# Where each array contains the 2161 daily time-steps for inflow
+inflow_model_input <- array(data = NA, dim=c(1000,2192,1))
 
-inflow_model_input[,1] <- inflow_daily$DateTime
-inflow_model_input[,2] <- inflow_daily$mean
-
-#### WORK ON THIS!!! NEED TO GET INDEXING RIGHT!####
-
-for (i in 3:1001){
-  inflow_model_input[i,3:1002] <- rnorm(1000,mean=inflow_daily$mean[i],sd=inflow_daily$sd[i])
+for (j in 1:1000){
+  for (i in 1:2192){
+    inflow_model_input[j,i,1] <- rtruncnorm(1,a=0,mean=inflow_daily_full$mean[i],sd=inflow_daily_full$sd[i])
+  }
 }
 
 ### Load DOC data ----
@@ -257,9 +260,9 @@ thermo <- ggplot(la_results,mapping=aes(x=DateTime,y=-SthermD))+
   ylab("Thermocline depth (m)")+
   theme_classic(base_size = 15)
 
-qcharge <- ggplot()+
-  geom_line(inflow_daily,mapping=aes(x=DateTime,y=WVWA_Flow_cms),size=0.8)+
-  geom_ribbon(mapping=aes(x=inflow_daily$DateTime,y=inflow_daily$WVWA_Flow_cms,ymin=inflow_daily$WVWA_Flow_cms-inflow_daily_sd$WVWA_Flow_cms,ymax=inflow_daily$WVWA_Flow_cms+inflow_daily_sd$WVWA_Flow_cms),alpha=0.6)+
+qcharge <- ggplot(inflow_daily,mapping=aes(x=DateTime,y=mean))+
+  geom_line(inflow_daily,mapping=aes(x=DateTime,y=mean),size=0.8)+
+  geom_ribbon(mapping=aes(ymin=mean-total_sd,ymax=mean+total_sd),alpha=0.6)+
   xlim(as.POSIXct("2015-01-01"),as.POSIXct("2020-12-31"))+
   xlab("")+
   ylab(expression(paste("Discharge (m"^3*" s"^-1*")")))+
@@ -298,6 +301,31 @@ doc_box_full <- doc_box_full %>%
   mutate(DOC_6.2 = na.fill(na.approx(DOC_6.2,na.rm=FALSE),"extend")) %>%   
   mutate(DOC_8 = na.fill(na.approx(DOC_8,na.rm=FALSE),"extend")) %>% 
   mutate(DOC_9 = na.fill(na.approx(DOC_9,na.rm=FALSE),"extend"))
+
+## Create 'boot-strapped' values from [DOC] and MDL
+# Create 3D array of random variables from the measured DOC and the LOQ (0.41)
+# For each timestep and each depth
+doc_lake_model_input <- array(data = NA, dim=c(1000,2192,7))
+
+for (j in 1:1000){
+  for (i in 1:2192){
+    for (k in 1:7){
+      doc_lake_model_input[j,i,k] <- rtruncnorm(1,a=0,mean=doc_box_full[i,k+1],sd=0.41)
+    }
+  }
+}
+
+## Create boot-strapped parameters for volume - assuming volume +/-10%
+vol_model_input <- array(data = NA, dim=c(1000,7,1))
+
+for (j in 1:1000){
+  for (i in 1:7){
+    vol_model_input[j,i,1] <- rtruncnorm(1,a=0,mean=vol_depths$Vol_m3[i],sd=vol_depths$Vol_m3[i]*0.05)
+  }
+}
+
+
+### STOPPED HERE ###
 
 doc_box_full <- doc_box_full %>% 
   mutate(DOC_0.1_g = DOC_0.1*vol_depths$Vol_m3[1],
