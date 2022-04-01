@@ -85,7 +85,7 @@ inflow_model_input <- array(data = NA, dim=c(1000,2192,1))
 
 for (j in 1:1000){
   for (i in 1:2192){
-    inflow_model_input[j,i,1] <- rtruncnorm(1,a=0,mean=inflow_daily_full$mean[i],sd=inflow_daily_full$sd[i])
+    inflow_model_input[j,i,1] <- rtruncnorm(1,a=0,mean=inflow_daily_full$mean[i],sd=inflow_daily_full$sd[i]/2)
   }
 }
 
@@ -303,14 +303,14 @@ doc_box_full <- doc_box_full %>%
   mutate(DOC_9 = na.fill(na.approx(DOC_9,na.rm=FALSE),"extend"))
 
 ## Create 'boot-strapped' values from [DOC] and MDL
-# Create 3D array of random variables from the measured DOC and the LOQ (0.41)
+# Create 3D array of random variables from the measured DOC and the MDL (0.11)
 # For each timestep and each depth
 doc_lake_model_input <- array(data = NA, dim=c(1000,2192,7))
 
 for (j in 1:1000){
   for (i in 1:2192){
     for (k in 1:7){
-      doc_lake_model_input[j,i,k] <- rtruncnorm(1,a=0,mean=doc_box_full[i,k+1],sd=0.41)
+      doc_lake_model_input[j,i,k] <- rtruncnorm(1,a=0,mean=doc_box_full[i,k+1],sd=0.11/2)
     }
   }
 }
@@ -324,8 +324,71 @@ for (j in 1:1000){
   }
 }
 
+## Create boot-strapped parameters for DOC inflow - using LOQ for the SD
+doc_inflow_full <- as.data.frame(seq(as.POSIXct("2015-01-01",tz="EST"),as.POSIXct("2020-12-31",tz="EST"),by="days"))
+doc_inflow_full <- doc_inflow_full %>% 
+  rename(DateTime = `seq(as.POSIXct("2015-01-01", tz = "EST"), as.POSIXct("2020-12-31", tz = "EST"), by = "days")`)
+doc_inflow_full <- left_join(doc_inflow_full,chem_100,by="DateTime")
+
+doc_inflow_full <- doc_inflow_full %>% 
+  select(DateTime,DOC_mgL) %>% 
+  mutate(DOC_mgL = na.fill(na.approx(DOC_mgL,na.rm=FALSE),"extend"))
+
+doc_inflow_input <- array(data = NA, dim=c(1000,2192,1))
+
+for (j in 1:1000){
+  for (i in 1:2192){
+    doc_inflow_input[j,i,1] <- rtruncnorm(1,a=0,mean=doc_inflow_full$DOC_mgL[i],sd=0.11/2)
+  }
+}
+
+###############################################################################
+
+## Determine location of the epi and hypo for each time point
+# Add in thermocline depth information
+thermocline_depth <- as.data.frame(seq(as.POSIXct("2015-01-01",tz="EST"),as.POSIXct("2020-12-31",tz="EST"),by="days"))
+thermocline_depth <- thermocline_depth %>% 
+  rename(DateTime = `seq(as.POSIXct("2015-01-01", tz = "EST"), as.POSIXct("2020-12-31", tz = "EST"), by = "days")`)
+thermocline_depth <- left_join(thermocline_depth,la_results,by="DateTime")
+
+thermocline_depth <- thermocline_depth %>% 
+  select(DateTime,SthermD) %>% 
+  mutate(SthermD = na.fill(na.approx(SthermD, na.rm=FALSE),"extend"))
+
+# Use thermocline to find the location of the epi and hypo
+thermocline_depth <- thermocline_depth %>% 
+  mutate(SthermD = round(SthermD,digits=1)) %>% 
+  mutate(epi_bottom_depth_m = ifelse(SthermD > 9.0, 9.0,
+                                     ifelse(SthermD > 7.0, 8.0,
+                                            ifelse(SthermD > 6.0, 6.2,
+                                                   ifelse(SthermD > 4.4, 5.0,
+                                                          ifelse(SthermD > 3.0, 3.8,
+                                                                 ifelse(SthermD > 1.6, 1.6,
+                                                                        ifelse(SthermD > 0.0, 0.1, NA)))))))) %>% 
+  mutate(hypo_top_depth_m = ifelse(SthermD <= 0.0, 0.1,
+                                   ifelse(SthermD <= 1.6, 1.6,
+                                          ifelse(SthermD <= 3.0, 3.8,
+                                                 ifelse(SthermD <= 4.4, 5.0,
+                                                        ifelse(SthermD <= 6.0, 6.2,
+                                                               ifelse(SthermD <= 7.0, 8.0,
+                                                                      ifelse(SthermD <= 9.0, 9.0, NA))))))))
+
+###############################################################################
+
+## Have bootstrapped inputs for:
+# In lake DOC concentrations for all depths (doc_lake_model_input)
+# Inflow DOC concentrations (doc_inflow_input)
+# Inflow rates (inflow_model_input)
+# Volume of layers (vol_model_input)
+
+## Then also have location of the thermocline (and therefore, of the epi and hypo)
+
 
 ### STOPPED HERE ###
+
+
+## Then need to calculate/model:
+# Mass of epi and hypo for each time point
 
 doc_box_full <- doc_box_full %>% 
   mutate(DOC_0.1_g = DOC_0.1*vol_depths$Vol_m3[1],
@@ -336,59 +399,24 @@ doc_box_full <- doc_box_full %>%
          DOC_8_g = DOC_8*vol_depths$Vol_m3[6],
          DOC_9_g = DOC_9*vol_depths$Vol_m3[7])
 
-# Second, extrapolate inflow concentrations and calculate daily mass
-doc_inflow_full <- as.data.frame(seq(as.POSIXct("2015-01-01",tz="EST"),as.POSIXct("2020-12-31",tz="EST"),by="days"))
 
-doc_inflow_full <- doc_inflow_full %>% 
-  rename(DateTime = `seq(as.POSIXct("2015-01-01", tz = "EST"), as.POSIXct("2020-12-31", tz = "EST"), by = "days")`)
 
-doc_inflow_full <- left_join(doc_inflow_full,inflow_daily,by="DateTime") %>% 
-  select(DateTime,WVWA_Flow_cms,VT_Flow_cms) 
-
-doc_inflow_full <- doc_inflow_full %>%  
-  mutate(full_flow_cms = ifelse(WVWA_Flow_cms == "NaN", VT_Flow_cms, WVWA_Flow_cms))
-
-doc_inflow_full <- left_join(doc_inflow_full,chem_100,by="DateTime") %>% 
-  select(DateTime,full_flow_cms,DOC_mgL)
-
+# Mass of inflow for each time point
 doc_inflow_full <- doc_inflow_full %>% 
   mutate(DOC_mgL = na.fill(na.approx(DOC_mgL,na.rm=FALSE),"extend"),
          full_flow_cms = na.fill(na.approx(full_flow_cms,na.rm=FALSE),"extend")) %>% 
   mutate(DOC_100_g = DOC_mgL*full_flow_cms*60*60*24)
 
-# DOC Box data
-doc_box_data <- left_join(doc_box_full, doc_inflow_full,by="DateTime")
 
-# Add in thermocline depth information
-doc_box_data <- left_join(doc_box_data,la_results,by="DateTime") %>% 
-  select(-St,-thermD,-N2,-SN2)
-
-doc_box_data <- doc_box_data %>% 
-  mutate(SthermD = na.fill(na.approx(SthermD, na.rm=FALSE),"extend"))
+# Mass of epi and hypo outflow for each time point
+# Calculate Epi and Hypo outflow mass
 
 ### Thinking about how to designate Epi vs. Hypo what parameters depend on this:
 # Mass of Epi vs. Mass of Hypo
 # 'Outflow' to Epi from Hypo: concentration * outflow * scaled outflow = mass/day
 
 # First, determine outflow concentration
-doc_box_data <- doc_box_data %>% 
-  mutate(SthermD = round(SthermD,digits=1)) %>% 
-  mutate(epi_bottom_depth_m = ifelse(SthermD > 9.0, 9.0,
-                                      ifelse(SthermD > 7.0, 8.0,
-                                             ifelse(SthermD > 6.0, 6.2,
-                                                    ifelse(SthermD > 4.4, 5.0,
-                                                           ifelse(SthermD > 3.0, 3.8,
-                                                                  ifelse(SthermD > 1.6, 1.6,
-                                                                         ifelse(SthermD > 0.0, 0.1, NA)))))))) %>% 
-  mutate(hypo_top_depth_m = ifelse(SthermD <= 0.0, 0.1,
-                                   ifelse(SthermD <= 1.6, 1.6,
-                                          ifelse(SthermD <= 3.0, 3.8,
-                                                 ifelse(SthermD <= 4.4, 5.0,
-                                                        ifelse(SthermD <= 6.0, 6.2,
-                                                               ifelse(SthermD <= 7.0, 8.0,
-                                                                      ifelse(SthermD <= 9.0, 9.0, NA))))))))
 
-# Calculate Epi and Hypo outflow mass
 doc_box_data <- doc_box_data %>% 
   mutate(Epi_outflow_g = DOC_0.1*full_flow_cms*60*60*24,
          Hypo_outflow_g = ifelse(hypo_top_depth_m==0.1,DOC_0.1*full_flow_cms*60*60*24,
@@ -398,6 +426,14 @@ doc_box_data <- doc_box_data %>%
                                                       ifelse(hypo_top_depth_m==6.2,DOC_6.2*full_flow_cms*60*60*24,
                                                              ifelse(hypo_top_depth_m==8.0,DOC_8*full_flow_cms*60*60*24,
                                                                     ifelse(hypo_top_depth_m==9.0,DOC_9*full_flow_cms*60*60*24,0))))))))
+
+
+
+
+
+
+
+
 
 ### Calculate DOC/dt
 # First need to figure out how the thermocline is changing
