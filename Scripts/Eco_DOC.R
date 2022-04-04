@@ -380,62 +380,100 @@ thermocline_depth <- thermocline_depth %>%
 # Inflow DOC concentrations (doc_inflow_input)
 # Inflow rates (inflow_model_input)
 # Volume of layers (vol_model_input)
+# Then also have location of the thermocline (and therefore, of the epi and hypo)
 
-## Then also have location of the thermocline (and therefore, of the epi and hypo)
 
+
+## Calculate entrainment from hypo to epi for each time point
+
+## Then calculate processing
+
+
+
+### Calculate total mass of DOC at each depth ###
+doc_lake_mass <- array(data = NA, dim=c(1000,2192,7)) # Mass of DOC at each depth (DOC_mgL * Vol_m3 = DOC_g)
+
+for (j in 1:1000){
+  for (i in 1:2192){
+    for (k in 1:7){
+      doc_lake_mass[j,i,k] <- vol_model_input[j,k,1]*doc_lake_model_input[j,i,k]
+    }
+  }
+}
+
+## Calculate mass of inflow - for hypo and epi (will need to include parameter estimation at some point)
+
+doc_inflow_mass <- array(data = NA, dim=c(1000,2192,1)) # Mass of DOC inflow (total) - DOC_mgL * m3_s = g/day
+
+for (j in 1:1000){
+  for (i in 1:2192){
+    doc_inflow_mass <- doc_inflow_input[j,i,1]*inflow_model_input[j,i,1]*60*60*24
+  }
+}
+
+### Calculate outflow from epi and hypo ###
+
+# Epi outflow = inflow * [DOC] at 0.1 m = g/d
+
+doc_epi_mass_outflow <-  array(data = NA, dim=c(1000,2192,1)) # Mass of DOC outflow from the epi
+
+for (j in 1:1000){
+  for (i in 1:2192){
+    doc_epi_mass_outflow <- inflow_model_input[j,i,1]*doc_lake_mass[j,i,1]*60*60*24
+  }
+}
+
+# 'Outflow' to Epi from Hypo: concentration * outflow * scaled outflow = mass/day
+doc_hypo_mass_outflow <- array(data = NA, dim=c(1000, 2192, 1)) # Mass of DOC outflow from the hypo
+
+for (j in 1:1000){
+  for (i in 1:2192){
+    if(thermocline_depth$hypo_top_depth_m[i] == 1.6) {
+      doc_hypo_mass_outflow[j,i,1] <- inflow_model_input[j,i,1]*doc_lake_mass[j,i,2]*60*60*24*0.26 # Note: parameter tuning needed here!
+    } else if(thermocline_depth$hypo_top_depth_m[i] == 3.8) {
+      doc_hypo_mass_outflow[j,i,1] <- inflow_model_input[j,i,1]*doc_lake_mass[j,i,3]*60*60*24*0.26
+    } else if(thermocline_depth$hypo_top_depth_m[i] == 5) {
+      doc_hypo_mass_outflow[j,i,1] <- inflow_model_input[j,i,1]*doc_lake_mass[j,i,4]*60*60*24*0.26
+    } else if(thermocline_depth$hypo_top_depth_m[i] == 6.2) {
+      doc_hypo_mass_outflow[j,i,1] <- inflow_model_input[j,i,1]*doc_lake_mass[j,i,5]*60*60*24*0.26
+    } else if(thermocline_depth$hypo_top_depth_m[i] == 8) {
+      doc_hypo_mass_outflow[j,i,1] <- inflow_model_input[j,i,1]*doc_lake_mass[j,i,6]*60*60*24*0.26
+    } else if(thermocline_depth$hypo_top_depth_m[i] == 9) {
+      doc_hypo_mass_outflow[j,i,1] <- inflow_model_input[j,i,1]*doc_lake_mass[j,i,7]*60*60*24*0.26
+    }
+  }
+}
+
+### Calculate [DOC]/dt for each time point ###
+
+## First calculate mass of epi and hypo at any time point
+# Include changes due to the thermocline
+doc_epi_mass <- array(data = NA, dim=c(1000,2192,1)) # Mass of epi at each time point
+
+for (j in 1:1000){
+  for (i in 1:2192){
+    if(thermocline_depth$epi_bottom_depth_m[i] == 0.1){
+      doc_epi_mass[j,i,1] <- doc_lake_mass[j,i,1]
+    } else if(thermocline_depth$epi_bottom_depth_m[i] == 1.6){
+      doc_epi_mass[j,i,1] <- doc_lake_mass[j,i,1]+doc_lake_mass[j,i,2]
+    } else if(thermocline_depth$epi_bottom_depth_m[i] == 3.8){
+      doc_epi_mass[j,i,1] <- doc_lake_mass[j,i,1]+doc_lake_mass[j,i,2]+doc_lake_mass[j,i,3]
+    } else if(thermocline_depth$epi_bottom_depth_m[i] == 5){
+      doc_epi_mass[j,i,1] <- doc_lake_mass[j,i,1]+doc_lake_mass[j,i,2]+doc_lake_mass[j,i,3]+doc_lake_mass[j,i,4]
+    } else if(thermocline_depth$epi_bottom_depth_m[i] == 6.2){
+      doc_epi_mass[j,i,1] <- doc_lake_mass[j,i,1]+doc_lake_mass[j,i,2]+doc_lake_mass[j,i,3]+doc_lake_mass[j,i,4]+doc_lake_mass[j,i,5]
+    } else if(thermocline_depth$epi_bottom_depth_m[i] == 8){
+      doc_epi_mass[j,i,1] <- doc_lake_mass[j,i,1]+doc_lake_mass[j,i,2]+doc_lake_mass[j,i,3]+doc_lake_mass[j,i,4]+doc_lake_mass[j,i,5]+doc_lake_mass[j,i,6]
+    } else if(thermocline_depth$epi_bottom_depth_m[i] == 9){
+      doc_epi_mass[j,i,1] <- doc_lake_mass[j,i,1]+doc_lake_mass[j,i,2]+doc_lake_mass[j,i,3]+doc_lake_mass[j,i,4]+doc_lake_mass[j,i,5]+doc_lake_mass[j,i,6]+doc_lake_mass[j,i,7]
+    }
+  }
+}
+
+doc_hypo_mass <- array(data=NA, dim=c(1000,2192,1)) # Mass of hypo at each time point
 
 ### STOPPED HERE ###
 
-
-## Then need to calculate/model:
-# Mass of epi and hypo for each time point
-
-doc_box_full <- doc_box_full %>% 
-  mutate(DOC_0.1_g = DOC_0.1*vol_depths$Vol_m3[1],
-         DOC_1.6_g = DOC_1.6*vol_depths$Vol_m3[2],
-         DOC_3.8_g = DOC_3.8*vol_depths$Vol_m3[3],
-         DOC_5_g = DOC_5*vol_depths$Vol_m3[4],
-         DOC_6.2_g = DOC_6.2*vol_depths$Vol_m3[5],
-         DOC_8_g = DOC_8*vol_depths$Vol_m3[6],
-         DOC_9_g = DOC_9*vol_depths$Vol_m3[7])
-
-
-
-# Mass of inflow for each time point
-doc_inflow_full <- doc_inflow_full %>% 
-  mutate(DOC_mgL = na.fill(na.approx(DOC_mgL,na.rm=FALSE),"extend"),
-         full_flow_cms = na.fill(na.approx(full_flow_cms,na.rm=FALSE),"extend")) %>% 
-  mutate(DOC_100_g = DOC_mgL*full_flow_cms*60*60*24)
-
-
-# Mass of epi and hypo outflow for each time point
-# Calculate Epi and Hypo outflow mass
-
-### Thinking about how to designate Epi vs. Hypo what parameters depend on this:
-# Mass of Epi vs. Mass of Hypo
-# 'Outflow' to Epi from Hypo: concentration * outflow * scaled outflow = mass/day
-
-# First, determine outflow concentration
-
-doc_box_data <- doc_box_data %>% 
-  mutate(Epi_outflow_g = DOC_0.1*full_flow_cms*60*60*24,
-         Hypo_outflow_g = ifelse(hypo_top_depth_m==0.1,DOC_0.1*full_flow_cms*60*60*24,
-                                 ifelse(hypo_top_depth_m==1.6,DOC_1.6*full_flow_cms*60*60*24,
-                                        ifelse(hypo_top_depth_m==3.8,DOC_3.8*full_flow_cms*60*60*24,
-                                               ifelse(hypo_top_depth_m==5.0,DOC_5*full_flow_cms*60*60*24,
-                                                      ifelse(hypo_top_depth_m==6.2,DOC_6.2*full_flow_cms*60*60*24,
-                                                             ifelse(hypo_top_depth_m==8.0,DOC_8*full_flow_cms*60*60*24,
-                                                                    ifelse(hypo_top_depth_m==9.0,DOC_9*full_flow_cms*60*60*24,0))))))))
-
-
-
-
-
-
-
-
-
-### Calculate DOC/dt
 # First need to figure out how the thermocline is changing
 doc_box_data <- doc_box_data %>% 
   mutate(epi_g = ifelse(epi_bottomg_depth_m==0.1,DOC_0.1_g,
@@ -471,6 +509,10 @@ doc_box_data <- doc_box_data %>%
          Entr = NA,
          DOC_entr_g= NA)
 
+doc_dt_epi # Change in DOC/dt for the epi
+
+doc_dt_hypo # Change in DOC/dt for the hypo
+
 # Calculate DOC/dt for epi and hypo
 for(i in 2:length(doc_box_data$DateTime)){
   doc_box_data$d_epi_g_dt[i] = (doc_box_data$epi_g[i]-doc_box_data$epi_g[i-1])
@@ -479,6 +521,8 @@ for(i in 2:length(doc_box_data$DateTime)){
 for(i in 2:length(doc_box_data$DateTime)){
   doc_box_data$d_hypo_g_dt[i] = (doc_box_data$hypo_g[i]-doc_box_data$hypo_g[i-1])
 }
+
+### STOPPED HERE ###
 
 ### Calculate change due to entrainment (movement of thermocline)
 # Loosely following FCR_DOCModel_edited_19May17 from Carey et al. 2018
