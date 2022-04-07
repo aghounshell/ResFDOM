@@ -384,8 +384,6 @@ thermocline_depth <- thermocline_depth %>%
 
 
 
-## Calculate entrainment from hypo to epi for each time point
-
 ## Then calculate processing
 
 
@@ -464,73 +462,104 @@ for (j in 1:1000){
       doc_epi_mass[j,i,1] <- doc_lake_mass[j,i,1]+doc_lake_mass[j,i,2]+doc_lake_mass[j,i,3]+doc_lake_mass[j,i,4]+doc_lake_mass[j,i,5]
     } else if(thermocline_depth$epi_bottom_depth_m[i] == 8){
       doc_epi_mass[j,i,1] <- doc_lake_mass[j,i,1]+doc_lake_mass[j,i,2]+doc_lake_mass[j,i,3]+doc_lake_mass[j,i,4]+doc_lake_mass[j,i,5]+doc_lake_mass[j,i,6]
-    } else if(thermocline_depth$epi_bottom_depth_m[i] == 9){
-      doc_epi_mass[j,i,1] <- doc_lake_mass[j,i,1]+doc_lake_mass[j,i,2]+doc_lake_mass[j,i,3]+doc_lake_mass[j,i,4]+doc_lake_mass[j,i,5]+doc_lake_mass[j,i,6]+doc_lake_mass[j,i,7]
     }
   }
 }
 
 doc_hypo_mass <- array(data=NA, dim=c(1000,2192,1)) # Mass of hypo at each time point
 
-### STOPPED HERE ###
-
-# First need to figure out how the thermocline is changing
-doc_box_data <- doc_box_data %>% 
-  mutate(epi_g = ifelse(epi_bottomg_depth_m==0.1,DOC_0.1_g,
-                        ifelse(epi_bottomg_depth_m==1.6,DOC_0.1_g+DOC_1.6_g,
-                               ifelse(epi_bottomg_depth_m==3.8,DOC_0.1_g+DOC_1.6_g+DOC_3.8_g,
-                                      ifelse(epi_bottomg_depth_m==5.0,DOC_0.1_g+DOC_1.6_g+DOC_3.8_g+DOC_5_g,
-                                             ifelse(epi_bottomg_depth_m==6.2,DOC_0.1_g+DOC_1.6_g+DOC_3.8_g+DOC_5_g+DOC_6.2_g,
-                                                    ifelse(epi_bottomg_depth_m==8.0,DOC_0.1_g+DOC_1.6_g+DOC_3.8_g+DOC_5_g+DOC_6.2_g+DOC_8_g,
-                                                           ifelse(epi_bottomg_depth_m==9.0,DOC_0.1_g+DOC_1.6_g+DOC_3.8_g+DOC_5_g+DOC_6.2_g+DOC_8_g+DOC_9_g,NA)))))))) %>% 
-  mutate(hypo_g = ifelse(hypo_top_depth_m==0.1,DOC_0.1_g+DOC_1.6_g+DOC_3.8_g+DOC_5_g+DOC_6.2_g+DOC_8_g+DOC_9_g,
-                         ifelse(hypo_top_depth_m==1.6,DOC_1.6_g+DOC_3.8_g+DOC_5_g+DOC_6.2_g+DOC_8_g+DOC_9_g,
-                                ifelse(hypo_top_depth_m==3.8,DOC_3.8_g+DOC_5_g+DOC_6.2_g+DOC_8_g+DOC_9_g,
-                                       ifelse(hypo_top_depth_m==5.0,DOC_5_g+DOC_6.2_g+DOC_8_g+DOC_9_g,
-                                              ifelse(hypo_top_depth_m==6.2,DOC_6.2_g+DOC_8_g+DOC_9_g,
-                                                     ifelse(hypo_top_depth_m==8.0,DOC_8_g+DOC_9_g,
-                                                            ifelse(hypo_top_depth_m==9.0,DOC_9_g,NA)))))))) %>% 
-  mutate(epi_vol_m3 = ifelse(epi_bottomg_depth_m==0.1,sum(vol_depths$Vol_m3[1]),
-                             ifelse(epi_bottomg_depth_m==1.6,sum(vol_depths$Vol_m3[1:2]),
-                                    ifelse(epi_bottomg_depth_m==3.8,sum(vol_depths$Vol_m3[1:3]),
-                                           ifelse(epi_bottomg_depth_m==5.0,sum(vol_depths$Vol_m3[1:4]),
-                                                  ifelse(epi_bottomg_depth_m==6.2,sum(vol_depths$Vol_m3[1:5]),
-                                                         ifelse(epi_bottomg_depth_m==8.0,sum(vol_depths$Vol_m3[1:6]),
-                                                                ifelse(epi_bottomg_depth_m==9.0,sum(vol_depths$Vol_m3[1:7]),NA)))))))) %>% 
-  mutate(hypo_vol_m3 = ifelse(hypo_top_depth_m==0.1,sum(vol_depths$Vol_m3[1:7]),
-                              ifelse(hypo_top_depth_m==1.6,sum(vol_depths$Vol_m3[2:7]),
-                                     ifelse(hypo_top_depth_m==3.8,sum(vol_depths$Vol_m3[3:7]),
-                                            ifelse(hypo_top_depth_m==5.0,sum(vol_depths$Vol_m3[4:7]),
-                                                   ifelse(hypo_top_depth_m==6.2,sum(vol_depths$Vol_m3[5:7]),
-                                                          ifelse(hypo_top_depth_m==8.0,sum(vol_depths$Vol_m3[6:7]),
-                                                                 ifelse(hypo_top_depth_m==9.0,sum(vol_depths$Vol_m3[7]),NA)))))))) %>% 
-  mutate(d_epi_g_dt = NA,
-         d_hypo_g_dt = NA,
-         Entr = NA,
-         DOC_entr_g= NA)
-
-doc_dt_epi # Change in DOC/dt for the epi
-
-doc_dt_hypo # Change in DOC/dt for the hypo
-
-# Calculate DOC/dt for epi and hypo
-for(i in 2:length(doc_box_data$DateTime)){
-  doc_box_data$d_epi_g_dt[i] = (doc_box_data$epi_g[i]-doc_box_data$epi_g[i-1])
+for (j in 1:1000){
+  for (i in 1:2192){
+    if(thermocline_depth$hypo_top_depth_m[i] == 1.6){
+      doc_hypo_mass[j,i,1] <- doc_lake_mass[j,i,2]+doc_lake_mass[j,i,3]+doc_lake_mass[j,i,4]+doc_lake_mass[j,i,5]+doc_lake_mass[j,i,6]+doc_lake_mass[j,i,7]
+    } else if(thermocline_depth$hypo_top_depth_m[i] == 3.8){
+      doc_hypo_mass[j,i,1] <- doc_lake_mass[j,i,3]+doc_lake_mass[j,i,4]+doc_lake_mass[j,i,5]+doc_lake_mass[j,i,6]+doc_lake_mass[j,i,7]
+    } else if(thermocline_depth$hypo_top_depth_m[i] == 5){
+      doc_hypo_mass[j,i,1] <- doc_lake_mass[j,i,4]+doc_lake_mass[j,i,5]+doc_lake_mass[j,i,6]+doc_lake_mass[j,i,7]
+    } else if(thermocline_depth$hypo_top_depth_m[i] == 6.2){
+      doc_hypo_mass[j,i,1] <- doc_lake_mass[j,i,5]+doc_lake_mass[j,i,6]+doc_lake_mass[j,i,7]
+    } else if(thermocline_depth$hypo_top_depth_m[i] == 8){
+      doc_hypo_mass[j,i,1] <- doc_lake_mass[j,i,6]+doc_lake_mass[j,i,7]
+    } else if(thermocline_depth$hypo_top_depth_m[i] == 9){
+      doc_hypo_mass[j,i,1] <- doc_lake_mass[j,i,7]
+    }
+  }
 }
 
-for(i in 2:length(doc_box_data$DateTime)){
-  doc_box_data$d_hypo_g_dt[i] = (doc_box_data$hypo_g[i]-doc_box_data$hypo_g[i-1])
+## Then calculate changing volume: 
+epi_vol <- array(data=NA, dim=c(1000,2192,1)) # Volume of epi for each time point
+
+for (j in 1:1000){
+  for (i in 1:2192){
+    if(thermocline_depth$epi_bottom_depth_m[i] == 0.1){
+      epi_vol[j,i,1] <- vol_model_input[j,1,1]
+    } else if(thermocline_depth$epi_bottom_depth_m[i] == 1.6){
+      epi_vol[j,i,1] <- vol_model_input[j,1,1]+vol_model_input[j,2,1]
+    } else if(thermocline_depth$epi_bottom_depth_m[i] == 3.8){
+      epi_vol[j,i,1] <- vol_model_input[j,1,1]+vol_model_input[j,2,1]+vol_model_input[j,3,1]
+    } else if(thermocline_depth$epi_bottom_depth_m[i] == 5){
+      epi_vol[j,i,1] <- vol_model_input[j,1,1]+vol_model_input[j,2,1]+vol_model_input[j,3,1]+vol_model_input[j,4,1]
+    } else if(thermocline_depth$epi_bottom_depth_m[i] == 6.2){
+      epi_vol[j,i,1] <- vol_model_input[j,1,1]+vol_model_input[j,2,1]+vol_model_input[j,3,1]+vol_model_input[j,4,1]+vol_model_input[j,5,1]
+    } else if(thermocline_depth$epi_bottom_depth_m[i] == 8){
+      epi_vol[j,i,1] <- vol_model_input[j,1,1]+vol_model_input[j,2,1]+vol_model_input[j,3,1]+vol_model_input[j,4,1]+vol_model_input[j,5,1]+vol_model_input[j,6,1]
+    }
+  }
 }
 
-### STOPPED HERE ###
+hypo_vol <- array(data=NA, dim=c(1000,2192,1)) # Volume of hypo for each time point
 
-### Calculate change due to entrainment (movement of thermocline)
+for (j in 1:1000){
+  for (i in 1:2192){
+    if(thermocline_depth$hypo_top_depth_m[i] == 1.6){
+      hypo_vol[j,i,1] <- vol_model_input[j,2,1]+vol_model_input[j,3,1]+vol_model_input[j,4,1]+vol_model_input[j,5,1]+vol_model_input[j,6,1]+vol_model_input[j,7,1]
+    } else if(thermocline_depth$hypo_top_depth_m[i] == 3.8){
+      hypo_vol[j,i,1] <- vol_model_input[j,3,1]+vol_model_input[j,4,1]+vol_model_input[j,5,1]+vol_model_input[j,6,1]+vol_model_input[j,7,1]
+    } else if(thermocline_depth$hypo_top_depth_m[i] == 5){
+      hypo_vol[j,i,1] <- vol_model_input[j,4,1]+vol_model_input[j,5,1]+vol_model_input[j,6,1]+vol_model_input[j,7,1]
+    } else if(thermocline_depth$hypo_top_depth_m[i] == 6.2){
+      hypo_vol[j,i,1] <- vol_model_input[j,5,1]+vol_model_input[j,6,1]+vol_model_input[j,7,1]
+    } else if(thermocline_depth$hypo_top_depth_m[i] == 8){
+      hypo_vol[j,i,1] <- vol_model_input[j,6,1]+vol_model_input[j,7,1]
+    } else if(thermocline_depth$hypo_top_depth_m[i] == 9){
+      hypo_vol[j,i,1] <- vol_model_input[j,7,1]
+    }
+  }
+}
+
+## Now calculate DOC/dt for epi and hypo for each timepoint
+doc_dt_epi <- array(data=NA, dim=c(1000,2192,1)) # Change in DOC/dt for the epi
+
+for (j in 1:1000){
+  for (i in 1:2191){
+    doc_dt_epi[j,i+1,1] <- (doc_epi_mass[j,i+1,1]-doc_epi_mass[j,i,1])
+  }
+}
+
+doc_dt_hypo <- array(data=NA, dim=c(1000,2192,1)) # Change in DOC/dt for the hypo
+
+for (j in 1:1000){
+  for (i in 1:2191){
+    doc_dt_hypo[j,i+1,1] <- (doc_hypo_mass[j,i+1,1]-doc_hypo_mass[j,i,1])
+  }
+}
+
+### Calculate entrainment from hypo to epi for each time point ###
 # Loosely following FCR_DOCModel_edited_19May17 from Carey et al. 2018
 
 # Entrainment
 #if Entr is positive, then epi is getting bigger and hypo is getting smaller; 
 #if Entr is negative, then hypo is getting bigger and epi is getting smaller
+doc_entr <- array(data=NA, dim=c(1000,2192,1)) # Entrainment for each time point
 
+##### STOPPED HERE ######
+
+
+
+
+
+
+### Calculate change due to entrainment (movement of thermocline)
 # First need to create data frame of mass by date and volume
 doc_entr <- doc_box_data %>% 
   select(DateTime,DOC_0.1_g:DOC_9_g) %>% 
