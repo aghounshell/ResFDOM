@@ -550,7 +550,57 @@ for (j in 1:1000){
 # Entrainment
 #if Entr is positive, then epi is getting bigger and hypo is getting smaller; 
 #if Entr is negative, then hypo is getting bigger and epi is getting smaller
+
 doc_entr <- array(data=NA, dim=c(1000,2192,1)) # Entrainment for each time point
+
+
+### STOPPED HERE!!!! THROWING NA'S FOR SOME OF THESE - WHY?!?!? ####
+
+for (j in 1:1000){
+  for (i in 2:2191){
+    if(thermocline_depth$epi_bottom_depth_m[i] == thermocline_depth$epi_bottom_depth_m[(i-1)]){
+      doc_entr[j,i,1] <- 0
+    } else if(thermocline_depth$epi_bottom_depth_m[i]-thermocline_depth$epi_bottom_depth_m[(i-1)] == -7.9){
+      doc_entr[j,i,1] <- (-sum(doc_lake_mass[j,i,2:6]))
+    } else if(thermocline_depth$epi_bottom_depth_m[i]-thermocline_depth$epi_bottom_depth_m[(i-1)] == -4.9){
+      doc_entr[j,i,1] <- (-sum(doc_lake_mass[j,i,2:4]))
+    } else if(thermocline_depth$epi_bottom_depth_m[i]-thermocline_depth$epi_bottom_depth_m[(i-1)] == -3.4){
+      doc_entr[j,i,1] <- (-sum(doc_lake_mass[j,i,3:4]))
+    } else if(thermocline_depth$epi_bottom_depth_m[i]-thermocline_depth$epi_bottom_depth_m[(i-1)] == -3.0){
+      doc_entr[j,i,1] <- (-sum(doc_lake_mass[j,i,5:6]))
+    } else if(thermocline_depth$epi_bottom_depth_m[i]-thermocline_depth$epi_bottom_depth_m[(i-1)] == -2.4){
+      doc_entr[j,i,1] <- (-sum(doc_lake_mass[j,i,4:5]))
+    } else if(thermocline_depth$epi_bottom_depth_m[i]-thermocline_depth$epi_bottom_depth_m[(i-1)] == -2.2){
+      doc_entr[j,i,1] <- -doc_lake_mass[j,i,3]
+    } else if(thermocline_depth$epi_bottom_depth_m[i]-thermocline_depth$epi_bottom_depth_m[(i-1)] == -1.8){
+      doc_entr[j,i,1] <- -doc_lake_mass[j,i,6]
+    } else if(thermocline_depth$epi_bottom_depth_m[i]-thermocline_depth$epi_bottom_depth_m[(i-1)] == -1.5){
+      doc_entr[j,i,1] <- -doc_lake_mass[j,i,2]
+    } else if(thermocline_depth$epi_bottom_depth_m[i]-thermocline_depth$epi_bottom_depth_m[(i-1)] == -1.2){
+      doc_entr[j,i,1] <- -doc_lake_mass[j,i,5]
+    } else if(thermocline_depth$epi_bottom_depth_m[i]-thermocline_depth$epi_bottom_depth_m[(i-1)] == 1.2){
+      doc_entr[j,i,1] <- doc_lake_mass[j,i,5]
+    } else if(thermocline_depth$epi_bottom_depth_m[i]-thermocline_depth$epi_bottom_depth_m[(i-1)] == 1.5){
+      doc_entr[j,i,1] <- doc_lake_mass[j,i,2]
+    } else if(thermocline_depth$epi_bottom_depth_m[i]-thermocline_depth$epi_bottom_depth_m[(i-1)] == 1.8){
+      doc_entr[j,i,1] <- doc_lake_mass[j,i,6]
+    } else if(thermocline_depth$epi_bottom_depth_m[i]-thermocline_depth$epi_bottom_depth_m[(i-1)] == 2.2){
+      doc_entr[j,i,1] <- doc_lake_mass[j,i,3]
+    } else if(thermocline_depth$epi_bottom_depth_m[i]-thermocline_depth$epi_bottom_depth_m[(i-1)] == 3.0){
+      doc_entr[j,i,1] <- sum(doc_lake_mass[j,i,5:6])
+    } else if(thermocline_depth$epi_bottom_depth_m[i]-thermocline_depth$epi_bottom_depth_m[(i-1)] == 3.4){
+      doc_entr[j,i,1] <- sum(doc_lake_mass[j,i,3:4])
+    } else if(thermocline_depth$epi_bottom_depth_m[i]-thermocline_depth$epi_bottom_depth_m[(i-1)] == 6.4){
+      doc_entr[j,i,1] <- sum(doc_lake_mass[j,i,3:6])
+    }
+  }
+}
+
+
+test <- as.data.frame(matrix(data=NA,nrow=2191,ncol=1))
+for (i in 2:2191){
+  test[i,1] <- thermocline_depth$epi_bottom_depth_m[i]-thermocline_depth$epi_bottom_depth_m[i-1]
+}
 
 ##### STOPPED HERE ######
 
