@@ -30,7 +30,7 @@ ctd <- read.csv('./Data/CTD_2013_2021.csv') %>% #read in observed CTD data, whic
 
 ctd_50 <- ctd %>% 
   filter(Site==50) %>% 
-  rename(time = Date)
+  dplyr::rename(time = Date)
 
 # Import YSI observations from EDI
 #inUrl1 <- "https://pasta.lternet.edu/package/data/eml/edi/198/8/07ba1430528e01041435afc4c65fbeb6"
@@ -44,17 +44,21 @@ ysi <- read_csv('./Data/YSI_PAR_profiles_2013-2021.csv') %>%
 
 ysi_50 <- ysi %>% 
   filter(Site==50) %>% 
-  rename(time = DateTime)
+  dplyr::rename(time = DateTime)
 
 # Combine CTD and YSI data for site 50
 # Select unique dates from both CTD and YSI casts
 ysi_date_list <- as.data.frame(unique(as.Date(ysi_50$time)))
 names(ysi_date_list)[1] <- "time"
 ysi_date_list$ysi_fcr <- rep(-99,length(ysi_date_list$time))
+ysi_date_list <- ysi_date_list %>% 
+  arrange(time)
 
 ctd_date_list <- as.data.frame(unique(as.Date(ctd_50$time)))
 names(ctd_date_list)[1] <- "time"
 ctd_date_list$ctd_fcr <- rep(-99,length(ctd_date_list$time))
+ctd_date_list <- ctd_date_list %>% 
+  arrange(time)
 
 # Combine Unique dates list by date
 fcr_dates <- merge(ysi_date_list, ctd_date_list, by="time", all.x=TRUE, all.y=TRUE)
@@ -89,15 +93,18 @@ fcr_merge$pH.x[ctd_fcr_na] <- fcr_merge$pH.y[ctd_fcr_na]
 
 fcr_all <- fcr_merge %>% 
   select(time,Depth_m.x,Temp_C.x,DO_mgL.x,DO_pSat,Cond_uScm.x,Chla_ugL,Turb_NTU,pH.x,ORP_mV.x,PAR_umolm2s.x) %>% 
-  rename(depth=Depth_m.x,Temp_C=Temp_C.x,DO_mgL=DO_mgL.x,Cond_uScm=Cond_uScm.x,pH=pH.x,ORP_mV=ORP_mV.x,PAR_umolm2s=PAR_umolm2s.x)
+  dplyr::rename(depth=Depth_m.x,Temp_C=Temp_C.x,DO_mgL=DO_mgL.x,Cond_uScm=Cond_uScm.x,pH=pH.x,ORP_mV=ORP_mV.x,PAR_umolm2s=PAR_umolm2s.x)
 
 fcr_date_list <- as.data.frame(unique(as.Date(fcr_all$time)))
 
 ## Average across date and depth
-fcr_all <- fcr_all %>% group_by(time,depth) %>% summarize_all(funs(mean),na.rm=TRUE)
+fcr_all <- fcr_all %>% group_by(time,depth) %>% summarize_all(funs(mean),na.rm=TRUE) %>% arrange(time,depth)
+
+## Save merged CTD and YSI data for later analysis
+write.csv(fcr_all,"./Data/merged_YSI_CTD.csv", row.names = FALSE)
 
 layer <- fcr_all %>% 
-  rename(Date = time, Depth_m = depth)
+  dplyr::rename(Date = time, Depth_m = depth)
 
 ### Formatting for LakeAnalyzer ----
 df.final<-data.frame()
@@ -149,9 +156,10 @@ fcr_layers$Depth_m <- round(as.numeric(fcr_layers$Depth_m), digits = .5)
 
 fcr_layers_temp <- fcr_layers %>% select(Date,Depth_m,Temp_C) %>% group_by(Date,Depth_m) %>% summarise_each(funs(mean))
 
-fcr_new <- fcr_layers_temp %>% spread(Depth_m,Temp_C)
+fcr_layers_temp <- fcr_layers_temp %>% 
+  mutate(Temp_C = na.fill(na.approx(Temp_C,na.rm=FALSE),"extend"))
 
-fcr_new <- fcr_new[complete.cases(fcr_new),]
+fcr_new <- fcr_layers_temp %>% spread(Depth_m,Temp_C)
 
 names(fcr_new)[1] <- "dateTime"
 names(fcr_new)[2] <- "wtr_0.1"
@@ -177,6 +185,9 @@ names(fcr_new)[20] <- "wtr_9.0"
 fcr_new$dateTime <- ymd(fcr_new$dateTime)
 
 fcr_new = data.frame(fcr_new)
+
+fcr_new <- fcr_new %>% 
+  arrange(dateTime)
 
 # Export out for LakeAnalyzer
 write.table(fcr_new, "./Data/fcr.wtr", sep='\t', row.names=FALSE)
