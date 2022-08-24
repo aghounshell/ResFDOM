@@ -43,6 +43,13 @@ thermo <- thermo %>%
                                                                ifelse(thermo.depth <= 7.0, 8.0,
                                                                       ifelse(thermo.depth <= 9.0, 9.0, NA))))))))
 
+## Check average thermo depth from April-Oct from 2017-2021
+thermo %>% 
+  mutate(month = month(DateTime)) %>% 
+  mutate(year = year(DateTime)) %>% 
+  filter(DateTime >= as.POSIXct("2017-01-01") & month %in% c(4,5,6,7,8,9)) %>% 
+  summarise_all(median,na.rm=TRUE)
+
 ###############################################################################
 
 ## Load in a format DOC concentration data from 2017-2021
@@ -524,12 +531,11 @@ inflow_daily %>%
   theme_classic(base_size = 15)+
   theme(legend.title=element_blank())
 
-##### STOPPED HERE#####
-
 # Format for ARIMA modeling
-
+final_inflow_m3s <- inflow_daily %>% 
+  select(DateTime,mean) %>% 
+  dplyr::rename(Inflow_m3s = mean)
   
-
 ###############################################################################
 
 ## Load in met data - shortwave radiation and rainfall
@@ -548,7 +554,7 @@ met_daily <- met %>%
   mutate(DateTime = format(as.POSIXct(DateTime, "%Y-%m-%d"),"%Y-%m-%d")) %>% 
   mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d", tz = "EST")) %>% 
   group_by(DateTime) %>% 
-  summarise(rain_tot_mm = sum(Rain_Total_mm, na.rm = TRUE),
+  dplyr::summarise(rain_tot_mm = sum(Rain_Total_mm, na.rm = TRUE),
             ShortwaveRadiationUp_Average_W_m2 = mean(ShortwaveRadiationUp_Average_W_m2, na.rm = TRUE))
 
 ## Then plot total rainfall and shorwave radiation
@@ -597,7 +603,7 @@ ghg <- read.csv("./Data/final_GHG_2015-2021.csv",header=T) %>%
 
 ghg <- ghg %>% 
   group_by(DateTime,Depth_m) %>% 
-  summarise(mean_ch4_umolL = mean(ch4_umolL, na.rm=TRUE),
+  dplyr::summarise(mean_ch4_umolL = mean(ch4_umolL, na.rm=TRUE),
             mean_co2_umolL = mean(co2_umolL, na.rm=TRUE))
 
 # Pivot_longer for each GHG and each sampling time point
@@ -693,7 +699,297 @@ co2_umolL %>%
   theme_classic(base_size = 15)+
   theme(legend.title=element_blank())
 
+# Format for ARIMA modeling
+final_ch4_umolL <- ch4_umolL %>% 
+  select(DateTime,epi_ch4,hypo_ch4) %>% 
+  pivot_longer(!DateTime, names_to = "Depth", values_to = "VW_CH4_umolL") %>% 
+  mutate(Depth = ifelse(Depth == "epi_ch4", "Epi",
+                        ifelse(Depth == "hypo_ch4", "Hypo", NA)))
+
+final_co2_umolL <- co2_umolL %>% 
+  select(DateTime,epi_co2,hypo_co2) %>% 
+  pivot_longer(!DateTime, names_to = "Depth", values_to = "VW_co2_umolL") %>% 
+  mutate(Depth = ifelse(Depth == "epi_co2", "Epi",
+                        ifelse(Depth == "hypo_co2", "Hypo", NA)))
+
 ###############################################################################
 
 ## Organize data for ARIMA modeling - following EddyFlux, 3_Rev_EnvAnalysis.R
-# Include: DOC data, Temp, DO, Turb, Cond, Flora, Inflow, Rainfall, SW Radiation, CO2, and CH4 for Epi and Hypo
+# Include: DOC data, Temp, DO, Flora, Inflow, Rainfall, SW Radiation, CO2, and CH4 for Epi and Hypo
+arima_epi <- join_all(list(final_doc_mgL,final_temp_c,final_do_mgL,final_chla_ugL,final_ch4_umolL,final_co2_umolL),by=c("DateTime","Depth"),type="left") 
+
+arima_epi <- join_all(list(arima_epi,met_daily,final_inflow_m3s),by="DateTime",type="left") %>% 
+  filter(DateTime >= as.POSIXct("2017-01-01"),Depth == "Epi") %>% 
+  drop_na(VW_DOC_mgL)
+
+# Include: DOC data, Temp, DO, Flora, Inflow, Rainfall, SW Radiation, CO2, and CH4 for Epi and Hypo
+arima_hypo <- join_all(list(final_doc_mgL,final_temp_c,final_do_mgL,final_chla_ugL,final_ch4_umolL,final_co2_umolL),by=c("DateTime","Depth"),type="left")
+
+arima_hypo <- join_all(list(arima_hypo,met_daily,final_inflow_m3s),by="DateTime",type="left") %>% 
+  filter(DateTime >= as.POSIXct("2017-01-01"),Depth == "Hypo") %>% 
+  drop_na(VW_DOC_mgL)
+
+###############################################################################
+
+## Check correlations among environmental variables - what needs to be removed?
+# Epi
+epi_cor = as.data.frame(cor(arima_epi[,3:11],use = "complete.obs"),method=c("pearson"))
+chart.Correlation(arima_epi[,3:11],histogram = TRUE,method=c("pearson"))
+# No correlations!
+
+# Hypo
+hypo_cor = as.data.frame(cor(arima_hypo[,3:11],use = "complete.obs"),method=c("pearson"))
+chart.Correlation(arima_hypo[,3:11],histogram = TRUE,method=c("pearson"))
+# DO and CO2 correlated at -0.73...but going to keep it in and use a cut-off of 0.75?
+
+###############################################################################
+
+## Check for skewness following MEL script!
+Math.cbrt <- function(x) {
+  sign(x) * abs(x)^(1/3)
+}
+
+# Epi
+for (i in 3:11){
+  print(colnames(arima_epi)[i])
+  var <- arima_epi[,i]
+  hist(as.matrix(var), main = colnames(arima_epi)[i])
+  print(skewness(arima_epi[,i], na.rm = TRUE))
+  print(skewness(log(arima_epi[,i]+0.0001), na.rm = TRUE))
+  print(skewness(Math.cbrt(arima_epi[,i]), na.rm = TRUE))
+  print(skewness(arima_epi[,i]^2),na.rm=TRUE)
+  var <- log(arima_epi[,i])
+  hist(as.matrix(var), main = c("Log",colnames(arima_epi)[i]))
+  var <- Math.cbrt(arima_epi[,i])
+  hist(as.matrix(var), main = c("cube_rt",colnames(arima_epi)[i]))
+  var <- (arima_epi[,i]^2)
+  hist(as.matrix(var), main = c("sq",colnames(arima_epi)[i]))
+}
+# Nothing: Temp, DO, CH4, CO2, SW Radiation, Rain
+# Log: DOC, Chla, Inflow
+
+# Transform and scale data
+arima_epi_scale <- arima_epi %>% 
+  mutate(VW_DOC_mgL = log(VW_DOC_mgL),
+         VW_Chla_ugL = log(VW_Chla_ugL),
+         Inflow_m3s = log(Inflow_m3s))
+
+arima_epi_scale[,3:11] <- scale(arima_epi_scale[,3:11])
+
+# Hypo
+for (i in 3:11){
+  print(colnames(arima_hypo)[i])
+  var <- arima_hypo[,i]
+  hist(as.matrix(var), main = colnames(arima_hypo)[i])
+  print(skewness(arima_hypo[,i], na.rm = TRUE))
+  print(skewness(log(arima_hypo[,i]+0.0001), na.rm = TRUE))
+  print(skewness(Math.cbrt(arima_hypo[,i]), na.rm = TRUE))
+  print(skewness(arima_hypo[,i]^2),na.rm=TRUE)
+  var <- log(arima_hypo[,i])
+  hist(as.matrix(var), main = c("Log",colnames(arima_hypo)[i]))
+  var <- Math.cbrt(arima_hypo[,i])
+  hist(as.matrix(var), main = c("cube_rt",colnames(arima_hypo)[i]))
+  var <- (arima_hypo[,i]^2)
+  hist(as.matrix(var), main = c("sq",colnames(arima_hypo)[i]))
+}
+# Nothing: DOC, Temp, DO, CH4, CO2, Rain, SW Radiation
+# Log: Chla, Inflow
+
+# Transform and scale data
+arima_hypo_scale <- arima_hypo %>% 
+  mutate(VW_Chla_ugL = log(VW_Chla_ugL),
+         Inflow_m3s = log(Inflow_m3s))
+
+arima_hypo_scale[,3:11] <- scale(arima_hypo_scale[,3:11])
+
+###############################################################################
+
+## ARIMA modeling
+# Following MEL code : )
+# THINGS TO CHANGE: 'cols' (change to the environmental variables); best fit!
+
+###############################################################################
+
+# Epi
+colnames(arima_epi_scale)
+
+cols <- c(4:11) # UPDATE THIS TO THE ENV. VARIABLES
+sub.final <- NULL
+final <- NULL
+
+y <- arima_epi_scale[,3] # UPDATE THIS TO DOC CONCENTRATION
+
+for (i in 1:length(cols)){
+  my.combn <- combn(cols,i)
+  sub.sub.final <- matrix(NA, nrow = ncol(my.combn), ncol = 4)
+  
+  for (j in 1:ncol(my.combn)){
+    
+    skip_to_next <- FALSE
+    
+    tryCatch(fit <- auto.arima(y,xreg = as.matrix(arima_epi_scale[,my.combn[,j]]),max.p = 1, max.P = 1), error = function(e) { skip_to_next <<- TRUE})
+    
+    if(skip_to_next) { 
+      sub.sub.final[j,4] <- NA
+      sub.sub.final[j,3] <- j
+      sub.sub.final[j,2] <- i
+      sub.sub.final[j,1] <- "epi"
+      next }
+    
+    sub.sub.final[j,4] <- fit$aicc
+    sub.sub.final[j,3] <- j
+    sub.sub.final[j,2] <- i
+    sub.sub.final[j,1] <- "epi"
+  }
+  
+  sub.final <- rbind(sub.final,sub.sub.final)
+  print(paste("I have finished with all combinations of length",i,"for epi",sep = " "))
+}
+
+final <- rbind(final, sub.final)
+
+#run null models for comparison
+null <- matrix(NA, nrow = 1, ncol = 4)
+
+fit <- auto.arima(y, max.p = 1, max.P = 1)
+null[1,4] <- fit$aicc
+null[1,3] <- NA
+null[1,2] <- NA
+null[1,1] <- "epi"
+
+
+final <- rbind(final, null)
+final <- data.frame(final)
+colnames(final) <- c("Response.variable","Num.covars","Covar.cols","AICc")
+final <- distinct(final)
+
+best <- final %>%
+  slice(which.min(AICc))
+
+best.vars <- colnames(arima_epi_scale)[combn(cols,4)[,22]] # UPDATE THIS FOLLOWING 'BEST'
+best.vars.cols <- combn(cols,4)[,22] # UPDATE THIS FOLLOWING 'BEST'
+
+best.fit <- auto.arima(y,xreg = as.matrix(arima_epi_scale[,best.vars.cols]),max.p = 1, max.P = 1)
+best.fit
+hist(resid(best.fit))
+accuracy(best.fit)
+hist(unlist(arima_epi_scale[,1]))
+plot_fit <- as.numeric(fitted(best.fit))
+plot_x <- as.numeric(unlist(arima_epi_scale[,1]))
+plot(plot_x,plot_fit)
+abline(a = 0, b = 1)
+median((unlist(arima_epi_scale[,1])-unlist(fitted(best.fit))), na.rm = TRUE)
+
+good <- final %>%
+  filter(AICc >= as.numeric(best$AICc[1]) & AICc <= (as.numeric(best$AICc[1]) + 2)) %>%
+  mutate(Num.covars = as.numeric(Num.covars),
+         Covar.cols = as.numeric(Covar.cols))
+
+for (i in 1:nrow(good)){
+  good.vars.1 <- colnames(arima_epi_scale)[combn(cols,good[i,2])[,good[i,3]]]
+  
+  good.vars.1
+  
+  good.vars.cols.1 <- combn(cols,good[i,2])[,good[i,3]]
+  
+  
+  good.fit.1 <- auto.arima(y,xreg = as.matrix(arima_epi_scale[,good.vars.cols.1]),max.p = 1, max.P = 1)
+  print(good.fit.1)
+  print(accuracy(good.fit.1))
+  
+  
+}
+
+###############################################################################
+
+# Epi
+colnames(arima_hypo_scale)
+
+cols <- c(4:7,9:11) # UPDATE THIS TO THE ENV. VARIABLES
+sub.final <- NULL
+final <- NULL
+
+y <- arima_hypo_scale[,3] # UPDATE THIS TO DOC CONCENTRATION
+
+for (i in 1:length(cols)){
+  my.combn <- combn(cols,i)
+  sub.sub.final <- matrix(NA, nrow = ncol(my.combn), ncol = 4)
+  
+  for (j in 1:ncol(my.combn)){
+    
+    skip_to_next <- FALSE
+    
+    tryCatch(fit <- auto.arima(y,xreg = as.matrix(arima_hypo_scale[,my.combn[,j]]),max.p = 1, max.P = 1), error = function(e) { skip_to_next <<- TRUE})
+    
+    if(skip_to_next) { 
+      sub.sub.final[j,4] <- NA
+      sub.sub.final[j,3] <- j
+      sub.sub.final[j,2] <- i
+      sub.sub.final[j,1] <- "hypo"
+      next }
+    
+    sub.sub.final[j,4] <- fit$aicc
+    sub.sub.final[j,3] <- j
+    sub.sub.final[j,2] <- i
+    sub.sub.final[j,1] <- "hypo"
+  }
+  
+  sub.final <- rbind(sub.final,sub.sub.final)
+  print(paste("I have finished with all combinations of length",i,"for hypo",sep = " "))
+}
+
+final <- rbind(final, sub.final)
+
+#run null models for comparison
+null <- matrix(NA, nrow = 1, ncol = 4)
+
+fit <- auto.arima(y, max.p = 1, max.P = 1)
+null[1,4] <- fit$aicc
+null[1,3] <- NA
+null[1,2] <- NA
+null[1,1] <- "hypo"
+
+
+final <- rbind(final, null)
+final <- data.frame(final)
+colnames(final) <- c("Response.variable","Num.covars","Covar.cols","AICc")
+final <- distinct(final)
+
+best <- final %>%
+  slice(which.min(AICc))
+
+best.vars <- colnames(arima_hypo_scale)[combn(cols,5)[,3]] # UPDATE THIS FOLLOWING 'BEST'
+best.vars.cols <- combn(cols,5)[,3] # UPDATE THIS FOLLOWING 'BEST'
+
+best.fit <- auto.arima(y,xreg = as.matrix(arima_hypo_scale[,best.vars.cols]),max.p = 1, max.P = 1)
+best.fit
+hist(resid(best.fit))
+accuracy(best.fit)
+hist(unlist(arima_hypo_scale[,1]))
+plot_fit <- as.numeric(fitted(best.fit))
+plot_x <- as.numeric(unlist(arima_hypo_scale[,1]))
+plot(plot_x,plot_fit)
+abline(a = 0, b = 1)
+median((unlist(arima_hypo_scale[,1])-unlist(fitted(best.fit))), na.rm = TRUE)
+
+good <- final %>%
+  filter(AICc >= as.numeric(best$AICc[1]) & AICc <= (as.numeric(best$AICc[1]) + 2)) %>%
+  mutate(Num.covars = as.numeric(Num.covars),
+         Covar.cols = as.numeric(Covar.cols))
+
+for (i in 1:nrow(good)){
+  good.vars.1 <- colnames(arima_hypo_scale)[combn(cols,good[i,2])[,good[i,3]]]
+  
+  good.vars.1
+  
+  good.vars.cols.1 <- combn(cols,good[i,2])[,good[i,3]]
+  
+  
+  good.fit.1 <- auto.arima(y,xreg = as.matrix(arima_hypo_scale[,good.vars.cols.1]),max.p = 1, max.P = 1)
+  print(good.fit.1)
+  print(accuracy(good.fit.1))
+  
+  
+}
+
+###############################################################################
