@@ -101,6 +101,23 @@ chem_50 <- chem %>%
   filter(DOC_mgL <= 15) %>% 
   drop_na(DOC_mgL)
 
+## Merge and plot measured inflow vs. measured DOC concentration
+doc_100 <- left_join(chem_100,inflow_daily,by="DateTime")
+
+docvinflow <- doc_100 %>% 
+  filter(DateTime >= as.POSIXct("2017-01-01")) %>% 
+  ggplot(mapping=aes(x=mean,y=DOC_mgL))+
+  geom_point(size=1.5)+
+  geom_smooth(method='lm')+ 
+  xlab(expression(paste("Inflow (m"^3*"s"^-1*")")))+
+  ylab(expression(paste("DOC (mg L"^-1*")")))+
+  theme_classic(base_size=15)
+
+ggsave("./Fig_Output/SI_DOCvInflow.png",docvinflow,dpi=800,width=5,height=4)
+
+doc_lm <- lm(DOC_mgL ~ mean, data = doc_100)
+summary(doc_lm)
+
 # Plot DOC concentrations with depth for the study period - separated by year
 # For supplementary information
 doc_2017 <- ggplot()+
