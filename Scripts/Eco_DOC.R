@@ -966,8 +966,23 @@ doc_wgt <- doc_wgt %>%
                                                     ifelse(hypo_top_depth_m == 8, ((DOC_8*vol_depths$Vol_m3[6])+(DOC_9*vol_depths$Vol_m3[7]))/sum(vol_depths$Vol_m3[6:7]),
                                                            ifelse(hypo_top_depth_m == 9, (DOC_9*vol_depths$Vol_m3[7])/sum(vol_depths$Vol_m3[7]),NA)))))))
 
+doc_wgt <- full_join(doc_wgt,chem_100, by = "DateTime")
+
+doc_wgt <- doc_wgt %>% 
+  select(DateTime, doc_epi_mgL, doc_hypo_mgL, DOC_mgL) %>% 
+  arrange(DateTime) %>% 
+  pivot_longer(!DateTime, names_to = "Loc", values_to = "DOC_mgL")
+
+doc_wgt <- doc_wgt %>% 
+  mutate(Loc = ifelse(Loc == "doc_epi_mgL", "Epi",
+                      ifelse(Loc == "doc_hypo_mgL", "Hypo", 
+                             ifelse(Loc== "DOC_mgL", "Inflow", NA)))) %>% 
+  drop_na()
+
 ## Plot vol weighted epi and hypo [DOC] and inflow [DOC]
-vw_epi <- ggplot()+
+vw_epi <- doc_wgt %>% 
+  filter(Loc == "Epi") %>% 
+  ggplot(mapping=aes(x=DateTime,y=DOC_mgL))+
   #geom_vline(xintercept = as.POSIXct("2015-10-05"),linetype="dashed",color="darkgrey")+
   #geom_vline(xintercept = as.POSIXct("2016-10-09"),linetype="dashed",color="darkgrey")+
   geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dashed",color="darkgrey")+
@@ -975,15 +990,17 @@ vw_epi <- ggplot()+
   geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed",color="darkgrey")+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed",color="darkgrey")+
   geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dashed",color="darkgrey")+
-  geom_line(doc_wgt,mapping=aes(x=DateTime,y=doc_epi_mgL),size=0.75,color="#7EBDC2")+
-  geom_point(doc_wgt,mapping=aes(x=DateTime,y=doc_epi_mgL),size=2,color="#7EBDC2")+
+  geom_line(size=0.75,color="#7EBDC2")+
+  geom_point(size=2,color="#7EBDC2")+
   xlab("")+
-  ylab(expression(paste("Epi. V.W. DOC (mg L"^-1*")")))+
+  ylab(expression(paste("Epi VW DOC (mg L"^-1*")")))+
   ylim(0,8)+
   xlim(as.POSIXct("2017-01-01"),as.POSIXct("2021-12-31"))+
   theme_classic(base_size = 15)
 
-vw_hypo <- ggplot()+
+vw_hypo <- doc_wgt %>% 
+  filter(Loc == "Hypo") %>% 
+  ggplot(mapping=aes(x=DateTime,y=DOC_mgL))+
   #geom_vline(xintercept = as.POSIXct("2015-10-05"),linetype="dashed",color="darkgrey")+
   #geom_vline(xintercept = as.POSIXct("2016-10-09"),linetype="dashed",color="darkgrey")+
   geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dashed",color="darkgrey")+
@@ -991,18 +1008,56 @@ vw_hypo <- ggplot()+
   geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed",color="darkgrey")+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed",color="darkgrey")+
   geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dashed",color="darkgrey")+
-  geom_line(doc_wgt,mapping=aes(x=DateTime,y=doc_hypo_mgL),size=0.75,color="#393E41")+
-  geom_point(doc_wgt,mapping=aes(x=DateTime,y=doc_hypo_mgL),size=2,color="#393E41")+
+  geom_line(size=0.75,color="#393E41")+
+  geom_point(size=2,color="#393E41")+
   xlab("")+
-  ylab(expression(paste("Hypo. V.W. DOC (mg L"^-1*")")))+
+  ylab(expression(paste("Hypo VW DOC (mg L"^-1*")")))+
   ylim(0,8)+
   xlim(as.POSIXct("2017-01-01"),as.POSIXct("2021-12-31"))+
   theme_classic(base_size = 15)
 
-ggarrange(vw_epi,vw_hypo,nrow=2,ncol=1,labels = c("A.", "B."),
+inflow_doc <- doc_wgt %>% 
+  filter(Loc == "Inflow") %>% 
+  ggplot(mapping=aes(x=DateTime,y=DOC_mgL))+
+  #geom_vline(xintercept = as.POSIXct("2015-10-05"),linetype="dashed",color="darkgrey")+
+  #geom_vline(xintercept = as.POSIXct("2016-10-09"),linetype="dashed",color="darkgrey")+
+  geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dashed",color="darkgrey")+
+  geom_vline(xintercept = as.POSIXct("2018-10-21"),linetype="dashed",color="darkgrey")+
+  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed",color="darkgrey")+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed",color="darkgrey")+
+  geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dashed",color="darkgrey")+
+  geom_line(size=0.75,color="#F0B670")+
+  geom_point(size=2,color="#F0B670")+
+  xlab("")+
+  ylab(expression(paste("Inflow DOC (mg L"^-1*")")))+
+  ylim(0,8)+
+  xlim(as.POSIXct("2017-01-01"),as.POSIXct("2021-12-31"))+
+  theme_classic(base_size = 15)
+
+ggarrange(vw_epi,vw_hypo,inflow_doc,nrow=3,ncol=1,labels = c("A.", "B.", "C."),
           font.label=list(face="plain",size=15))
 
-ggsave("./Fig_Output/VW_DOC.jpg",width=7,height=7,units="in",dpi=320)
+ggsave("./Fig_Output/Fig3_VW_DOC.jpg",width=7,height=10,units="in",dpi=320)
+
+doc_wgt %>% 
+  filter(DateTime >= as.POSIXct("2017-01-01")) %>% 
+  ggplot(mapping=aes(x=Loc,y=DOC_mgL,fill=Loc))+
+  geom_boxplot(size=0.8,alpha=0.5)+
+  scale_fill_manual(breaks=c('Epi','Hypo','Inflow'),values=c("#7EBDC2","#393E41","#F0B670"))+
+  xlab("")+
+  ylab(expression(paste("DOC (mg L"^-1*")")))+
+  theme_classic(base_size = 15)+
+  theme(legend.position = "none")
+
+ggsave("./Fig_Output/SI_DOC_Boxplot.png",dpi=800,width=5,height=4)
+
+doc_stats <- doc_wgt %>% 
+  filter(DateTime >= as.POSIXct("2017-01-01")) %>% 
+  group_by(Loc) %>% 
+  summarise(min = min(DOC_mgL),
+            max = max(DOC_mgL),
+            median = median(DOC_mgL),
+            sd = sd(DOC_mgL))
 
 ##### STOPPED HERE ######
 

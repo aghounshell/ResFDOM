@@ -50,6 +50,31 @@ thermo %>%
   filter(DateTime >= as.POSIXct("2017-01-01") & month %in% c(4,5,6,7,8,9)) %>% 
   summarise_all(median,na.rm=TRUE)
 
+## Plot timeseries of thermocline depth for SI
+thermo %>% 
+  drop_na(thermo.depth) %>% 
+  ggplot(mapping=aes(x=DateTime,y=-thermo.depth))+
+  geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dashed",color="darkgrey")+
+  geom_vline(xintercept = as.POSIXct("2018-10-21"),linetype="dashed",color="darkgrey")+
+  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed",color="darkgrey")+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed",color="darkgrey")+
+  geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dashed",color="darkgrey")+
+  geom_hline(yintercept = -0.1, linetype="dotted",color="darkgrey")+
+  geom_hline(yintercept = -1.6, linetype="dotted",color="darkgrey")+
+  geom_hline(yintercept = -3.8, linetype="dotted",color="darkgrey")+
+  geom_hline(yintercept = -5, linetype="dotted",color="darkgrey")+
+  geom_hline(yintercept = -6.2, linetype="dotted",color="darkgrey")+
+  geom_hline(yintercept = -8, linetype="dotted",color="darkgrey")+
+  geom_hline(yintercept = -9, linetype="dotted",color="darkgrey")+
+  geom_line(size=1)+
+  geom_point(size=2)+
+  ylab("Thermocline depth (m)")+
+  xlab("")+
+  xlim(as.POSIXct("2017-01-01"),as.POSIXct("2021-12-31"))+
+  theme_classic(base_size = 15)
+
+ggsave("./Fig_Output/SI_ThermoDepth.png",dpi=800,width=9,height=4)
+
 ###############################################################################
 
 ## Load in a format DOC concentration data from 2017-2021
@@ -190,7 +215,7 @@ temp_c <- temp_c %>%
 temp_c <- temp_c[-c(267,348,353,418,484),]
 
 ## Plot data by epi and hypo
-temp_c %>%  
+temp_plot <- temp_c %>%  
   drop_na(epi_temp,hypo_temp) %>% 
   ggplot()+
   geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dashed",color="darkgrey")+
@@ -248,7 +273,7 @@ do_mgL <- do_mgL %>%
 
 do_mgL <- do_mgL[-c(413,479),]
 
-do_mgL %>%  
+do_plot <- do_mgL %>%  
   drop_na(epi_DO,hypo_DO) %>% 
   ggplot()+
   geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dashed",color="darkgrey")+
@@ -466,7 +491,7 @@ chla_ugL <- chla_ugL %>%
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST")))
 
 ## Plot
-chla_ugL %>%  
+chla_plot <- chla_ugL %>%  
   drop_na(epi_Chla,hypo_Chla) %>% 
   ggplot()+
   geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dashed",color="darkgrey")+
@@ -515,7 +540,7 @@ inflow_daily <- inflow %>%
   filter(DateTime >= as.POSIXct("2015-01-01"))
 
 # Plot daily inflow for the study period
-inflow_daily %>% 
+inflow_plot <- inflow_daily %>% 
   na.omit(mean) %>% 
   ggplot(mapping=aes(x=DateTime,y=mean))+
   geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dashed",color="darkgrey")+
@@ -535,6 +560,14 @@ inflow_daily %>%
 final_inflow_m3s <- inflow_daily %>% 
   select(DateTime,mean) %>% 
   dplyr::rename(Inflow_m3s = mean)
+
+###############################################################################
+
+## Plot Temp, DO, Chla, and Inflow for main MS
+ggarrange(temp_plot,do_plot,chla_plot,inflow_plot,ncol=1,nrow=4,common.legend = TRUE, labels = c("A.", "B.", "C.", "D."),
+          font.label=list(face="plain",size=15))
+
+ggsave("./Fig_Output/Fig4_EnvParameters.jpg",width=10,height=12,units="in",dpi=320)
   
 ###############################################################################
 
@@ -557,8 +590,8 @@ met_daily <- met %>%
   dplyr::summarise(rain_tot_mm = sum(Rain_Total_mm, na.rm = TRUE),
             ShortwaveRadiationUp_Average_W_m2 = mean(ShortwaveRadiationUp_Average_W_m2, na.rm = TRUE))
 
-## Then plot total rainfall and shorwave radiation
-met_daily %>% 
+## Then plot total rainfall and shortwave radiation
+rain_plot <- met_daily %>% 
   ggplot(mapping=aes(x=DateTime,y=rain_tot_mm))+ 
   geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dashed",color="darkgrey")+
   geom_vline(xintercept = as.POSIXct("2018-10-21"),linetype="dashed",color="darkgrey")+
@@ -572,7 +605,7 @@ met_daily %>%
   theme_classic(base_size = 15)+
   theme(legend.title=element_blank())
 
-met_daily %>% 
+sw_plot <- met_daily %>% 
   ggplot(mapping=aes(x=DateTime,y=ShortwaveRadiationUp_Average_W_m2))+ 
   geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dashed",color="darkgrey")+
   geom_vline(xintercept = as.POSIXct("2018-10-21"),linetype="dashed",color="darkgrey")+
@@ -585,6 +618,11 @@ met_daily %>%
   ylab(expression(S.W.~Radiation~(W~m^2)))+
   theme_classic(base_size = 15)+
   theme(legend.title=element_blank())
+
+ggarrange(rain_plot,sw_plot,ncol=1,nrow=2,common.legend = TRUE, labels = c("A.", "B."),
+          font.label=list(face="plain",size=15))
+
+ggsave("./Fig_Output/SI_MetParameters.jpg",width=10,height=7,units="in",dpi=320)
 
 ###############################################################################
 
@@ -659,7 +697,7 @@ co2_umolL <- co2_umolL %>%
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST")))
 
 ## Plot
-ch4_umolL %>%  
+ch4_plot <- ch4_umolL %>%  
   drop_na(epi_ch4,hypo_ch4) %>% 
   ggplot()+
   geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dashed",color="darkgrey")+
@@ -679,7 +717,7 @@ ch4_umolL %>%
   theme_classic(base_size = 15)+
   theme(legend.title=element_blank())
 
-co2_umolL %>%  
+co2_plot <- co2_umolL %>%  
   drop_na(epi_co2,hypo_co2) %>% 
   ggplot()+
   geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dashed",color="darkgrey")+
@@ -699,6 +737,11 @@ co2_umolL %>%
   theme_classic(base_size = 15)+
   theme(legend.title=element_blank())
 
+ggarrange(ch4_plot,co2_plot,ncol=1,nrow=2,common.legend = TRUE, labels = c("A.", "B."),
+          font.label=list(face="plain",size=15))
+
+ggsave("./Fig_Output/SI_GHGParameters.jpg",width=10,height=7,units="in",dpi=320)
+
 # Format for ARIMA modeling
 final_ch4_umolL <- ch4_umolL %>% 
   select(DateTime,epi_ch4,hypo_ch4) %>% 
@@ -716,17 +759,36 @@ final_co2_umolL <- co2_umolL %>%
 
 ## Organize data for ARIMA modeling - following EddyFlux, 3_Rev_EnvAnalysis.R
 # Include: DOC data, Temp, DO, Flora, Inflow, Rainfall, SW Radiation, CO2, and CH4 for Epi and Hypo
-arima_epi <- join_all(list(final_doc_mgL,final_temp_c,final_do_mgL,final_chla_ugL,final_ch4_umolL,final_co2_umolL),by=c("DateTime","Depth"),type="left") 
-
-arima_epi <- join_all(list(arima_epi,met_daily,final_inflow_m3s),by="DateTime",type="left") %>% 
-  filter(DateTime >= as.POSIXct("2017-01-01"),Depth == "Epi") %>% 
-  drop_na(VW_DOC_mgL)
+arima_epi <- plyr::join_all(list(final_doc_mgL,final_temp_c,final_do_mgL,final_chla_ugL,final_ch4_umolL,final_co2_umolL),by=c("DateTime","Depth"),type="left") 
 
 # Include: DOC data, Temp, DO, Flora, Inflow, Rainfall, SW Radiation, CO2, and CH4 for Epi and Hypo
-arima_hypo <- join_all(list(final_doc_mgL,final_temp_c,final_do_mgL,final_chla_ugL,final_ch4_umolL,final_co2_umolL),by=c("DateTime","Depth"),type="left")
+arima_hypo <- plyr::join_all(list(final_doc_mgL,final_temp_c,final_do_mgL,final_chla_ugL,final_ch4_umolL,final_co2_umolL),by=c("DateTime","Depth"),type="left")
 
-arima_hypo <- join_all(list(arima_hypo,met_daily,final_inflow_m3s),by="DateTime",type="left") %>% 
-  filter(DateTime >= as.POSIXct("2017-01-01"),Depth == "Hypo") %>% 
+## Select time points where we have DOC concentrations
+arima_epi <- plyr::join_all(list(arima_epi,met_daily,final_inflow_m3s),by="DateTime",type="left") %>% 
+  filter(DateTime >= as.POSIXct("2017-01-01"),Depth == "Epi")
+
+arima_hypo <- plyr::join_all(list(arima_hypo,met_daily,final_inflow_m3s),by="DateTime",type="left") %>% 
+  filter(DateTime >= as.POSIXct("2017-01-01"),Depth == "Hypo")
+
+## Calculate stats for env parameters - limited to summer stratified period (May-Oct)
+arima_epi %>% 
+  mutate(month = month(DateTime)) %>% 
+  filter(DateTime >= as.POSIXct("2017-01-01") & month %in% c(5,6,7,8,9,10)) %>%
+  select(VW_Temp_C,VW_DO_mgL,VW_Chla_ugL,VW_CH4_umolL,VW_co2_umolL,rain_tot_mm,ShortwaveRadiationUp_Average_W_m2,Inflow_m3s) %>% 
+  summarise_all(list(min,max,median,mean,sd),na.rm=TRUE)
+
+arima_hypo %>% 
+  mutate(month = month(DateTime)) %>% 
+  filter(DateTime >= as.POSIXct("2017-01-01") & month %in% c(5,6,7,8,9,10)) %>% 
+  select(VW_Temp_C,VW_DO_mgL,VW_Chla_ugL,VW_CH4_umolL,VW_co2_umolL,rain_tot_mm,ShortwaveRadiationUp_Average_W_m2,Inflow_m3s) %>% 
+  summarise_all(list(min,max,median,mean,sd),na.rm=TRUE)
+
+# Remove time periods w/o DOC concentration
+arima_epi <- arima_epi %>% 
+  drop_na(VW_DOC_mgL)
+
+arima_hypo <- arima_hypo %>% 
   drop_na(VW_DOC_mgL)
 
 ###############################################################################
