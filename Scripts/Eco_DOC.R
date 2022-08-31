@@ -74,7 +74,7 @@ inflow_model_input <- array(data = NA, dim=c(1000,2557,1))
 
 for (j in 1:1000){
   for (i in 1:2557){
-    inflow_model_input[j,i,1] <- rtruncnorm(1,a=0,mean=inflow_daily_full$mean[i],sd=inflow_daily_full$sd[i]/2)
+    inflow_model_input[j,i,1] <- rtruncnorm(1,a=0,mean=inflow_daily_full$mean[i],sd=inflow_daily_full$total_sd[i]/2)
   }
 }
 
@@ -100,6 +100,46 @@ chem_50 <- chem %>%
   mutate(year = year(DateTime)) %>% 
   filter(DOC_mgL <= 15) %>% 
   drop_na(DOC_mgL)
+
+## Plot DOC concentrations from station 200 from 2019-2021
+wetlands_time <- chem %>% 
+  filter(Site == 200) %>% 
+  drop_na(DOC_mgL) %>% 
+  ggplot(mapping=aes(x=DateTime,y=DOC_mgL))+
+  geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dashed",color="darkgrey")+
+  geom_vline(xintercept = as.POSIXct("2018-10-21"),linetype="dashed",color="darkgrey")+
+  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed",color="darkgrey")+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed",color="darkgrey")+
+  geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dashed",color="darkgrey")+
+  geom_line(size=0.75)+
+  geom_point(size=2)+
+  xlab("")+
+  ylab(expression(paste("Wetland DOC (mg L"^-1*")")))+
+  ylim(0,8)+
+  xlim(as.POSIXct("2017-01-01"),as.POSIXct("2021-12-31"))+
+  theme_classic(base_size = 15)
+
+wetlands_box <- chem %>% 
+  filter(Site == 200) %>% 
+  drop_na(DOC_mgL) %>% 
+  ggplot(mapping=aes(y=DOC_mgL))+
+  geom_boxplot()+
+  xlab("")+
+  ylab(expression(paste("Wetland DOC (mg L"^-1*")")))+
+  xlim(-1,1)+
+  ylim(0,8)+
+  theme_classic(base_size = 15)+
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+
+ggarrange(wetlands_time, ggarrange(wetlands_box, ncol = 2, labels = c("B."),font.label=list(face="plain",size=15)), 
+          nrow = 2, labels = "A.", font.label=list(face="plain",size=15)) 
+
+ggsave("./Fig_Output/SI_Wetlands_DOC.jpg",width=7,height=7,units="in",dpi=320)
+
+## Some QA/QC - remove low DOC concentration at 1.6 m on 2019-10-15
+chem_50 <- chem_50[-c(1190),]
 
 ## Merge and plot measured inflow vs. measured DOC concentration
 doc_100 <- left_join(chem_100,inflow_daily,by="DateTime")
@@ -608,13 +648,13 @@ doc_hypo_process_mgL <- array(data=NA, dim=c(1000,2557,1))
 
 for (j in 1:1000){
   for (i in 1:2557){
-    doc_hypo_process_g[j,i,1] = doc_dt_hypo[j,i,1]-(doc_inflow_mass[j,i,1]*(1-p)+(doc_hypo_mass_outflow[j,i,1]*(1-p))+doc_entr[j,i,1])
+    doc_hypo_process_g[j,i,1] = doc_dt_hypo[j,i,1]-(doc_inflow_mass[j,i,1]*(1-p))+(doc_hypo_mass_outflow[j,i,1]*(1-p))+doc_entr[j,i,1]
   }
 }
 
 for (j in 1:1000){
   for (i in 1:2557){
-    doc_hypo_process_mgL[j,i,1] = (doc_dt_hypo[j,i,1]-(doc_inflow_mass[j,i,1]*(1-p)+(doc_hypo_mass_outflow[j,i,1]*(1-p))+doc_entr[j,i,1]))/hypo_vol[j,i,1]
+    doc_hypo_process_mgL[j,i,1] = (doc_dt_hypo[j,i,1]-(doc_inflow_mass[j,i,1]*(1-p))+(doc_hypo_mass_outflow[j,i,1]*(1-p))+doc_entr[j,i,1])/hypo_vol[j,i,1]
   }
 }
 
@@ -684,99 +724,6 @@ doc_inputs_g <- na.omit(doc_inputs_g)
 doc_inputs_g <- doc_inputs_g %>% 
   filter(DateTime >= as.POSIXct("2017-01-01"))
 
-## Plot epi and hypo processing
-doc_proc_17 <- ggplot(doc_inputs_g)+
-  geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dotted",color="darkgrey")+
-  geom_hline(yintercept=0,linetype="dashed",color="darkgrey")+
-  geom_ribbon(mapping=aes(x=DateTime,ymin=mean_doc_epi_process_mgL-sd_doc_epi_process_mgL,ymax=mean_doc_epi_process_mgL+sd_doc_epi_process_mgL,fill="Epi"),alpha=0.5)+
-  geom_ribbon(mapping=aes(x=DateTime,ymin=mean_doc_hypo_process_mgL-sd_doc_hypo_process_mgL,ymax=mean_doc_hypo_process_mgL+sd_doc_hypo_process_mgL,fill="Hypo"),alpha=0.5)+
-  geom_line(mapping=aes(x=DateTime,y=mean_doc_epi_process_mgL,color="Epi"),size=1.5)+
-  geom_line(mapping=aes(x=DateTime,y=mean_doc_hypo_process_mgL,color="Hypo"),size=1.5)+
-  scale_color_manual(breaks=c('Epi','Hypo'),values=c("#7EBDC2","#393E41"))+
-  scale_fill_manual(breaks=c('Epi','Hypo'),values=c("#7EBDC2","#393E41"))+
-  xlim(as.POSIXct("2017-06-01"),as.POSIXct("2017-11-15"))+
-  ylim(-3,0.5)+
-  ylab(expression(paste("DOC (mg L"^-1*")")))+
-  xlab("2017")+
-  theme_classic(base_size=15)+
-  guides(fill=FALSE)+
-  theme(legend.title=element_blank())
-
-doc_proc_18 <- ggplot(doc_inputs_g)+
-  geom_vline(xintercept = as.POSIXct("2018-10-21"),linetype="dotted",color="darkgrey")+
-  geom_hline(yintercept=0,linetype="dashed",color="darkgrey")+
-  geom_ribbon(mapping=aes(x=DateTime,ymin=mean_doc_epi_process_mgL-sd_doc_epi_process_mgL,ymax=mean_doc_epi_process_mgL+sd_doc_epi_process_mgL,fill="Epi"),alpha=0.5)+
-  geom_ribbon(mapping=aes(x=DateTime,ymin=mean_doc_hypo_process_mgL-sd_doc_hypo_process_mgL,ymax=mean_doc_hypo_process_mgL+sd_doc_hypo_process_mgL,fill="Hypo"),alpha=0.5)+
-  geom_line(mapping=aes(x=DateTime,y=mean_doc_epi_process_mgL,color="Epi"),size=1.5)+
-  geom_line(mapping=aes(x=DateTime,y=mean_doc_hypo_process_mgL,color="Hypo"),size=1.5)+
-  scale_color_manual(breaks=c('Epi','Hypo'),values=c("#7EBDC2","#393E41"))+
-  scale_fill_manual(breaks=c('Epi','Hypo'),values=c("#7EBDC2","#393E41"))+
-  xlim(as.POSIXct("2018-06-01"),as.POSIXct("2018-11-15"))+
-  ylim(-5,5)+
-  ylab(expression(paste("DOC (mg L"^-1*")")))+
-  xlab("2018")+
-  theme_classic(base_size=15)+
-  guides(fill=FALSE)+
-  theme(legend.title=element_blank())
-
-doc_proc_19 <- ggplot(doc_inputs_g)+
-  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dotted",color="darkgrey")+
-  geom_hline(yintercept=0,linetype="dashed",color="darkgrey")+
-  geom_ribbon(mapping=aes(x=DateTime,ymin=mean_doc_epi_process_mgL-sd_doc_epi_process_mgL,ymax=mean_doc_epi_process_mgL+sd_doc_epi_process_mgL,fill="Epi"),alpha=0.5)+
-  geom_ribbon(mapping=aes(x=DateTime,ymin=mean_doc_hypo_process_mgL-sd_doc_hypo_process_mgL,ymax=mean_doc_hypo_process_mgL+sd_doc_hypo_process_mgL,fill="Hypo"),alpha=0.5)+
-  geom_line(mapping=aes(x=DateTime,y=mean_doc_epi_process_mgL,color="Epi"),size=1.5)+
-  geom_line(mapping=aes(x=DateTime,y=mean_doc_hypo_process_mgL,color="Hypo"),size=1.5)+
-  scale_color_manual(breaks=c('Epi','Hypo'),values=c("#7EBDC2","#393E41"))+
-  scale_fill_manual(breaks=c('Epi','Hypo'),values=c("#7EBDC2","#393E41"))+
-  xlim(as.POSIXct("2019-06-01"),as.POSIXct("2019-11-15"))+
-  ylim(-0.5,2)+
-  ylab(expression(paste("DOC (mg L"^-1*")")))+
-  xlab("2019")+
-  theme_classic(base_size=15)+
-  guides(fill=FALSE)+
-  theme(legend.title=element_blank())
-
-doc_proc_20 <- ggplot(doc_inputs_g)+
-  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted",color="darkgrey")+
-  geom_hline(yintercept=0,linetype="dashed",color="darkgrey")+
-  geom_ribbon(mapping=aes(x=DateTime,ymin=mean_doc_epi_process_mgL-sd_doc_epi_process_mgL,ymax=mean_doc_epi_process_mgL+sd_doc_epi_process_mgL,fill="Epi"),alpha=0.5)+
-  geom_ribbon(mapping=aes(x=DateTime,ymin=mean_doc_hypo_process_mgL-sd_doc_hypo_process_mgL,ymax=mean_doc_hypo_process_mgL+sd_doc_hypo_process_mgL,fill="Hypo"),alpha=0.5)+
-  geom_line(mapping=aes(x=DateTime,y=mean_doc_epi_process_mgL,color="Epi"),size=1.5)+
-  geom_line(mapping=aes(x=DateTime,y=mean_doc_hypo_process_mgL,color="Hypo"),size=1.5)+
-  scale_color_manual(breaks=c('Epi','Hypo'),values=c("#7EBDC2","#393E41"))+
-  scale_fill_manual(breaks=c('Epi','Hypo'),values=c("#7EBDC2","#393E41"))+
-  xlim(as.POSIXct("2020-06-01"),as.POSIXct("2020-11-15"))+
-  #ylim(-0.5,2)+
-  ylab(expression(paste("DOC (mg L"^-1*")")))+
-  xlab("2020")+
-  theme_classic(base_size=15)+
-  guides(fill=FALSE)+
-  theme(legend.title=element_blank())
-
-doc_proc_21 <- ggplot(doc_inputs_g)+
-  geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dotted",color="darkgrey")+
-  geom_hline(yintercept=0,linetype="dashed",color="darkgrey")+
-  geom_ribbon(mapping=aes(x=DateTime,ymin=mean_doc_epi_process_mgL-sd_doc_epi_process_mgL,ymax=mean_doc_epi_process_mgL+sd_doc_epi_process_mgL,fill="Epi"),alpha=0.5)+
-  geom_ribbon(mapping=aes(x=DateTime,ymin=mean_doc_hypo_process_mgL-sd_doc_hypo_process_mgL,ymax=mean_doc_hypo_process_mgL+sd_doc_hypo_process_mgL,fill="Hypo"),alpha=0.5)+
-  geom_line(mapping=aes(x=DateTime,y=mean_doc_epi_process_mgL,color="Epi"),size=1.5)+
-  geom_line(mapping=aes(x=DateTime,y=mean_doc_hypo_process_mgL,color="Hypo"),size=1.5)+
-  scale_color_manual(breaks=c('Epi','Hypo'),values=c("#7EBDC2","#393E41"))+
-  scale_fill_manual(breaks=c('Epi','Hypo'),values=c("#7EBDC2","#393E41"))+
-  geom_line(mapping=aes(x=DateTime,y=mean_doc_hypo_process_mgL,color="Hypo"),size=1.5)+
-  xlim(as.POSIXct("2021-06-01"),as.POSIXct("2021-11-15"))+
-  ylim(-4,2.5)+
-  ylab(expression(paste("DOC (mg L"^-1*")")))+
-  xlab("2021")+
-  theme_classic(base_size=15)+
-  guides(fill=FALSE)+
-  theme(legend.title=element_blank())
-
-ggarrange(doc_proc_17,doc_proc_18,doc_proc_19,doc_proc_20,doc_proc_21,ncol=1,nrow=5,common.legend=TRUE,
-          labels = c("A.", "B.", "C.", "D.","E."),
-          font.label=list(face="plain",size=15))
-
-ggsave("./Fig_Output/EpiHypo_DOC_Processing.jpg",width=9,height=12,units="in",dpi=320)
-
 ## Plot hypo inputs
 hypo_inflow <- ggplot(doc_inputs_g)+
   geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dashed",color="darkgrey")+
@@ -787,13 +734,14 @@ hypo_inflow <- ggplot(doc_inputs_g)+
   geom_ribbon(mapping=aes(x=DateTime,ymin=((mean_doc_inflow_g*0.26/1000)-(sd_doc_inflow_g*0.26/1000)),ymax=((mean_doc_inflow_g*0.26/1000)+(sd_doc_inflow_g*0.26/1000)),fill="Inflow"),alpha=0.50)+
   geom_line(mapping=aes(x=DateTime,y=(mean_doc_inflow_g*0.26/1000),color="Inflow"))+
   geom_point(mapping=aes(x=DateTime,y=(mean_doc_inflow_g*0.26/1000),color="Inflow"))+
-  ylab(expression(paste("Hypo Inflow (kg d"^-1*")")))+
+  ylab(expression(paste("Inflow (kg d"^-1*")")))+
   xlab("")+
-  scale_color_manual(breaks=c("Inflow"), values=c("#393E41"))+
-  scale_fill_manual(breaks=c("Inflow"),values=c("#393E41"))+
+  scale_color_manual(breaks=c("Inflow"), values=c("#F0B670"))+
+  scale_fill_manual(breaks=c("Inflow"),values=c("#F0B670"))+
   xlim(as.POSIXct("2017-01-01"),as.POSIXct("2021-12-31"))+
+  guides(fill="none")+
   theme_classic(base_size=15)+
-  theme(legend.position="none")
+  theme(legend.position = "none")
 
 hypo_outflow <- ggplot(doc_inputs_g)+
   geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dashed",color="darkgrey")+
@@ -801,16 +749,17 @@ hypo_outflow <- ggplot(doc_inputs_g)+
   geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed",color="darkgrey")+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed",color="darkgrey")+
   geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dashed",color="darkgrey")+
-  geom_ribbon(mapping=aes(x=DateTime,ymin=(mean_doc_hypo_outflow_g*0.26/1000)-(sd_doc_hypo_outflow_g*0.26/1000),ymax=(mean_doc_hypo_outflow_g*0.26/1000)+(sd_doc_hypo_outflow_g*0.26/1000),fill="Outflow"),alpha=0.5)+
-  geom_line(mapping=aes(x=DateTime,y=mean_doc_hypo_outflow_g*0.26/1000,color="Outflow"))+
-  geom_point(mapping=aes(x=DateTime,y=mean_doc_hypo_outflow_g*0.26/1000,color="Outflow"))+
+  geom_ribbon(mapping=aes(x=DateTime,ymin=(mean_doc_hypo_outflow_g*0.26/1000)-(sd_doc_hypo_outflow_g*0.26/1000),ymax=(mean_doc_hypo_outflow_g*0.26/1000)+(sd_doc_hypo_outflow_g*0.26/1000),fill="Hypo Outflow"),alpha=0.5)+
+  geom_line(mapping=aes(x=DateTime,y=mean_doc_hypo_outflow_g*0.26/1000,color="Hypo Outflow"))+
+  geom_point(mapping=aes(x=DateTime,y=mean_doc_hypo_outflow_g*0.26/1000,color="Hypo Outflow"))+
   ylab(expression(paste("Hypo Outflow (kg d"^-1*")")))+
   xlab("")+
-  scale_color_manual(breaks=c("Outflow"), values=c("#393E41"))+
-  scale_fill_manual(breaks=c("Outflow"),values=c("#393E41"))+
+  scale_color_manual(breaks=c("Hypo Outflow"), values=c("#393E41"))+
+  scale_fill_manual(breaks=c("Hypo Outflow"),values=c("#393E41"))+
   xlim(as.POSIXct("2017-01-01"),as.POSIXct("2021-12-31"))+
+  guides(fill="none")+
   theme_classic(base_size=15)+
-  theme(legend.position="none")
+  theme(legend.position = "none")
 
 hypo_change <- ggplot(doc_inputs_g)+
   geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dashed",color="darkgrey")+
@@ -819,41 +768,45 @@ hypo_change <- ggplot(doc_inputs_g)+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed",color="darkgrey")+
   geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dashed",color="darkgrey")+
   geom_hline(yintercept = 0, linetype="dashed")+
-  geom_ribbon(mapping=aes(x=DateTime,ymin=mean_doc_dt_hypo_g/1000-sd_doc_dt_hypo_g/1000,ymax=mean_doc_dt_hypo_g/1000+sd_doc_dt_hypo_g/1000,fill="DOC/dt"),alpha=0.50)+
-  geom_line(mapping=aes(x=DateTime,y=mean_doc_dt_hypo_g/1000,color="DOC/dt"))+
-  geom_point(mapping=aes(x=DateTime,y=mean_doc_dt_hypo_g/1000,color="DOC/dt"))+
-  ylab(expression(paste("d[DOC]/dt (kg d"^-1*")")))+
+  geom_ribbon(mapping=aes(x=DateTime,ymin=mean_doc_dt_hypo_g/1000-sd_doc_dt_hypo_g/1000,ymax=mean_doc_dt_hypo_g/1000+sd_doc_dt_hypo_g/1000,fill="Hypo DOC/dt"),alpha=0.50)+
+  geom_line(mapping=aes(x=DateTime,y=mean_doc_dt_hypo_g/1000,color="Hypo DOC/dt"))+
+  geom_point(mapping=aes(x=DateTime,y=mean_doc_dt_hypo_g/1000,color="Hypo DOC/dt"))+
+  geom_ribbon(mapping=aes(x=DateTime,ymax=(mean_doc_entr_g-sd_doc_entr_g)/1000,ymin=(mean_doc_entr_g+sd_doc_entr_g)/1000,fill="Entr"),alpha=0.5)+
+  geom_line(mapping=aes(x=DateTime,y=mean_doc_entr_g/1000,color="Entr"))+
+  geom_point(mapping=aes(x=DateTime,y=mean_doc_entr_g/1000,color="Entr"))+
+  ylab(expression(paste("DOC (kg d"^-1*")")))+
   xlab("")+
-  scale_color_manual(breaks=c("DOC/dt"), values=c("#393E41"))+
-  scale_fill_manual(breaks=c("DOC/dt"),values=c("#393E41"))+
+  scale_color_manual(breaks=c("Hypo DOC/dt","Entr"), values=c("#393E41","#E7804B"))+
+  scale_fill_manual(breaks=c("Hypo DOC/dt","Entr"),values=c("#393E41","#E7804B"))+
   xlim(as.POSIXct("2017-01-01"),as.POSIXct("2021-12-31"))+
+  guides(fill="none")+
   theme_classic(base_size=15)+
-  theme(legend.position="none")
+  theme(legend.title=element_blank(),legend.position = "top")
 
-hypo_entr <- ggplot(doc_inputs_g)+
+hypo_internal <- ggplot(doc_inputs_g)+
   geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dashed",color="darkgrey")+
   geom_vline(xintercept = as.POSIXct("2018-10-21"),linetype="dashed",color="darkgrey")+
   geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed",color="darkgrey")+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed",color="darkgrey")+
   geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dashed",color="darkgrey")+
   geom_hline(yintercept = 0, linetype="dashed")+
-  geom_ribbon(mapping=aes(x=DateTime,ymax=(mean_doc_entr_g-sd_doc_entr_g)/1000,ymin=(mean_doc_entr_g+sd_doc_entr_g)/1000,fill="Entr"),alpha=0.5)+
-  geom_line(mapping=aes(x=DateTime,y=mean_doc_entr_g/1000,color="Entr"))+
-  geom_point(mapping=aes(x=DateTime,y=mean_doc_entr_g/1000,color="Entr"))+
-  ylab(expression(paste("Entr. (kg d"^-1*")")))+
+  geom_ribbon(mapping=aes(x=DateTime,ymax=(mean_doc_hypo_process_g-sd_doc_hypo_process_g)/1000,ymin=(mean_doc_hypo_process_g+sd_doc_hypo_process_g)/1000,fill="Hypo Internal"),alpha=0.5)+
+  geom_line(mapping=aes(x=DateTime,y=mean_doc_hypo_process_g/1000,color="Hypo Internal"))+
+  geom_point(mapping=aes(x=DateTime,y=mean_doc_hypo_process_g/1000,color="Hypo Internal"))+
+  ylab(expression(paste("DOC (kg d"^-1*")")))+
   xlab("")+
-  scale_color_manual(breaks=c("Entr"), values=c("#393E41"))+
-  scale_fill_manual(breaks=c("Entr"),values=c("#393E41"))+
+  scale_color_manual(breaks=c("Hypo Internal"), values=c("#393E41"))+
+  scale_fill_manual(breaks=c("Hypo Internal"),values=c("#393E41"))+
   xlim(as.POSIXct("2017-01-01"),as.POSIXct("2021-12-31"))+
+  guides(fill="none")+
   theme_classic(base_size=15)+
-  theme(legend.position="none")
+  theme(legend.position = "none")
 
-ggarrange(hypo_inflow,hypo_outflow,hypo_change,hypo_entr,nrow=4,ncol=1,labels = c("A.", "B.", "C.", "D."),
+ggarrange(hypo_inflow,hypo_outflow,hypo_change,hypo_internal,nrow=4,ncol=1,labels = c("A.", "B.", "C.", "D."),
           font.label=list(face="plain",size=15))
 
-ggsave("./Fig_Output/Hypo_Inputs.jpg",width=9,height=12,units="in",dpi=320)
+ggsave("./Fig_Output/Hypo_Model.jpg",width=9,height=12,units="in",dpi=320)
 
-## Calculate model inputs/outputs for Epi
 epi_inflow <- ggplot(doc_inputs_g)+
   geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dashed",color="darkgrey")+
   geom_vline(xintercept = as.POSIXct("2018-10-21"),linetype="dashed",color="darkgrey")+
@@ -863,30 +816,17 @@ epi_inflow <- ggplot(doc_inputs_g)+
   geom_ribbon(mapping=aes(x=DateTime,ymin=((mean_doc_inflow_g*0.74/1000)-(sd_doc_inflow_g*0.74/1000)),ymax=((mean_doc_inflow_g*0.74/1000)+(sd_doc_inflow_g*0.74/1000)),fill="Inflow"),alpha=0.50)+
   geom_line(mapping=aes(x=DateTime,y=(mean_doc_inflow_g*0.74/1000),color="Inflow"))+
   geom_point(mapping=aes(x=DateTime,y=(mean_doc_inflow_g*0.74/1000),color="Inflow"))+
-  ylab(expression(paste("Epi Inflow (kg d"^-1*")")))+
+  geom_ribbon(mapping=aes(x=DateTime,ymin=(mean_doc_hypo_outflow_g*0.26/1000)-(sd_doc_hypo_outflow_g*0.26/1000),ymax=(mean_doc_hypo_outflow_g*0.26/1000)+(sd_doc_hypo_outflow_g*0.26/1000),fill="Hypo Inflow"),alpha=0.5)+
+  geom_line(mapping=aes(x=DateTime,y=mean_doc_hypo_outflow_g*0.26/1000,color="Hypo Inflow"))+
+  geom_point(mapping=aes(x=DateTime,y=mean_doc_hypo_outflow_g*0.26/1000,color="Hypo Inflow"))+
+  ylab(expression(paste("Inflow (kg d"^-1*")")))+
   xlab("")+
-  scale_color_manual(breaks=c("Inflow"), values=c("#7EBDC2"))+
-  scale_fill_manual(breaks=c("Inflow"),values=c("#7EBDC2"))+
+  scale_color_manual(breaks=c("Inflow","Hypo Inflow"), values=c("#F0B670","#393E41"))+
+  scale_fill_manual(breaks=c("Inflow","Hypo Inflow"),values=c("#F0B670","#393E41"))+
   xlim(as.POSIXct("2017-01-01"),as.POSIXct("2021-12-31"))+
+  guides(fill="none")+
   theme_classic(base_size=15)+
-  theme(legend.position="none")
-
-epi_inflow_h <- ggplot(doc_inputs_g)+
-  geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dashed",color="darkgrey")+
-  geom_vline(xintercept = as.POSIXct("2018-10-21"),linetype="dashed",color="darkgrey")+
-  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed",color="darkgrey")+
-  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed",color="darkgrey")+
-  geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dashed",color="darkgrey")+
-  geom_ribbon(mapping=aes(x=DateTime,ymin=(mean_doc_hypo_outflow_g*0.26/1000)-(sd_doc_hypo_outflow_g*0.26/1000),ymax=(mean_doc_hypo_outflow_g*0.26/1000)+(sd_doc_hypo_outflow_g*0.26/1000),fill="Outflow"),alpha=0.5)+
-  geom_line(mapping=aes(x=DateTime,y=mean_doc_hypo_outflow_g*0.26/1000,color="Outflow"))+
-  geom_point(mapping=aes(x=DateTime,y=mean_doc_hypo_outflow_g*0.26/1000,color="Outflow"))+
-  ylab(expression(paste("Hypo Outflow (kg d"^-1*")")))+
-  xlab("")+
-  scale_color_manual(breaks=c("Outflow"), values=c("#7EBDC2"))+
-  scale_fill_manual(breaks=c("Outflow"),values=c("#7EBDC2"))+
-  xlim(as.POSIXct("2017-01-01"),as.POSIXct("2021-12-31"))+
-  theme_classic(base_size=15)+
-  theme(legend.position="none")
+  theme(legend.title=element_blank(),legend.position = "top")
 
 epi_outflow <- ggplot(doc_inputs_g)+
   geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dashed",color="darkgrey")+
@@ -894,16 +834,17 @@ epi_outflow <- ggplot(doc_inputs_g)+
   geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed",color="darkgrey")+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed",color="darkgrey")+
   geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dashed",color="darkgrey")+
-  geom_ribbon(mapping=aes(x=DateTime,ymin=(mean_doc_epi_outflow_g/1000)-(sd_doc_epi_outflow_g/1000),ymax=(mean_doc_epi_outflow_g/1000)+(sd_doc_epi_outflow_g/1000),fill="Outflow"),alpha=0.5)+
-  geom_line(mapping=aes(x=DateTime,y=mean_doc_epi_outflow_g/1000,color="Outflow"))+
-  geom_point(mapping=aes(x=DateTime,y=mean_doc_epi_outflow_g/1000,color="Outflow"))+
-  ylab(expression(paste("Epi Outflow (kg d"^-1*")")))+
+  geom_ribbon(mapping=aes(x=DateTime,ymin=(mean_doc_epi_outflow_g/1000)-(sd_doc_epi_outflow_g/1000),ymax=(mean_doc_epi_outflow_g/1000)+(sd_doc_epi_outflow_g/1000),fill="Epi Outflow"),alpha=0.5)+
+  geom_line(mapping=aes(x=DateTime,y=mean_doc_epi_outflow_g/1000,color="Epi Outflow"))+
+  geom_point(mapping=aes(x=DateTime,y=mean_doc_epi_outflow_g/1000,color="Epi Outflow"))+
+  ylab(expression(paste("Outflow (kg d"^-1*")")))+
   xlab("")+
-  scale_color_manual(breaks=c("Outflow"), values=c("#7EBDC2"))+
-  scale_fill_manual(breaks=c("Outflow"),values=c("#7EBDC2"))+
+  scale_color_manual(breaks=c("Epi Outflow"), values=c("#7EBDC2"))+
+  scale_fill_manual(breaks=c("Epi Outflow"),values=c("#7EBDC2"))+
   xlim(as.POSIXct("2017-01-01"),as.POSIXct("2021-12-31"))+
+  guides(fill="none")+
   theme_classic(base_size=15)+
-  theme(legend.position="none")
+  theme(legend.position = "none")
 
 epi_change <- ggplot(doc_inputs_g)+
   geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dashed",color="darkgrey")+
@@ -912,39 +853,148 @@ epi_change <- ggplot(doc_inputs_g)+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed",color="darkgrey")+
   geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dashed",color="darkgrey")+
   geom_hline(yintercept = 0, linetype="dashed")+
-  geom_ribbon(mapping=aes(x=DateTime,ymin=mean_doc_dt_epi_g/1000-sd_doc_dt_epi_g/1000,ymax=mean_doc_dt_epi_g/1000+sd_doc_dt_epi_g/1000,fill="DOC/dt"),alpha=0.50)+
-  geom_line(mapping=aes(x=DateTime,y=mean_doc_dt_epi_g/1000,color="DOC/dt"))+
-  geom_point(mapping=aes(x=DateTime,y=mean_doc_dt_epi_g/1000,color="DOC/dt"))+
-  ylab(expression(paste("d[DOC]/dt (kg d"^-1*")")))+
+  geom_ribbon(mapping=aes(x=DateTime,ymin=mean_doc_dt_epi_g/1000-sd_doc_dt_epi_g/1000,ymax=mean_doc_dt_epi_g/1000+sd_doc_dt_epi_g/1000,fill="Epi DOC/dt"),alpha=0.50)+
+  geom_line(mapping=aes(x=DateTime,y=mean_doc_dt_epi_g/1000,color="Epi DOC/dt"))+
+  geom_point(mapping=aes(x=DateTime,y=mean_doc_dt_epi_g/1000,color="Epi DOC/dt"))+
+  geom_ribbon(mapping=aes(x=DateTime,ymax=-(mean_doc_entr_g-sd_doc_entr_g)/1000,ymin=-(mean_doc_entr_g+sd_doc_entr_g)/1000,fill="Entr"),alpha=0.5)+
+  geom_line(mapping=aes(x=DateTime,y=-mean_doc_entr_g/1000,color="Entr"))+
+  geom_point(mapping=aes(x=DateTime,y=-mean_doc_entr_g/1000,color="Entr"))+
+  ylab(expression(paste("DOC (kg d"^-1*")")))+
   xlab("")+
-  scale_color_manual(breaks=c("DOC/dt"), values=c("#7EBDC2"))+
-  scale_fill_manual(breaks=c("DOC/dt"),values=c("#7EBDC2"))+
+  scale_color_manual(breaks=c("Epi DOC/dt","Entr"), values=c("#7EBDC2","#E7804B"))+
+  scale_fill_manual(breaks=c("Epi DOC/dt","Entr"),values=c("#7EBDC2","#E7804B"))+
   xlim(as.POSIXct("2017-01-01"),as.POSIXct("2021-12-31"))+
+  guides(fill="none")+
   theme_classic(base_size=15)+
-  theme(legend.position="none")
+  theme(legend.title=element_blank(),legend.position = "top")
 
-epi_entr <- ggplot(doc_inputs_g)+
+epi_internal <- ggplot(doc_inputs_g)+
   geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dashed",color="darkgrey")+
   geom_vline(xintercept = as.POSIXct("2018-10-21"),linetype="dashed",color="darkgrey")+
   geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed",color="darkgrey")+
   geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed",color="darkgrey")+
   geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dashed",color="darkgrey")+
   geom_hline(yintercept = 0, linetype="dashed")+
-  geom_ribbon(mapping=aes(x=DateTime,ymax=-(mean_doc_entr_g-sd_doc_entr_g)/1000,ymin=-(mean_doc_entr_g+sd_doc_entr_g)/1000,fill="Entr"),alpha=0.5)+
-  geom_line(mapping=aes(x=DateTime,y=-mean_doc_entr_g/1000,color="Entr"))+
-  geom_point(mapping=aes(x=DateTime,y=-mean_doc_entr_g/1000,color="Entr"))+
-  ylab(expression(paste("Entr. (kg d"^-1*")")))+
+  geom_ribbon(mapping=aes(x=DateTime,ymin=mean_doc_epi_process_g/1000-sd_doc_epi_process_g/1000,ymax=mean_doc_epi_process_g/1000+sd_doc_epi_process_g/1000,fill="Epi Internal"),alpha=0.50)+
+  geom_line(mapping=aes(x=DateTime,y=mean_doc_epi_process_g/1000,color="Epi Internal"))+
+  geom_point(mapping=aes(x=DateTime,y=mean_doc_epi_process_g/1000,color="Epi Internal"))+
+  ylab(expression(paste("DOC (kg d"^-1*")")))+
   xlab("")+
-  scale_color_manual(breaks=c("Entr"), values=c("#7EBDC2"))+
-  scale_fill_manual(breaks=c("Entr"),values=c("#7EBDC2"))+
+  scale_color_manual(breaks=c("Epi Internal"), values=c("#7EBDC2"))+
+  scale_fill_manual(breaks=c("Epi Internal"),values=c("#7EBDC2"))+
   xlim(as.POSIXct("2017-01-01"),as.POSIXct("2021-12-31"))+
+  guides(fill="none")+
   theme_classic(base_size=15)+
-  theme(legend.position="none")
+  theme(legend.position = "none")
 
-ggarrange(epi_inflow,epi_inflow_h,epi_outflow,epi_change,epi_entr,nrow=5,ncol=1,labels = c("A.", "B.", "C.", "D.","E."),
+ggarrange(epi_inflow,epi_outflow,epi_change,epi_internal,nrow=4,ncol=1,labels = c("A.", "B.", "C.", "D."),
           font.label=list(face="plain",size=15))
 
-ggsave("./Fig_Output/Epi_Inputs.jpg",width=9,height=15,units="in",dpi=320)
+ggsave("./Fig_Output/Epi_model.jpg",width=9,height=12,units="in",dpi=320)
+
+###############################################################################
+
+## Plot epi and hypo processing
+doc_proc_17 <- ggplot(doc_inputs_g)+
+  geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dotted",color="darkgrey")+
+  geom_hline(yintercept=0,linetype="dashed",color="darkgrey")+
+  geom_ribbon(mapping=aes(x=DateTime,ymin=mean_doc_epi_process_mgL-sd_doc_epi_process_mgL,ymax=mean_doc_epi_process_mgL+sd_doc_epi_process_mgL,fill="Epi"),alpha=0.5)+
+  geom_ribbon(mapping=aes(x=DateTime,ymin=mean_doc_hypo_process_mgL-sd_doc_hypo_process_mgL,ymax=mean_doc_hypo_process_mgL+sd_doc_hypo_process_mgL,fill="Hypo"),alpha=0.5)+
+  geom_line(mapping=aes(x=DateTime,y=mean_doc_epi_process_mgL,color="Epi"),size=1)+
+  geom_line(mapping=aes(x=DateTime,y=mean_doc_hypo_process_mgL,color="Hypo"),size=1)+
+  geom_point(mapping=aes(x=DateTime,y=mean_doc_epi_process_mgL,color="Epi"),size=2.2)+
+  geom_point(mapping=aes(x=DateTime,y=mean_doc_hypo_process_mgL,color="Hypo"),size=2.2)+
+  scale_color_manual(breaks=c('Epi','Hypo'),values=c("#7EBDC2","#393E41"))+
+  scale_fill_manual(breaks=c('Epi','Hypo'),values=c("#7EBDC2","#393E41"))+
+  xlim(as.POSIXct("2017-06-01"),as.POSIXct("2017-11-15"))+
+  ylim(-2,0.7)+
+  ylab(expression(paste("DOC (mg L"^-1*")")))+
+  xlab("2017")+
+  theme_classic(base_size=15)+
+  guides(fill="none")+
+  theme(legend.title=element_blank())
+
+doc_proc_18 <- ggplot(doc_inputs_g)+
+  geom_vline(xintercept = as.POSIXct("2018-10-21"),linetype="dotted",color="darkgrey")+
+  geom_hline(yintercept=0,linetype="dashed",color="darkgrey")+
+  geom_ribbon(mapping=aes(x=DateTime,ymin=mean_doc_epi_process_mgL-sd_doc_epi_process_mgL,ymax=mean_doc_epi_process_mgL+sd_doc_epi_process_mgL,fill="Epi"),alpha=0.5)+
+  geom_ribbon(mapping=aes(x=DateTime,ymin=mean_doc_hypo_process_mgL-sd_doc_hypo_process_mgL,ymax=mean_doc_hypo_process_mgL+sd_doc_hypo_process_mgL,fill="Hypo"),alpha=0.5)+
+  geom_line(mapping=aes(x=DateTime,y=mean_doc_epi_process_mgL,color="Epi"),size=1)+
+  geom_line(mapping=aes(x=DateTime,y=mean_doc_hypo_process_mgL,color="Hypo"),size=1)+
+  geom_point(mapping=aes(x=DateTime,y=mean_doc_epi_process_mgL,color="Epi"),size=2.2)+
+  geom_point(mapping=aes(x=DateTime,y=mean_doc_hypo_process_mgL,color="Hypo"),size=2.2)+
+  scale_color_manual(breaks=c('Epi','Hypo'),values=c("#7EBDC2","#393E41"))+
+  scale_fill_manual(breaks=c('Epi','Hypo'),values=c("#7EBDC2","#393E41"))+
+  xlim(as.POSIXct("2018-06-01"),as.POSIXct("2018-11-15"))+
+  ylim(-0.7,0.7)+
+  ylab(expression(paste("DOC (mg L"^-1*")")))+
+  xlab("2018")+
+  theme_classic(base_size=15)+
+  guides(fill="none")+
+  theme(legend.title=element_blank())
+
+doc_proc_19 <- ggplot(doc_inputs_g)+
+  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dotted",color="darkgrey")+
+  geom_hline(yintercept=0,linetype="dashed",color="darkgrey")+
+  geom_ribbon(mapping=aes(x=DateTime,ymin=mean_doc_epi_process_mgL-sd_doc_epi_process_mgL,ymax=mean_doc_epi_process_mgL+sd_doc_epi_process_mgL,fill="Epi"),alpha=0.5)+
+  geom_ribbon(mapping=aes(x=DateTime,ymin=mean_doc_hypo_process_mgL-sd_doc_hypo_process_mgL,ymax=mean_doc_hypo_process_mgL+sd_doc_hypo_process_mgL,fill="Hypo"),alpha=0.5)+
+  geom_line(mapping=aes(x=DateTime,y=mean_doc_epi_process_mgL,color="Epi"),size=1)+
+  geom_line(mapping=aes(x=DateTime,y=mean_doc_hypo_process_mgL,color="Hypo"),size=1)+
+  geom_point(mapping=aes(x=DateTime,y=mean_doc_epi_process_mgL,color="Epi"),size=2.2)+
+  geom_point(mapping=aes(x=DateTime,y=mean_doc_hypo_process_mgL,color="Hypo"),size=2.2)+
+  scale_color_manual(breaks=c('Epi','Hypo'),values=c("#7EBDC2","#393E41"))+
+  scale_fill_manual(breaks=c('Epi','Hypo'),values=c("#7EBDC2","#393E41"))+
+  xlim(as.POSIXct("2019-06-01"),as.POSIXct("2019-11-15"))+
+  ylim(-0.7,0.7)+
+  ylab(expression(paste("DOC (mg L"^-1*")")))+
+  xlab("2019")+
+  theme_classic(base_size=15)+
+  guides(fill="none")+
+  theme(legend.title=element_blank())
+
+doc_proc_20 <- ggplot(doc_inputs_g)+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dotted",color="darkgrey")+
+  geom_hline(yintercept=0,linetype="dashed",color="darkgrey")+
+  geom_ribbon(mapping=aes(x=DateTime,ymin=mean_doc_epi_process_mgL-sd_doc_epi_process_mgL,ymax=mean_doc_epi_process_mgL+sd_doc_epi_process_mgL,fill="Epi"),alpha=0.5)+
+  geom_ribbon(mapping=aes(x=DateTime,ymin=mean_doc_hypo_process_mgL-sd_doc_hypo_process_mgL,ymax=mean_doc_hypo_process_mgL+sd_doc_hypo_process_mgL,fill="Hypo"),alpha=0.5)+
+  geom_line(mapping=aes(x=DateTime,y=mean_doc_epi_process_mgL,color="Epi"),size=1)+
+  geom_line(mapping=aes(x=DateTime,y=mean_doc_hypo_process_mgL,color="Hypo"),size=1)+
+  geom_point(mapping=aes(x=DateTime,y=mean_doc_epi_process_mgL,color="Epi"),size=2.2)+
+  geom_point(mapping=aes(x=DateTime,y=mean_doc_hypo_process_mgL,color="Hypo"),size=2.2)+
+  scale_color_manual(breaks=c('Epi','Hypo'),values=c("#7EBDC2","#393E41"))+
+  scale_fill_manual(breaks=c('Epi','Hypo'),values=c("#7EBDC2","#393E41"))+
+  xlim(as.POSIXct("2020-06-01"),as.POSIXct("2020-11-15"))+
+  ylim(-0.7,0.7)+
+  ylab(expression(paste("DOC (mg L"^-1*")")))+
+  xlab("2020")+
+  theme_classic(base_size=15)+
+  guides(fill="none")+
+  theme(legend.title=element_blank())
+
+doc_proc_21 <- ggplot(doc_inputs_g)+
+  geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dotted",color="darkgrey")+
+  geom_hline(yintercept=0,linetype="dashed",color="darkgrey")+
+  geom_ribbon(mapping=aes(x=DateTime,ymin=mean_doc_epi_process_mgL-sd_doc_epi_process_mgL,ymax=mean_doc_epi_process_mgL+sd_doc_epi_process_mgL,fill="Epi"),alpha=0.5)+
+  geom_ribbon(mapping=aes(x=DateTime,ymin=mean_doc_hypo_process_mgL-sd_doc_hypo_process_mgL,ymax=mean_doc_hypo_process_mgL+sd_doc_hypo_process_mgL,fill="Hypo"),alpha=0.5)+
+  geom_line(mapping=aes(x=DateTime,y=mean_doc_epi_process_mgL,color="Epi"),size=1)+
+  geom_line(mapping=aes(x=DateTime,y=mean_doc_hypo_process_mgL,color="Hypo"),size=1)+
+  geom_point(mapping=aes(x=DateTime,y=mean_doc_epi_process_mgL,color="Epi"),size=2.2)+
+  geom_point(mapping=aes(x=DateTime,y=mean_doc_hypo_process_mgL,color="Hypo"),size=2.2)+
+  scale_color_manual(breaks=c('Epi','Hypo'),values=c("#7EBDC2","#393E41"))+
+  scale_fill_manual(breaks=c('Epi','Hypo'),values=c("#7EBDC2","#393E41"))+
+  xlim(as.POSIXct("2021-06-01"),as.POSIXct("2021-11-15"))+
+  ylim(-0.7,0.7)+
+  ylab(expression(paste("DOC (mg L"^-1*")")))+
+  xlab("2021")+
+  theme_classic(base_size=15)+
+  guides(fill="none")+
+  theme(legend.title=element_blank())
+
+ggarrange(doc_proc_17,doc_proc_18,doc_proc_19,doc_proc_20,doc_proc_21,ncol=1,nrow=5,common.legend=TRUE,
+          labels = c("A.", "B.", "C.", "D.","E."),
+          font.label=list(face="plain",size=15))
+
+ggsave("./Fig_Output/EpiHypo_DOC_Processing.jpg",width=9,height=12,units="in",dpi=320)
 
 ###############################################################################
 
@@ -1058,6 +1108,16 @@ doc_stats <- doc_wgt %>%
             max = max(DOC_mgL),
             median = median(DOC_mgL),
             sd = sd(DOC_mgL))
+
+################################################################################
+
+## Calculate median infow for the summer stratified period for all years
+inflow_daily_full %>% 
+  mutate(month = month(DateTime),
+         year = year(DateTime)) %>% 
+  filter(DateTime >= as.POSIXct("2017-01-01") & month %in% c(5,6,7,8,9,10)) %>%
+  group_by(year) %>% 
+  summarise_all(mean,na.rm=TRUE)
 
 ##### STOPPED HERE ######
 
