@@ -3,6 +3,9 @@
 
 ### 18 Aug 2022, A. Hounshell
 
+### Adding in various metrics of anoxia/oxygenation to hypo AR model
+### 1 Sep 2022, A. Hounshell
+
 ###############################################################################
 
 ## Clear workspace
@@ -299,6 +302,37 @@ final_do_mgL <- do_mgL %>%
   pivot_longer(!DateTime, names_to = "Depth", values_to = "VW_DO_mgL") %>% 
   mutate(Depth = ifelse(Depth == "epi_DO", "Epi",
                         ifelse(Depth == "hypo_DO", "Hypo", NA)))
+
+# Calculate days since anoxia and oxygenation status for Hypo
+hypo_do_mgL <- final_do_mgL %>% 
+  filter(Depth == "Hypo") %>% 
+  mutate(anoxia = ifelse(VW_DO_mgL < 1.0, 1, 0)) %>% 
+  mutate(anoxia_time_d = 0) 
+
+for (i in 1:length(hypo_do_mgL$DateTime)){
+  if (hypo_do_mgL$anoxia[i] == 1){
+    a = seq(from = hypo_do_mgL$DateTime[i-1], to = hypo_do_mgL$DateTime[i], by = 'day')
+    hypo_do_mgL$anoxia_time_d[i] = hypo_do_mgL$anoxia_time_d[i-1]+length(a)
+  } else {
+    hypo_do_mgL$anoxia_time_d[i] = 0
+  }
+}
+
+# Plot
+ggplot(hypo_do_mgL,mapping=aes(x=DateTime,y=anoxia_time_d))+
+  geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dashed",color="darkgrey")+
+  geom_vline(xintercept = as.POSIXct("2018-10-21"),linetype="dashed",color="darkgrey")+
+  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed",color="darkgrey")+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed",color="darkgrey")+
+  geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dashed",color="darkgrey")+
+  geom_line(size=0.75)+
+  geom_point(size=2)+
+  xlab("")+
+  ylab("Time since anoxia (d)")+
+  xlim(as.POSIXct("2017-01-01"),as.POSIXct("2021-12-31"))+
+  theme_classic(base_size = 15)
+
+ggsave("./Fig_Output/SI_DaysAnoxia.jpg",width=7,height=5,units="in",dpi=320)
 
 ## Conductivity
 cond_uScm <- casts_depths %>% 
@@ -771,6 +805,10 @@ arima_epi <- plyr::join_all(list(arima_epi,met_daily,final_inflow_m3s),by="DateT
 arima_hypo <- plyr::join_all(list(arima_hypo,met_daily,final_inflow_m3s),by="DateTime",type="left") %>% 
   filter(DateTime >= as.POSIXct("2017-01-01"),Depth == "Hypo")
 
+## Add in days since anoxia for Hypo
+arima_hypo <- left_join(arima_hypo,hypo_do_mgL,by=c("DateTime","Depth","VW_DO_mgL")) %>% 
+  select(-anoxia)
+
 ## Calculate stats for env parameters - limited to summer stratified period (May-Oct)
 arima_epi %>% 
   mutate(month = month(DateTime)) %>% 
@@ -793,16 +831,31 @@ arima_hypo <- arima_hypo %>%
 
 ###############################################################################
 
+## Plot Hypo DOC concentrations under oxic vs. anoxic conditions
+arima_hypo %>% 
+  mutate(anoxia = ifelse(VW_DO_mgL >= 1.0, "Oxic",
+                         ifelse(VW_DO_mgL < 1.0, "Anoxic", NA))) %>% 
+  filter(anoxia == "Oxic" | anoxia == "Anoxic") %>% 
+  ggplot(mapping=aes(x=anoxia,y=VW_DOC_mgL,color=anoxia))+
+  geom_boxplot()+
+  theme_classic(base_size = 15)
+
+###############################################################################
+
 ## Check correlations among environmental variables - what needs to be removed?
 # Epi
 epi_cor = as.data.frame(cor(arima_epi[,3:11],use = "complete.obs"),method=c("pearson"))
+write_csv(epi_cor, "./Fig_Output/epi_cor.csv")
+
 chart.Correlation(arima_epi[,3:11],histogram = TRUE,method=c("pearson"))
 # No correlations!
 
 # Hypo
-hypo_cor = as.data.frame(cor(arima_hypo[,3:11],use = "complete.obs"),method=c("pearson"))
-chart.Correlation(arima_hypo[,3:11],histogram = TRUE,method=c("pearson"))
-# DO and CO2 correlated at -0.73...but going to keep it in and use a cut-off of 0.75?
+hypo_cor = as.data.frame(cor(arima_hypo[,3:12],use = "complete.obs"),method=c("pearson"))
+write_csv(hypo_cor, "./Fig_Output/hypo_cor.csv")
+
+chart.Correlation(arima_hypo[,3:12],histogram = TRUE,method=c("pearson"))
+# DO and CO2 correlated at -0.73; Anoxia time and CH4 correlated at 0.83
 
 ###############################################################################
 
@@ -839,7 +892,7 @@ arima_epi_scale <- arima_epi %>%
 arima_epi_scale[,3:11] <- scale(arima_epi_scale[,3:11])
 
 # Hypo
-for (i in 3:11){
+for (i in 3:12){
   print(colnames(arima_hypo)[i])
   var <- arima_hypo[,i]
   hist(as.matrix(var), main = colnames(arima_hypo)[i])
@@ -855,14 +908,15 @@ for (i in 3:11){
   hist(as.matrix(var), main = c("sq",colnames(arima_hypo)[i]))
 }
 # Nothing: DOC, Temp, DO, CH4, CO2, Rain, SW Radiation
-# Log: Chla, Inflow
+# Log: Chla, Inflow, Anoxia_Time
 
 # Transform and scale data
 arima_hypo_scale <- arima_hypo %>% 
   mutate(VW_Chla_ugL = log(VW_Chla_ugL),
-         Inflow_m3s = log(Inflow_m3s))
+         Inflow_m3s = log(Inflow_m3s),
+         anoxia_time_d = log(anoxia_time_d))
 
-arima_hypo_scale[,3:11] <- scale(arima_hypo_scale[,3:11])
+arima_hypo_scale[,3:12] <- scale(arima_hypo_scale[,3:12])
 
 ###############################################################################
 
@@ -964,7 +1018,7 @@ for (i in 1:nrow(good)){
 
 ###############################################################################
 
-# Epi
+# Hypo
 colnames(arima_hypo_scale)
 
 cols <- c(4:7,9:11) # UPDATE THIS TO THE ENV. VARIABLES
@@ -1053,5 +1107,30 @@ for (i in 1:nrow(good)){
   
   
 }
+
+###############################################################################
+
+## Random plots
+
+## Plot [DOC] at 9 m under anoxic vs. oxic conditions
+# First combine DOC and DO concentrations at 9m
+casts_depths <- casts_depths %>% 
+  rename(Depth_m = new_depth) 
+
+casts_depths <- casts_depths %>% 
+  mutate(Depth_m = as.numeric(Depth_m),
+         DO_mgL= as.numeric(DO_mgL))
+
+hypo_9m <- left_join(chem_50,casts_depths,by=c("DateTime","Depth_m")) %>% 
+  select(DateTime,Depth_m,DOC_mgL,DO_mgL) %>% 
+  filter(Depth_m == 9) %>% 
+  mutate(oxy = ifelse(DO_mgL < 1.0, "Anoxic",
+                      ifelse(DO_mgL >= 1.0, "Oxic", NA))) %>% 
+  filter(DateTime >= as.POSIXct("2017-01-01")) %>% 
+  drop_na() %>% 
+  mutate(year = year(DateTime))
+
+ggplot(hypo_9m,mapping=aes(x=oxy,y=DOC_mgL))+
+  geom_boxplot()
 
 ###############################################################################
