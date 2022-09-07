@@ -1111,7 +1111,19 @@ doc_stats <- doc_wgt %>%
   summarise(min = min(DOC_mgL),
             max = max(DOC_mgL),
             median = median(DOC_mgL),
+            mean = mean(DOC_mgL),
             sd = sd(DOC_mgL))
+
+doc_stats_year <- doc_wgt %>% 
+  filter(DateTime >= as.POSIXct("2017-01-01")) %>% 
+  group_by(Loc, year) %>% 
+  summarise(min = min(DOC_mgL),
+            max = max(DOC_mgL),
+            median = median(DOC_mgL),
+            mean = mean(DOC_mgL),
+            sd = sd(DOC_mgL))
+
+write.csv(doc_stats_year,'./Fig_Output/doc_stats_year.csv')
 
 ## Plot boxplots by year
 doc_wgt %>% 
