@@ -334,6 +334,60 @@ ggplot(hypo_do_mgL,mapping=aes(x=DateTime,y=anoxia_time_d))+
 
 ggsave("./Fig_Output/SI_DaysAnoxia.jpg",width=7,height=5,units="in",dpi=320)
 
+## Load in model results and plot by oxic vs. anoxic waters in the hypolimnion
+doc_model <- read.csv("./Fig_Output/model_results.csv") %>% 
+  select(-X) %>% 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST")))
+
+doc_model_oxy <- left_join(hypo_do_mgL,doc_model,by="DateTime") %>% 
+  filter(DateTime >= as.POSIXct("2017-01-01")) %>% 
+  mutate(month = month(DateTime)) %>% 
+  filter(month %in% c(4,5,6,7,8,9,10,11)) %>% 
+  drop_na(anoxia)
+
+## Plot by hypo internal loading under oxic vs. anoxic waters
+wilcox.test(mean_doc_hypo_process_g~anoxia,doc_model_oxy)
+
+doc_hypo <- doc_model_oxy %>% 
+  ggplot(mapping=aes(x=as.character(anoxia),y=mean_doc_hypo_process_g/1000))+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_boxplot()+
+  ylab(expression(paste("Hypo Internal DOC (kg)")))+
+  xlab("")+
+  scale_x_discrete(breaks=c("0","1"),
+                   labels=c("Oxic", "Anoxic"))+
+  theme_classic(base_size = 15)
+
+doc_depth <- doc_model %>% 
+  select(DateTime,mean_doc_epi_process_g,mean_doc_hypo_process_g) %>% 
+  filter(DateTime >= as.POSIXct("2017-01-01")) %>% 
+  mutate(month = month(DateTime)) %>% 
+  filter(month %in% c(4,5,6,7,8,9,10,11)) %>% 
+  pivot_longer(!c(DateTime,month),names_to="Loc",values_to="mean_doc_process_g") %>% 
+  ggplot(mapping=aes(x=Loc,y=mean_doc_process_g/1000))+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_boxplot()+
+  ylab(expression(paste("Internal DOC (kg)")))+
+  xlab("")+
+  scale_x_discrete(breaks=c("mean_doc_epi_process_g","mean_doc_hypo_process_g"),
+                   labels=c("Epi", "Hypo"))+
+  theme_classic(base_size = 15)
+
+ggarrange(doc_hypo,doc_depth,nrow=1,ncol=2,labels = c("A.", "B."),
+          font.label=list(face="plain",size=15))
+
+ggsave("./Fig_Output/SI_Internal_proc_comps.jpg",width=7,height=4,units="in",dpi=320)
+
+## Contribution of Epi internal DOC loading as compared to total loading
+doc_model_select <- doc_model %>% 
+  filter(DateTime >= as.POSIXct("2017-01-01")) %>% 
+  mutate(month = month(DateTime)) %>% 
+  filter(month %in% c(4,5,6,7,8,9,10,11))
+
+mean(doc_model_select$mean_doc_epi_process_g)/(mean(doc_model_select$mean_doc_epi_process_g)+mean(doc_model_select$mean_doc_hypo_outflow_g)+(mean(doc_model_select$mean_doc_inflow_g)*0.74))*100
+
+mean(doc_model_select$mean_doc_hypo_process_g)/(mean(doc_model_select$mean_doc_hypo_process_g)+(mean(doc_model_select$mean_doc_inflow_g)*0.26))*100
+
 ## Conductivity
 cond_uScm <- casts_depths %>% 
   select(DateTime,new_depth,Cond_uScm) %>% 

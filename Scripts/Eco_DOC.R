@@ -142,9 +142,20 @@ ggsave("./Fig_Output/SI_Wetlands_DOC.jpg",width=7,height=7,units="in",dpi=320)
 chem_50 <- chem_50[-c(1190),]
 
 ## Merge and plot measured inflow vs. measured DOC concentration
-doc_100 <- left_join(chem_100,inflow_daily,by="DateTime")
+doc_100 <- left_join(chem_100,inflow_daily,by="DateTime") %>% 
+  mutate(year = year(DateTime))
 
 docvinflow <- doc_100 %>% 
+  filter(DateTime >= as.POSIXct("2017-01-01")) %>% 
+  ggplot(mapping=aes(x=mean,y=DOC_mgL,color=as.factor(year)))+
+  geom_point(size=1.5)+
+  geom_smooth(method='lm')+ 
+  xlab(expression(paste("Inflow (m"^3*"s"^-1*")")))+
+  ylab(expression(paste("DOC (mg L"^-1*")")))+
+  theme_classic(base_size=15)+
+  theme(legend.title=element_blank())
+
+docvinflow_all <- doc_100 %>% 
   filter(DateTime >= as.POSIXct("2017-01-01")) %>% 
   ggplot(mapping=aes(x=mean,y=DOC_mgL))+
   geom_point(size=1.5)+
@@ -153,7 +164,10 @@ docvinflow <- doc_100 %>%
   ylab(expression(paste("DOC (mg L"^-1*")")))+
   theme_classic(base_size=15)
 
-ggsave("./Fig_Output/SI_DOCvInflow.png",docvinflow,dpi=800,width=5,height=4)
+combine <- ggarrange(docvinflow,docvinflow_all,nrow=1,ncol=2,labels = c("A.", "B."),
+          font.label=list(face="plain",size=15))
+
+ggsave("./Fig_Output/SI_DOCvInflow.png",combine,dpi=800,width=10,height=5)
 
 doc_lm <- lm(DOC_mgL ~ mean, data = doc_100)
 summary(doc_lm)
@@ -995,6 +1009,11 @@ ggarrange(doc_proc_17,doc_proc_18,doc_proc_19,doc_proc_20,doc_proc_21,ncol=1,nro
           font.label=list(face="plain",size=15))
 
 ggsave("./Fig_Output/EpiHypo_DOC_Processing.jpg",width=9,height=12,units="in",dpi=320)
+
+###############################################################################
+
+## Export out loading results
+write.csv(doc_inputs_g,"./Fig_Output/model_results.csv")
 
 ###############################################################################
 
