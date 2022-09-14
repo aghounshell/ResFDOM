@@ -845,6 +845,12 @@ final_co2_umolL <- co2_umolL %>%
 
 ###############################################################################
 
+## Format and add thermocline depth as a potential predictor variable, too
+final_thermo <- thermo %>% 
+  select(DateTime, thermo.depth)
+
+###############################################################################
+
 ## Organize data for ARIMA modeling - following EddyFlux, 3_Rev_EnvAnalysis.R
 # Include: DOC data, Temp, DO, Flora, Inflow, Rainfall, SW Radiation, CO2, and CH4 for Epi and Hypo
 arima_epi <- plyr::join_all(list(final_doc_mgL,final_temp_c,final_do_mgL,final_chla_ugL,final_ch4_umolL,final_co2_umolL),by=c("DateTime","Depth"),type="left") 
@@ -862,6 +868,11 @@ arima_hypo <- plyr::join_all(list(arima_hypo,met_daily,final_inflow_m3s),by="Dat
 ## Add in days since anoxia for Hypo
 arima_hypo <- left_join(arima_hypo,hypo_do_mgL,by=c("DateTime","Depth","VW_DO_mgL")) %>% 
   select(-anoxia)
+
+## Add in thermocline depth information
+arima_epi <- left_join(arima_epi,final_thermo,by="DateTime")
+
+arima_hypo <- left_join(arima_hypo,final_thermo,by="DateTime")
 
 ## Calculate stats for env parameters - limited to summer stratified period (May-Oct)
 arima_epi %>% 
@@ -898,17 +909,17 @@ arima_hypo %>%
 
 ## Check correlations among environmental variables - what needs to be removed?
 # Epi
-epi_cor = as.data.frame(cor(arima_epi[,3:11],use = "complete.obs"),method=c("pearson"))
+epi_cor = as.data.frame(cor(arima_epi[,3:12],use = "complete.obs"),method=c("pearson"))
 write_csv(epi_cor, "./Fig_Output/epi_cor.csv")
 
-chart.Correlation(arima_epi[,3:11],histogram = TRUE,method=c("pearson"))
+chart.Correlation(arima_epi[,3:12],histogram = TRUE,method=c("pearson"))
 # No correlations!
 
 # Hypo
-hypo_cor = as.data.frame(cor(arima_hypo[,3:12],use = "complete.obs"),method=c("pearson"))
+hypo_cor = as.data.frame(cor(arima_hypo[,3:13],use = "complete.obs"),method=c("pearson"))
 write_csv(hypo_cor, "./Fig_Output/hypo_cor.csv")
 
-chart.Correlation(arima_hypo[,3:12],histogram = TRUE,method=c("pearson"))
+chart.Correlation(arima_hypo[,3:13],histogram = TRUE,method=c("pearson"))
 # DO and CO2 correlated at -0.73; Anoxia time and CH4 correlated at 0.83
 
 ###############################################################################
@@ -919,7 +930,7 @@ Math.cbrt <- function(x) {
 }
 
 # Epi
-for (i in 3:11){
+for (i in 3:12){
   print(colnames(arima_epi)[i])
   var <- arima_epi[,i]
   hist(as.matrix(var), main = colnames(arima_epi)[i])
@@ -934,7 +945,7 @@ for (i in 3:11){
   var <- (arima_epi[,i]^2)
   hist(as.matrix(var), main = c("sq",colnames(arima_epi)[i]))
 }
-# Nothing: Temp, DO, CH4, CO2, SW Radiation, Rain
+# Nothing: Temp, DO, CH4, CO2, SW Radiation, Rain, Thermo
 # Log: DOC, Chla, Inflow
 
 # Transform and scale data
@@ -943,10 +954,10 @@ arima_epi_scale <- arima_epi %>%
          VW_Chla_ugL = log(VW_Chla_ugL),
          Inflow_m3s = log(Inflow_m3s))
 
-arima_epi_scale[,3:11] <- scale(arima_epi_scale[,3:11])
+arima_epi_scale[,3:12] <- scale(arima_epi_scale[,3:12])
 
 # Hypo
-for (i in 3:12){
+for (i in 3:13){
   print(colnames(arima_hypo)[i])
   var <- arima_hypo[,i]
   hist(as.matrix(var), main = colnames(arima_hypo)[i])
@@ -961,7 +972,7 @@ for (i in 3:12){
   var <- (arima_hypo[,i]^2)
   hist(as.matrix(var), main = c("sq",colnames(arima_hypo)[i]))
 }
-# Nothing: DOC, Temp, DO, CH4, CO2, Rain, SW Radiation
+# Nothing: DOC, Temp, DO, CH4, CO2, Rain, SW Radiation, Thermo
 # Log: Chla, Inflow, Anoxia_Time
 
 # Transform and scale data
@@ -970,7 +981,7 @@ arima_hypo_scale <- arima_hypo %>%
          Inflow_m3s = log(Inflow_m3s),
          anoxia_time_d = log(anoxia_time_d))
 
-arima_hypo_scale[,3:12] <- scale(arima_hypo_scale[,3:12])
+arima_hypo_scale[,3:13] <- scale(arima_hypo_scale[,3:13])
 
 ###############################################################################
 
@@ -983,7 +994,7 @@ arima_hypo_scale[,3:12] <- scale(arima_hypo_scale[,3:12])
 # Epi
 colnames(arima_epi_scale)
 
-cols <- c(4:11) # UPDATE THIS TO THE ENV. VARIABLES
+cols <- c(4:12) # UPDATE THIS TO THE ENV. VARIABLES
 sub.final <- NULL
 final <- NULL
 
@@ -1036,8 +1047,8 @@ final <- distinct(final)
 best <- final %>%
   slice(which.min(AICc))
 
-best.vars <- colnames(arima_epi_scale)[combn(cols,4)[,22]] # UPDATE THIS FOLLOWING 'BEST'
-best.vars.cols <- combn(cols,4)[,22] # UPDATE THIS FOLLOWING 'BEST'
+best.vars <- colnames(arima_epi_scale)[combn(cols,5)[,51]] # UPDATE THIS FOLLOWING 'BEST'
+best.vars.cols <- combn(cols,5)[,51] # UPDATE THIS FOLLOWING 'BEST'
 
 best.fit <- auto.arima(y,xreg = as.matrix(arima_epi_scale[,best.vars.cols]),max.p = 1, max.P = 1)
 best.fit
@@ -1075,7 +1086,7 @@ for (i in 1:nrow(good)){
 # Hypo
 colnames(arima_hypo_scale)
 
-cols <- c(4:7,9:11) # UPDATE THIS TO THE ENV. VARIABLES
+cols <- c(4:7,9:13) # UPDATE THIS TO THE ENV. VARIABLES
 sub.final <- NULL
 final <- NULL
 
@@ -1128,8 +1139,8 @@ final <- distinct(final)
 best <- final %>%
   slice(which.min(AICc))
 
-best.vars <- colnames(arima_hypo_scale)[combn(cols,5)[,3]] # UPDATE THIS FOLLOWING 'BEST'
-best.vars.cols <- combn(cols,5)[,3] # UPDATE THIS FOLLOWING 'BEST'
+best.vars <- colnames(arima_hypo_scale)[combn(cols,6)[,9]] # UPDATE THIS FOLLOWING 'BEST'
+best.vars.cols <- combn(cols,6)[,9] # UPDATE THIS FOLLOWING 'BEST'
 
 best.fit <- auto.arima(y,xreg = as.matrix(arima_hypo_scale[,best.vars.cols]),max.p = 1, max.P = 1)
 best.fit
