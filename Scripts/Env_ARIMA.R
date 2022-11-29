@@ -1007,7 +1007,7 @@ for (i in 1:nrow(good)){
 # Hypo
 colnames(arima_hypo_scale)
 
-cols <- c(5:12) # UPDATE THIS TO THE ENV. VARIABLES
+cols <- c(5:7,10:12) # UPDATE THIS TO THE ENV. VARIABLES - exclude Rainfall and SW radiation (primarily surface processes)
 sub.final <- NULL
 final <- NULL
 
@@ -1060,8 +1060,8 @@ final <- distinct(final)
 best <- final %>%
   slice(which.min(AICc))
 
-best.vars <- colnames(arima_hypo_scale)[combn(cols,5)[,9]] # UPDATE THIS FOLLOWING 'BEST'
-best.vars.cols <- combn(cols,5)[,9] # UPDATE THIS FOLLOWING 'BEST'
+best.vars <- colnames(arima_hypo_scale)[combn(cols,5)[,2]] # UPDATE THIS FOLLOWING 'BEST'
+best.vars.cols <- combn(cols,5)[,2] # UPDATE THIS FOLLOWING 'BEST'
 
 best.fit <- auto.arima(y,xreg = as.matrix(arima_hypo_scale[,best.vars.cols]),max.p = 1, max.P = 1)
 best.fit
@@ -1190,7 +1190,7 @@ for (i in 1:nrow(good)){
 ## Hypo DOC processing
 colnames(arima_hypo_scale)
 
-cols <- c(5:12) # UPDATE THIS TO THE ENV. VARIABLES
+cols <- c(5:7,10:12) # UPDATE THIS TO THE ENV. VARIABLES - exclude Rainfall and SW radiation (primarily surface processes)
 sub.final <- NULL
 final <- NULL
 
@@ -1243,8 +1243,8 @@ final <- distinct(final)
 best <- final %>%
   slice(which.min(AICc))
 
-best.vars <- colnames(arima_hypo_scale)[combn(cols,3)[,26]] # UPDATE THIS FOLLOWING 'BEST'
-best.vars.cols <- combn(cols,3)[,26] # UPDATE THIS FOLLOWING 'BEST'
+best.vars <- colnames(arima_hypo_scale)[combn(cols,3)[,13]] # UPDATE THIS FOLLOWING 'BEST'
+best.vars.cols <- combn(cols,3)[,13] # UPDATE THIS FOLLOWING 'BEST'
 
 best.fit <- auto.arima(y,xreg = as.matrix(arima_hypo_scale[,best.vars.cols]),max.p = 1, max.P = 1)
 best.fit
