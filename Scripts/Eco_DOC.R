@@ -1112,7 +1112,7 @@ ggarrange(vw_epi,vw_hypo,inflow_doc,nrow=3,ncol=1,labels = c("A.", "B.", "C."),
 
 ggsave("./Fig_Output/Fig3_VW_DOC.jpg",width=7,height=10,units="in",dpi=320)
 
-doc_wgt %>% 
+all_box <- doc_wgt %>% 
   filter(DateTime >= as.POSIXct("2017-01-01")) %>% 
   ggplot(mapping=aes(x=Loc,y=DOC_mgL,fill=Loc))+
   geom_boxplot(size=0.8,alpha=0.5)+
@@ -1121,8 +1121,6 @@ doc_wgt %>%
   ylab(expression(paste("DOC (mg L"^-1*")")))+
   theme_classic(base_size = 15)+
   theme(legend.position = "none")
-
-ggsave("./Fig_Output/SI_DOC_Boxplot.png",dpi=800,width=5,height=4)
 
 doc_stats <- doc_wgt %>% 
   filter(DateTime >= as.POSIXct("2017-01-01")) %>% 
@@ -1145,7 +1143,7 @@ doc_stats_year <- doc_wgt %>%
 write.csv(doc_stats_year,'./Fig_Output/doc_stats_year.csv')
 
 ## Plot boxplots by year
-doc_wgt %>% 
+year_box <- doc_wgt %>% 
   filter(DateTime >= as.POSIXct("2017-01-01")) %>%
   #filter(Loc == "Epi" | Loc == "Hypo") %>% 
   ggplot(mapping=aes(x=as.character(year),y=DOC_mgL,fill=Loc))+
@@ -1157,7 +1155,10 @@ doc_wgt %>%
   theme_classic(base_size = 15)+
   theme(legend.title=element_blank())
 
-ggsave("./Fig_Output/SI_DOC_Year.png",dpi=800,width=8,height=4)
+ggarrange(year_box, ggarrange(all_box, ncol = 2, labels = c("B."),font.label=list(face="plain",size=15)), 
+          nrow = 2, labels = "A.", font.label=list(face="plain",size=15)) 
+
+ggsave("./Fig_Output/SI_DOC_Boxplots.png",dpi=800,width=8,height=7)
 
 ################################################################################
 

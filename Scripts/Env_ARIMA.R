@@ -6,6 +6,8 @@
 ### Adding in various metrics of anoxia/oxygenation to hypo AR model
 ### 1 Sep 2022, A. Hounshell
 
+### Updating following comments from CCC - DO mg/L -> DO%; remove GHG variables; ARIMA for DOC processing
+
 ###############################################################################
 
 ## Clear workspace
@@ -132,6 +134,19 @@ final_doc_mgL <- doc_mgL %>%
                         ifelse(Depth == "hypo_DOC", "Hypo", NA)))
 
 ###############################################################################
+## Add in DOC processing - calculated from Eco_DOC.R
+doc_processing <- read_csv("./Fig_Output/model_results.csv") %>% 
+  select(DateTime, mean_doc_epi_process_mgL, mean_doc_hypo_process_mgL) %>% 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST")))
+
+doc_proc_mgL <- doc_processing %>% 
+  pivot_longer(!DateTime, names_to = "Depth", values_to = "DOC_processing_mgL") %>% 
+  mutate(Depth = ifelse(Depth == "mean_doc_epi_process_mgL","Epi",
+                        ifelse(Depth == "mean_doc_hypo_process_mgL", "Hypo", NA)))
+
+all_doc_mgL <- left_join(final_doc_mgL,doc_proc_mgL,by=c("DateTime","Depth"))
+
+###############################################################################
 
 ## Load in CTD + YSI data - temp, Sal, DO
 ## From merged spreadsheet in: LakeAnalyzer_thermo.R
@@ -245,15 +260,15 @@ final_temp_c <- temp_c %>%
   mutate(Depth = ifelse(Depth == "epi_temp", "Epi",
                         ifelse(Depth == "hypo_temp", "Hypo", NA)))
 ## Dissolved oxygen
-do_mgL <- casts_depths %>% 
-  select(DateTime,new_depth,DO_mgL) %>% 
-  mutate(DO_mgL = as.numeric(DO_mgL)) %>% 
+do_pSat <- casts_depths %>% 
+  select(DateTime,new_depth,DO_pSat) %>% 
+  mutate(DO_pSat = as.numeric(DO_pSat)) %>% 
   drop_na() %>% 
-  pivot_wider(names_from = new_depth, values_from = DO_mgL, values_fil = NA, values_fn = mean, names_prefix = "DO_")
+  pivot_wider(names_from = new_depth, values_from = DO_pSat, values_fil = NA, values_fn = mean, names_prefix = "DO_")
 
-do_mgL <- left_join(do_mgL, thermo, by="DateTime")
+do_pSat <- left_join(do_pSat, thermo, by="DateTime")
 
-do_mgL <- do_mgL %>% 
+do_pSat <- do_pSat %>% 
   mutate(epi_DO = ifelse(is.na(epi_bottomg_depth_m), ((DO_0.1*vol_depths$Vol_m3[1])+(DO_1.6*vol_depths$Vol_m3[2])+(DO_3.8*vol_depths$Vol_m3[3])+(DO_5.0*vol_depths$Vol_m3[4])+(DO_6.2*vol_depths$Vol_m3[5])+(DO_8.0*vol_depths$Vol_m3[6])+(DO_9.0*vol_depths$Vol_m3[7]))/sum(vol_depths$Vol_m3[1:7]),
                            ifelse(epi_bottomg_depth_m == 0.1, DO_0.1,
                                   ifelse(epi_bottomg_depth_m == 1.6, (DO_0.1*vol_depths$Vol_m3[1]+DO_1.6*vol_depths$Vol_m3[2])/sum(vol_depths$Vol_m3[1:2]),
@@ -276,7 +291,7 @@ do_mgL <- do_mgL %>%
 
 do_mgL <- do_mgL[-c(413,479),]
 
-do_plot <- do_mgL %>%  
+do_plot <- do_pSat %>%  
   drop_na(epi_DO,hypo_DO) %>% 
   ggplot()+
   geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dashed",color="darkgrey")+
@@ -292,9 +307,48 @@ do_plot <- do_mgL %>%
   scale_fill_manual(breaks=c('Epi','Hypo'),values=c("#7EBDC2","#393E41"))+
   xlim(as.POSIXct("2017-01-01"),as.POSIXct("2021-12-31"))+
   xlab("") + 
-  ylab(expression(V.W.~D.O.~(mg~L^-1)))+
+  ylab("V.W. DO %Sat")+
   theme_classic(base_size = 15)+
   theme(legend.title=element_blank())
+
+# Format for ARIMA modeling
+final_do_pSat <- do_pSat %>% 
+  select(DateTime,epi_DO,hypo_DO) %>% 
+  pivot_longer(!DateTime, names_to = "Depth", values_to = "VW_DO_mgL") %>% 
+  mutate(Depth = ifelse(Depth == "epi_DO", "Epi",
+                        ifelse(Depth == "hypo_DO", "Hypo", NA)))
+
+## Calculate DO mg/L to determine days since anoxia
+do_mgL <- casts_depths %>% 
+  select(DateTime,new_depth,DO_mgL) %>% 
+  mutate(DO_mgL = as.numeric(DO_mgL)) %>% 
+  drop_na() %>% 
+  pivot_wider(names_from = new_depth, values_from = DO_mgL, values_fil = NA, values_fn = mean, names_prefix = "DO_")
+
+do_mgL <- left_join(do_mgL, thermo, by="DateTime")
+
+do_mgL <- do_mgL %>% 
+  mutate(epi_DO = ifelse(is.na(epi_bottomg_depth_m), ((DO_0.1*vol_depths$Vol_m3[1])+(DO_1.6*vol_depths$Vol_m3[2])+(DO_3.8*vol_depths$Vol_m3[3])+(DO_5.0*vol_depths$Vol_m3[4])+(DO_6.2*vol_depths$Vol_m3[5])+(DO_8.0*vol_depths$Vol_m3[6])+(DO_9.0*vol_depths$Vol_m3[7]))/sum(vol_depths$Vol_m3[1:7]),
+                         ifelse(epi_bottomg_depth_m == 0.1, DO_0.1,
+                                ifelse(epi_bottomg_depth_m == 1.6, (DO_0.1*vol_depths$Vol_m3[1]+DO_1.6*vol_depths$Vol_m3[2])/sum(vol_depths$Vol_m3[1:2]),
+                                       ifelse(epi_bottomg_depth_m == 3.8, ((DO_0.1*vol_depths$Vol_m3[1])+(DO_1.6*vol_depths$Vol_m3[2])+(DO_3.8*vol_depths$Vol_m3[3]))/sum(vol_depths$Vol_m3[1:3]),
+                                              ifelse(epi_bottomg_depth_m == 5, ((DO_0.1*vol_depths$Vol_m3[1])+(DO_1.6*vol_depths$Vol_m3[2])+(DO_3.8*vol_depths$Vol_m3[3])+(DO_5.0*vol_depths$Vol_m3[4]))/sum(vol_depths$Vol_m3[1:4]),
+                                                     ifelse(epi_bottomg_depth_m == 6.2, ((DO_0.1*vol_depths$Vol_m3[1])+(DO_1.6*vol_depths$Vol_m3[2])+(DO_3.8*vol_depths$Vol_m3[3])+(DO_5.0*vol_depths$Vol_m3[4])+(DO_6.2*vol_depths$Vol_m3[5]))/sum(vol_depths$Vol_m3[1:5]),
+                                                            ifelse(epi_bottomg_depth_m == 8, ((DO_0.1*vol_depths$Vol_m3[1])+(DO_1.6*vol_depths$Vol_m3[2])+(DO_3.8*vol_depths$Vol_m3[3])+(DO_5.0*vol_depths$Vol_m3[4])+(DO_6.2*vol_depths$Vol_m3[5])+(DO_8.0*vol_depths$Vol_m3[6]))/sum(vol_depths$Vol_m3[1:6]), NA)))))))) %>% 
+  mutate(hypo_DO = ifelse(is.na(hypo_top_depth_m), ((DO_0.1*vol_depths$Vol_m3[1])+(DO_1.6*vol_depths$Vol_m3[2])+(DO_3.8*vol_depths$Vol_m3[3])+(DO_5.0*vol_depths$Vol_m3[4])+(DO_6.2*vol_depths$Vol_m3[5])+(DO_8.0*vol_depths$Vol_m3[6])+(DO_9.0*vol_depths$Vol_m3[7]))/sum(vol_depths$Vol_m3[1:7]),
+                          ifelse(hypo_top_depth_m == 1.6, ((DO_1.6*vol_depths$Vol_m3[2])+(DO_3.8*vol_depths$Vol_m3[3])+(DO_5.0*vol_depths$Vol_m3[4])+(DO_6.2*vol_depths$Vol_m3[5])+(DO_8.0*vol_depths$Vol_m3[6])+(DO_9.0*vol_depths$Vol_m3[7]))/sum(vol_depths$Vol_m3[2:7]),
+                                 ifelse(hypo_top_depth_m == 3.8, ((DO_3.8*vol_depths$Vol_m3[3])+(DO_5.0*vol_depths$Vol_m3[4])+(DO_6.2*vol_depths$Vol_m3[5])+(DO_8.0*vol_depths$Vol_m3[6])+(DO_9.0*vol_depths$Vol_m3[7]))/sum(vol_depths$Vol_m3[3:7]),
+                                        ifelse(hypo_top_depth_m == 5, ((DO_5.0*vol_depths$Vol_m3[4])+(DO_6.2*vol_depths$Vol_m3[5])+(DO_8.0*vol_depths$Vol_m3[6])+(DO_9.0*vol_depths$Vol_m3[7]))/sum(vol_depths$Vol_m3[4:7]),
+                                               ifelse(hypo_top_depth_m == 6.2, ((DO_6.2*vol_depths$Vol_m3[5])+(DO_8.0*vol_depths$Vol_m3[6])+(DO_9.0*vol_depths$Vol_m3[7]))/sum(vol_depths$Vol_m3[5:7]),
+                                                      ifelse(hypo_top_depth_m == 8, ((DO_8.0*vol_depths$Vol_m3[6])+(DO_9.0*vol_depths$Vol_m3[7]))/sum(vol_depths$Vol_m3[6:7]),
+                                                             ifelse(hypo_top_depth_m == 9, DO_9.0, NA)))))))) %>% 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST")))
+
+## Some light QA/QC'ing
+# 2021-08-20;479
+# 2020-07-08; 413
+
+do_mgL <- do_mgL[-c(413,479),]
 
 # Format for ARIMA modeling
 final_do_mgL <- do_mgL %>% 
@@ -714,149 +768,20 @@ ggsave("./Fig_Output/SI_MetParameters.jpg",width=10,height=7,units="in",dpi=320)
 
 ###############################################################################
 
-## Load in dissolved GHG data - as a potential explanatory variable for DOC concentrations...
-# Downloaded on 23 Aug 2022
-#inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/551/6/38d72673295864956cccd6bbba99a1a3"
-#infile1 <- paste0(getwd(),"/Data/final_GHG_2015-2021.csv")
-#download.file(inUrl1,infile1,method="curl")
-
-## Load in Dissolved GHG data
-ghg <- read.csv("./Data/final_GHG_2015-2021.csv",header=T) %>% 
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d %H:%M:%S", tz="EST"))) %>% 
-  filter(DateTime >= as.POSIXct("2017-01-01 00:00:00") & Reservoir == "FCR" & Site == 50) %>% 
-  mutate(DateTime = format(as.POSIXct(DateTime, "%Y-%m-%d"),"%Y-%m-%d")) %>% 
-  mutate(DateTime = as.POSIXct(DateTime, "%Y-%m-%d", tz = "EST"))
-
-ghg <- ghg %>% 
-  group_by(DateTime,Depth_m) %>% 
-  dplyr::summarise(mean_ch4_umolL = mean(ch4_umolL, na.rm=TRUE),
-            mean_co2_umolL = mean(co2_umolL, na.rm=TRUE))
-
-# Pivot_longer for each GHG and each sampling time point
-ch4_umolL <- ghg %>% 
-  select(DateTime,Depth_m,mean_ch4_umolL) %>% 
-  drop_na() %>% 
-  pivot_wider(names_from = Depth_m, values_from = mean_ch4_umolL, values_fil = NA, values_fn = mean, names_prefix = "ch4_") %>% 
-  select(ch4_0.1,ch4_1.6,ch4_3.8,ch4_5,ch4_6.2,ch4_8,ch4_9)
-
-ch4_umolL <- left_join(ch4_umolL, thermo, by="DateTime")
-
-ch4_umolL <- ch4_umolL %>% 
-  mutate(epi_ch4 = ifelse(is.na(epi_bottomg_depth_m), ((ch4_0.1*vol_depths$Vol_m3[1])+(ch4_1.6*vol_depths$Vol_m3[2])+(ch4_3.8*vol_depths$Vol_m3[3])+(ch4_5*vol_depths$Vol_m3[4])+(ch4_6.2*vol_depths$Vol_m3[5])+(ch4_8*vol_depths$Vol_m3[6])+(ch4_9*vol_depths$Vol_m3[7]))/sum(vol_depths$Vol_m3[1:7]),
-                           ifelse(epi_bottomg_depth_m == 0.1, ch4_0.1,
-                                  ifelse(epi_bottomg_depth_m == 1.6, (ch4_0.1*vol_depths$Vol_m3[1]+ch4_1.6*vol_depths$Vol_m3[2])/sum(vol_depths$Vol_m3[1:2]),
-                                         ifelse(epi_bottomg_depth_m == 3.8, ((ch4_0.1*vol_depths$Vol_m3[1])+(ch4_1.6*vol_depths$Vol_m3[2])+(ch4_3.8*vol_depths$Vol_m3[3]))/sum(vol_depths$Vol_m3[1:3]),
-                                                ifelse(epi_bottomg_depth_m == 5, ((ch4_0.1*vol_depths$Vol_m3[1])+(ch4_1.6*vol_depths$Vol_m3[2])+(ch4_3.8*vol_depths$Vol_m3[3])+(ch4_5*vol_depths$Vol_m3[4]))/sum(vol_depths$Vol_m3[1:4]),
-                                                       ifelse(epi_bottomg_depth_m == 6.2, ((ch4_0.1*vol_depths$Vol_m3[1])+(ch4_1.6*vol_depths$Vol_m3[2])+(ch4_3.8*vol_depths$Vol_m3[3])+(ch4_5*vol_depths$Vol_m3[4])+(ch4_6.2*vol_depths$Vol_m3[5]))/sum(vol_depths$Vol_m3[1:5]),
-                                                              ifelse(epi_bottomg_depth_m == 8, ((ch4_0.1*vol_depths$Vol_m3[1])+(ch4_1.6*vol_depths$Vol_m3[2])+(ch4_3.8*vol_depths$Vol_m3[3])+(ch4_5*vol_depths$Vol_m3[4])+(ch4_6.2*vol_depths$Vol_m3[5])+(ch4_8*vol_depths$Vol_m3[6]))/sum(vol_depths$Vol_m3[1:6]), NA)))))))) %>% 
-  mutate(hypo_ch4 = ifelse(is.na(hypo_top_depth_m), ((ch4_0.1*vol_depths$Vol_m3[1])+(ch4_1.6*vol_depths$Vol_m3[2])+(ch4_3.8*vol_depths$Vol_m3[3])+(ch4_5*vol_depths$Vol_m3[4])+(ch4_6.2*vol_depths$Vol_m3[5])+(ch4_8*vol_depths$Vol_m3[6])+(ch4_9*vol_depths$Vol_m3[7]))/sum(vol_depths$Vol_m3[1:7]),
-                            ifelse(hypo_top_depth_m == 1.6, ((ch4_1.6*vol_depths$Vol_m3[2])+(ch4_3.8*vol_depths$Vol_m3[3])+(ch4_5*vol_depths$Vol_m3[4])+(ch4_6.2*vol_depths$Vol_m3[5])+(ch4_8*vol_depths$Vol_m3[6])+(ch4_9*vol_depths$Vol_m3[7]))/sum(vol_depths$Vol_m3[2:7]),
-                                   ifelse(hypo_top_depth_m == 3.8, ((ch4_3.8*vol_depths$Vol_m3[3])+(ch4_5*vol_depths$Vol_m3[4])+(ch4_6.2*vol_depths$Vol_m3[5])+(ch4_8*vol_depths$Vol_m3[6])+(ch4_9*vol_depths$Vol_m3[7]))/sum(vol_depths$Vol_m3[3:7]),
-                                          ifelse(hypo_top_depth_m == 5, ((ch4_5*vol_depths$Vol_m3[4])+(ch4_6.2*vol_depths$Vol_m3[5])+(ch4_8*vol_depths$Vol_m3[6])+(ch4_9*vol_depths$Vol_m3[7]))/sum(vol_depths$Vol_m3[4:7]),
-                                                 ifelse(hypo_top_depth_m == 6.2, ((ch4_6.2*vol_depths$Vol_m3[5])+(ch4_8*vol_depths$Vol_m3[6])+(ch4_9*vol_depths$Vol_m3[7]))/sum(vol_depths$Vol_m3[5:7]),
-                                                        ifelse(hypo_top_depth_m == 8, ((ch4_8*vol_depths$Vol_m3[6])+(ch4_9*vol_depths$Vol_m3[7]))/sum(vol_depths$Vol_m3[6:7]),
-                                                               ifelse(hypo_top_depth_m == 9, ch4_9, NA)))))))) %>% 
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST")))
-
-## CO2
-co2_umolL <- ghg %>% 
-  select(DateTime,Depth_m,mean_co2_umolL) %>% 
-  drop_na() %>% 
-  pivot_wider(names_from = Depth_m, values_from = mean_co2_umolL, values_fil = NA, values_fn = mean, names_prefix = "co2_") %>% 
-  select(co2_0.1,co2_1.6,co2_3.8,co2_5,co2_6.2,co2_8,co2_9)
-
-co2_umolL <- left_join(co2_umolL, thermo, by="DateTime")
-
-co2_umolL <- co2_umolL %>% 
-  mutate(epi_co2 = ifelse(is.na(epi_bottomg_depth_m), ((co2_0.1*vol_depths$Vol_m3[1])+(co2_1.6*vol_depths$Vol_m3[2])+(co2_3.8*vol_depths$Vol_m3[3])+(co2_5*vol_depths$Vol_m3[4])+(co2_6.2*vol_depths$Vol_m3[5])+(co2_8*vol_depths$Vol_m3[6])+(co2_9*vol_depths$Vol_m3[7]))/sum(vol_depths$Vol_m3[1:7]),
-                          ifelse(epi_bottomg_depth_m == 0.1, co2_0.1,
-                                 ifelse(epi_bottomg_depth_m == 1.6, (co2_0.1*vol_depths$Vol_m3[1]+co2_1.6*vol_depths$Vol_m3[2])/sum(vol_depths$Vol_m3[1:2]),
-                                        ifelse(epi_bottomg_depth_m == 3.8, ((co2_0.1*vol_depths$Vol_m3[1])+(co2_1.6*vol_depths$Vol_m3[2])+(co2_3.8*vol_depths$Vol_m3[3]))/sum(vol_depths$Vol_m3[1:3]),
-                                               ifelse(epi_bottomg_depth_m == 5, ((co2_0.1*vol_depths$Vol_m3[1])+(co2_1.6*vol_depths$Vol_m3[2])+(co2_3.8*vol_depths$Vol_m3[3])+(co2_5*vol_depths$Vol_m3[4]))/sum(vol_depths$Vol_m3[1:4]),
-                                                      ifelse(epi_bottomg_depth_m == 6.2, ((co2_0.1*vol_depths$Vol_m3[1])+(co2_1.6*vol_depths$Vol_m3[2])+(co2_3.8*vol_depths$Vol_m3[3])+(co2_5*vol_depths$Vol_m3[4])+(co2_6.2*vol_depths$Vol_m3[5]))/sum(vol_depths$Vol_m3[1:5]),
-                                                             ifelse(epi_bottomg_depth_m == 8, ((co2_0.1*vol_depths$Vol_m3[1])+(co2_1.6*vol_depths$Vol_m3[2])+(co2_3.8*vol_depths$Vol_m3[3])+(co2_5*vol_depths$Vol_m3[4])+(co2_6.2*vol_depths$Vol_m3[5])+(co2_8*vol_depths$Vol_m3[6]))/sum(vol_depths$Vol_m3[1:6]), NA)))))))) %>% 
-  mutate(hypo_co2 = ifelse(is.na(hypo_top_depth_m), ((co2_0.1*vol_depths$Vol_m3[1])+(co2_1.6*vol_depths$Vol_m3[2])+(co2_3.8*vol_depths$Vol_m3[3])+(co2_5*vol_depths$Vol_m3[4])+(co2_6.2*vol_depths$Vol_m3[5])+(co2_8*vol_depths$Vol_m3[6])+(co2_9*vol_depths$Vol_m3[7]))/sum(vol_depths$Vol_m3[1:7]),
-                           ifelse(hypo_top_depth_m == 1.6, ((co2_1.6*vol_depths$Vol_m3[2])+(co2_3.8*vol_depths$Vol_m3[3])+(co2_5*vol_depths$Vol_m3[4])+(co2_6.2*vol_depths$Vol_m3[5])+(co2_8*vol_depths$Vol_m3[6])+(co2_9*vol_depths$Vol_m3[7]))/sum(vol_depths$Vol_m3[2:7]),
-                                  ifelse(hypo_top_depth_m == 3.8, ((co2_3.8*vol_depths$Vol_m3[3])+(co2_5*vol_depths$Vol_m3[4])+(co2_6.2*vol_depths$Vol_m3[5])+(co2_8*vol_depths$Vol_m3[6])+(co2_9*vol_depths$Vol_m3[7]))/sum(vol_depths$Vol_m3[3:7]),
-                                         ifelse(hypo_top_depth_m == 5, ((co2_5*vol_depths$Vol_m3[4])+(co2_6.2*vol_depths$Vol_m3[5])+(co2_8*vol_depths$Vol_m3[6])+(co2_9*vol_depths$Vol_m3[7]))/sum(vol_depths$Vol_m3[4:7]),
-                                                ifelse(hypo_top_depth_m == 6.2, ((co2_6.2*vol_depths$Vol_m3[5])+(co2_8*vol_depths$Vol_m3[6])+(co2_9*vol_depths$Vol_m3[7]))/sum(vol_depths$Vol_m3[5:7]),
-                                                       ifelse(hypo_top_depth_m == 8, ((co2_8*vol_depths$Vol_m3[6])+(co2_9*vol_depths$Vol_m3[7]))/sum(vol_depths$Vol_m3[6:7]),
-                                                              ifelse(hypo_top_depth_m == 9, co2_9, NA)))))))) %>% 
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST")))
-
-## Plot
-ch4_plot <- ch4_umolL %>%  
-  drop_na(epi_ch4,hypo_ch4) %>% 
-  ggplot()+
-  geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dashed",color="darkgrey")+
-  geom_vline(xintercept = as.POSIXct("2018-10-21"),linetype="dashed",color="darkgrey")+
-  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed",color="darkgrey")+
-  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed",color="darkgrey")+
-  geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dashed",color="darkgrey")+
-  geom_line(mapping=aes(x=DateTime,y=epi_ch4,color="Epi"),size=1)+
-  geom_point(mapping=aes(x=DateTime,y=epi_ch4,color="Epi"),size=2)+
-  geom_line(mapping=aes(x=DateTime,y=hypo_ch4,color="Hypo"),size=1)+
-  geom_point(mapping=aes(x=DateTime,y=hypo_ch4,color="Hypo"),size=2)+
-  scale_color_manual(breaks=c('Epi','Hypo'),values=c("#7EBDC2","#393E41"))+
-  scale_fill_manual(breaks=c('Epi','Hypo'),values=c("#7EBDC2","#393E41"))+
-  xlim(as.POSIXct("2017-01-01"),as.POSIXct("2021-12-31"))+
-  xlab("") + 
-  ylab(expression(V.W.~CH[4]~(~mu*mol~L^-1)))+
-  theme_classic(base_size = 15)+
-  theme(legend.title=element_blank())
-
-co2_plot <- co2_umolL %>%  
-  drop_na(epi_co2,hypo_co2) %>% 
-  ggplot()+
-  geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dashed",color="darkgrey")+
-  geom_vline(xintercept = as.POSIXct("2018-10-21"),linetype="dashed",color="darkgrey")+
-  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed",color="darkgrey")+
-  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed",color="darkgrey")+
-  geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dashed",color="darkgrey")+
-  geom_line(mapping=aes(x=DateTime,y=epi_co2,color="Epi"),size=1)+
-  geom_point(mapping=aes(x=DateTime,y=epi_co2,color="Epi"),size=2)+
-  geom_line(mapping=aes(x=DateTime,y=hypo_co2,color="Hypo"),size=1)+
-  geom_point(mapping=aes(x=DateTime,y=hypo_co2,color="Hypo"),size=2)+
-  scale_color_manual(breaks=c('Epi','Hypo'),values=c("#7EBDC2","#393E41"))+
-  scale_fill_manual(breaks=c('Epi','Hypo'),values=c("#7EBDC2","#393E41"))+
-  xlim(as.POSIXct("2017-01-01"),as.POSIXct("2021-12-31"))+
-  xlab("") + 
-  ylab(expression(V.W.~CO[2]~(~mu*mol~L^-1)))+
-  theme_classic(base_size = 15)+
-  theme(legend.title=element_blank())
-
-ggarrange(ch4_plot,co2_plot,ncol=1,nrow=2,common.legend = TRUE, labels = c("A.", "B."),
-          font.label=list(face="plain",size=15))
-
-ggsave("./Fig_Output/SI_GHGParameters.jpg",width=10,height=7,units="in",dpi=320)
-
-# Format for ARIMA modeling
-final_ch4_umolL <- ch4_umolL %>% 
-  select(DateTime,epi_ch4,hypo_ch4) %>% 
-  pivot_longer(!DateTime, names_to = "Depth", values_to = "VW_CH4_umolL") %>% 
-  mutate(Depth = ifelse(Depth == "epi_ch4", "Epi",
-                        ifelse(Depth == "hypo_ch4", "Hypo", NA)))
-
-final_co2_umolL <- co2_umolL %>% 
-  select(DateTime,epi_co2,hypo_co2) %>% 
-  pivot_longer(!DateTime, names_to = "Depth", values_to = "VW_co2_umolL") %>% 
-  mutate(Depth = ifelse(Depth == "epi_co2", "Epi",
-                        ifelse(Depth == "hypo_co2", "Hypo", NA)))
-
-###############################################################################
-
 ## Format and add thermocline depth as a potential predictor variable, too
 final_thermo <- thermo %>% 
   select(DateTime, thermo.depth)
 
 ###############################################################################
 
+###############################################################################
+
 ## Organize data for ARIMA modeling - following EddyFlux, 3_Rev_EnvAnalysis.R
-# Include: DOC data, Temp, DO, Flora, Inflow, Rainfall, SW Radiation, CO2, and CH4 for Epi and Hypo
-arima_epi <- plyr::join_all(list(final_doc_mgL,final_temp_c,final_do_mgL,final_chla_ugL,final_ch4_umolL,final_co2_umolL),by=c("DateTime","Depth"),type="left") 
+# Include: DOC data, Temp, DO, Flora, Inflow, Rainfall, and SW Radiation for Epi and Hypo
+arima_epi <- plyr::join_all(list(all_doc_mgL,final_temp_c,final_do_pSat,final_chla_ugL),by=c("DateTime","Depth"),type="left") 
 
 # Include: DOC data, Temp, DO, Flora, Inflow, Rainfall, SW Radiation, CO2, and CH4 for Epi and Hypo
-arima_hypo <- plyr::join_all(list(final_doc_mgL,final_temp_c,final_do_mgL,final_chla_ugL,final_ch4_umolL,final_co2_umolL),by=c("DateTime","Depth"),type="left")
+arima_hypo <- plyr::join_all(list(all_doc_mgL,final_temp_c,final_do_pSat,final_chla_ugL),by=c("DateTime","Depth"),type="left")
 
 ## Select time points where we have DOC concentrations
 arima_epi <- plyr::join_all(list(arima_epi,met_daily,final_inflow_m3s),by="DateTime",type="left") %>% 
@@ -866,8 +791,9 @@ arima_hypo <- plyr::join_all(list(arima_hypo,met_daily,final_inflow_m3s),by="Dat
   filter(DateTime >= as.POSIXct("2017-01-01"),Depth == "Hypo")
 
 ## Add in days since anoxia for Hypo
-arima_hypo <- left_join(arima_hypo,hypo_do_mgL,by=c("DateTime","Depth","VW_DO_mgL")) %>% 
-  select(-anoxia)
+arima_hypo <- left_join(arima_hypo,hypo_do_mgL,by=c("DateTime","Depth")) %>% 
+  select(-anoxia,-VW_DO_mgL.y) %>% 
+  rename(VW_DO_pSat = VW_DO_mgL.x)
 
 ## Add in thermocline depth information
 arima_epi <- left_join(arima_epi,final_thermo,by="DateTime")
@@ -875,24 +801,17 @@ arima_epi <- left_join(arima_epi,final_thermo,by="DateTime")
 arima_hypo <- left_join(arima_hypo,final_thermo,by="DateTime")
 
 ## Calculate stats for env parameters - limited to summer stratified period (May-Oct)
-arima_epi %>% 
+epi_stats <- arima_epi %>% 
   mutate(month = month(DateTime)) %>% 
   filter(DateTime >= as.POSIXct("2017-01-01") & month %in% c(5,6,7,8,9,10)) %>%
-  select(VW_Temp_C,VW_DO_mgL,VW_Chla_ugL,VW_CH4_umolL,VW_co2_umolL,rain_tot_mm,ShortwaveRadiationUp_Average_W_m2,Inflow_m3s) %>% 
+  select(VW_Temp_C,VW_DO_mgL,VW_Chla_ugL,rain_tot_mm,ShortwaveRadiationUp_Average_W_m2,Inflow_m3s) %>% 
   summarise_all(list(min,max,median,mean,sd),na.rm=TRUE)
 
-arima_hypo %>% 
+hypo_stats <- arima_hypo %>% 
   mutate(month = month(DateTime)) %>% 
   filter(DateTime >= as.POSIXct("2017-01-01") & month %in% c(5,6,7,8,9,10)) %>% 
-  select(VW_Temp_C,VW_DO_mgL,VW_Chla_ugL,VW_CH4_umolL,VW_co2_umolL,rain_tot_mm,ShortwaveRadiationUp_Average_W_m2,Inflow_m3s) %>% 
+  select(VW_Temp_C,VW_DO_pSat,VW_Chla_ugL,rain_tot_mm,ShortwaveRadiationUp_Average_W_m2,Inflow_m3s) %>% 
   summarise_all(list(min,max,median,mean,sd),na.rm=TRUE)
-
-# Remove time periods w/o DOC concentration
-arima_epi <- arima_epi %>% 
-  drop_na(VW_DOC_mgL)
-
-arima_hypo <- arima_hypo %>% 
-  drop_na(VW_DOC_mgL)
 
 ###############################################################################
 
@@ -909,18 +828,18 @@ arima_hypo %>%
 
 ## Check correlations among environmental variables - what needs to be removed?
 # Epi
-epi_cor = as.data.frame(cor(arima_epi[,3:12],use = "complete.obs"),method=c("pearson"))
+epi_cor = as.data.frame(cor(arima_epi[,3:11],use = "complete.obs"),method=c("pearson"))
 write_csv(epi_cor, "./Fig_Output/epi_cor.csv")
 
-chart.Correlation(arima_epi[,3:12],histogram = TRUE,method=c("pearson"))
+chart.Correlation(arima_epi[,3:11],histogram = TRUE,method=c("pearson"))
 # No correlations!
 
 # Hypo
-hypo_cor = as.data.frame(cor(arima_hypo[,3:13],use = "complete.obs"),method=c("pearson"))
+hypo_cor = as.data.frame(cor(arima_hypo[,3:12],use = "complete.obs"),method=c("pearson"))
 write_csv(hypo_cor, "./Fig_Output/hypo_cor.csv")
 
-chart.Correlation(arima_hypo[,3:13],histogram = TRUE,method=c("pearson"))
-# DO and CO2 correlated at -0.73; Anoxia time and CH4 correlated at 0.83
+chart.Correlation(arima_hypo[,3:12],histogram = TRUE,method=c("pearson"))
+# No correlations!
 
 ###############################################################################
 
@@ -930,7 +849,7 @@ Math.cbrt <- function(x) {
 }
 
 # Epi
-for (i in 3:12){
+for (i in 3:11){
   print(colnames(arima_epi)[i])
   var <- arima_epi[,i]
   hist(as.matrix(var), main = colnames(arima_epi)[i])
@@ -945,7 +864,7 @@ for (i in 3:12){
   var <- (arima_epi[,i]^2)
   hist(as.matrix(var), main = c("sq",colnames(arima_epi)[i]))
 }
-# Nothing: Temp, DO, CH4, CO2, SW Radiation, Rain, Thermo
+# Nothing: DOC_processing, Temp, DO, SW Radiation, Rain, Thermo
 # Log: DOC, Chla, Inflow
 
 # Transform and scale data
@@ -954,10 +873,10 @@ arima_epi_scale <- arima_epi %>%
          VW_Chla_ugL = log(VW_Chla_ugL),
          Inflow_m3s = log(Inflow_m3s))
 
-arima_epi_scale[,3:12] <- scale(arima_epi_scale[,3:12])
+arima_epi_scale[,3:11] <- scale(arima_epi_scale[,3:11])
 
 # Hypo
-for (i in 3:13){
+for (i in 3:12){
   print(colnames(arima_hypo)[i])
   var <- arima_hypo[,i]
   hist(as.matrix(var), main = colnames(arima_hypo)[i])
@@ -972,20 +891,22 @@ for (i in 3:13){
   var <- (arima_hypo[,i]^2)
   hist(as.matrix(var), main = c("sq",colnames(arima_hypo)[i]))
 }
-# Nothing: DOC, Temp, DO, CH4, CO2, Rain, SW Radiation, Thermo
+# Nothing: DOC, Temp, DO, Rain, SW Radiation, Thermo
 # Log: Chla, Inflow, Anoxia_Time
+# Cube root: DOC_processing
 
 # Transform and scale data
 arima_hypo_scale <- arima_hypo %>% 
-  mutate(VW_Chla_ugL = log(VW_Chla_ugL),
+  mutate(DOC_processing_mgL = Math.cbrt(DOC_processing_mgL),
+         VW_Chla_ugL = log(VW_Chla_ugL),
          Inflow_m3s = log(Inflow_m3s),
          anoxia_time_d = log(anoxia_time_d))
 
-arima_hypo_scale[,3:13] <- scale(arima_hypo_scale[,3:13])
+arima_hypo_scale[,3:12] <- scale(arima_hypo_scale[,3:12])
 
 ###############################################################################
 
-## ARIMA modeling
+## ARIMA modeling - DOC concentrations!
 # Following MEL code : )
 # THINGS TO CHANGE: 'cols' (change to the environmental variables); best fit!
 
@@ -994,7 +915,7 @@ arima_hypo_scale[,3:13] <- scale(arima_hypo_scale[,3:13])
 # Epi
 colnames(arima_epi_scale)
 
-cols <- c(4:12) # UPDATE THIS TO THE ENV. VARIABLES
+cols <- c(5:11) # UPDATE THIS TO THE ENV. VARIABLES
 sub.final <- NULL
 final <- NULL
 
@@ -1047,8 +968,8 @@ final <- distinct(final)
 best <- final %>%
   slice(which.min(AICc))
 
-best.vars <- colnames(arima_epi_scale)[combn(cols,5)[,51]] # UPDATE THIS FOLLOWING 'BEST'
-best.vars.cols <- combn(cols,5)[,51] # UPDATE THIS FOLLOWING 'BEST'
+best.vars <- colnames(arima_epi_scale)[combn(cols,4)[,16]] # UPDATE THIS FOLLOWING 'BEST'
+best.vars.cols <- combn(cols,4)[,16] # UPDATE THIS FOLLOWING 'BEST'
 
 best.fit <- auto.arima(y,xreg = as.matrix(arima_epi_scale[,best.vars.cols]),max.p = 1, max.P = 1)
 best.fit
@@ -1086,7 +1007,7 @@ for (i in 1:nrow(good)){
 # Hypo
 colnames(arima_hypo_scale)
 
-cols <- c(4:7,9:13) # UPDATE THIS TO THE ENV. VARIABLES
+cols <- c(5:12) # UPDATE THIS TO THE ENV. VARIABLES
 sub.final <- NULL
 final <- NULL
 
@@ -1139,8 +1060,191 @@ final <- distinct(final)
 best <- final %>%
   slice(which.min(AICc))
 
-best.vars <- colnames(arima_hypo_scale)[combn(cols,6)[,9]] # UPDATE THIS FOLLOWING 'BEST'
-best.vars.cols <- combn(cols,6)[,9] # UPDATE THIS FOLLOWING 'BEST'
+best.vars <- colnames(arima_hypo_scale)[combn(cols,5)[,9]] # UPDATE THIS FOLLOWING 'BEST'
+best.vars.cols <- combn(cols,5)[,9] # UPDATE THIS FOLLOWING 'BEST'
+
+best.fit <- auto.arima(y,xreg = as.matrix(arima_hypo_scale[,best.vars.cols]),max.p = 1, max.P = 1)
+best.fit
+hist(resid(best.fit))
+accuracy(best.fit)
+hist(unlist(arima_hypo_scale[,1]))
+plot_fit <- as.numeric(fitted(best.fit))
+plot_x <- as.numeric(unlist(arima_hypo_scale[,1]))
+plot(plot_x,plot_fit)
+abline(a = 0, b = 1)
+median((unlist(arima_hypo_scale[,1])-unlist(fitted(best.fit))), na.rm = TRUE)
+
+good <- final %>%
+  filter(AICc >= as.numeric(best$AICc[1]) & AICc <= (as.numeric(best$AICc[1]) + 2)) %>%
+  mutate(Num.covars = as.numeric(Num.covars),
+         Covar.cols = as.numeric(Covar.cols))
+
+for (i in 1:nrow(good)){
+  good.vars.1 <- colnames(arima_hypo_scale)[combn(cols,good[i,2])[,good[i,3]]]
+  
+  good.vars.1
+  
+  good.vars.cols.1 <- combn(cols,good[i,2])[,good[i,3]]
+  
+  
+  good.fit.1 <- auto.arima(y,xreg = as.matrix(arima_hypo_scale[,good.vars.cols.1]),max.p = 1, max.P = 1)
+  print(good.fit.1)
+  print(accuracy(good.fit.1))
+  
+  
+}
+
+###############################################################################
+
+## Epi DOC Processing
+colnames(arima_epi_scale)
+
+cols <- c(5:11) # UPDATE THIS TO THE ENV. VARIABLES
+sub.final <- NULL
+final <- NULL
+
+y <- arima_hypo_scale[,4] # UPDATE THIS TO DOC PROCESSING
+
+for (i in 1:length(cols)){
+  my.combn <- combn(cols,i)
+  sub.sub.final <- matrix(NA, nrow = ncol(my.combn), ncol = 4)
+  
+  for (j in 1:ncol(my.combn)){
+    
+    skip_to_next <- FALSE
+    
+    tryCatch(fit <- auto.arima(y,xreg = as.matrix(arima_hypo_scale[,my.combn[,j]]),max.p = 1, max.P = 1), error = function(e) { skip_to_next <<- TRUE})
+    
+    if(skip_to_next) { 
+      sub.sub.final[j,4] <- NA
+      sub.sub.final[j,3] <- j
+      sub.sub.final[j,2] <- i
+      sub.sub.final[j,1] <- "epi"
+      next }
+    
+    sub.sub.final[j,4] <- fit$aicc
+    sub.sub.final[j,3] <- j
+    sub.sub.final[j,2] <- i
+    sub.sub.final[j,1] <- "epi"
+  }
+  
+  sub.final <- rbind(sub.final,sub.sub.final)
+  print(paste("I have finished with all combinations of length",i,"for epi",sep = " "))
+}
+
+final <- rbind(final, sub.final)
+
+#run null models for comparison
+null <- matrix(NA, nrow = 1, ncol = 4)
+
+fit <- auto.arima(y, max.p = 1, max.P = 1)
+null[1,4] <- fit$aicc
+null[1,3] <- NA
+null[1,2] <- NA
+null[1,1] <- "hypo"
+
+
+final <- rbind(final, null)
+final <- data.frame(final)
+colnames(final) <- c("Response.variable","Num.covars","Covar.cols","AICc")
+final <- distinct(final)
+
+best <- final %>%
+  slice(which.min(AICc))
+
+best.vars <- colnames(arima_hypo_scale)[combn(cols,3)[,6]] # UPDATE THIS FOLLOWING 'BEST'
+best.vars.cols <- combn(cols,3)[,6] # UPDATE THIS FOLLOWING 'BEST'
+
+best.fit <- auto.arima(y,xreg = as.matrix(arima_hypo_scale[,best.vars.cols]),max.p = 1, max.P = 1)
+best.fit
+hist(resid(best.fit))
+accuracy(best.fit)
+hist(unlist(arima_hypo_scale[,1]))
+plot_fit <- as.numeric(fitted(best.fit))
+plot_x <- as.numeric(unlist(arima_hypo_scale[,1]))
+plot(plot_x,plot_fit)
+abline(a = 0, b = 1)
+median((unlist(arima_hypo_scale[,1])-unlist(fitted(best.fit))), na.rm = TRUE)
+
+good <- final %>%
+  filter(AICc >= as.numeric(best$AICc[1]) & AICc <= (as.numeric(best$AICc[1]) + 2)) %>%
+  mutate(Num.covars = as.numeric(Num.covars),
+         Covar.cols = as.numeric(Covar.cols))
+
+for (i in 1:nrow(good)){
+  good.vars.1 <- colnames(arima_hypo_scale)[combn(cols,good[i,2])[,good[i,3]]]
+  
+  good.vars.1
+  
+  good.vars.cols.1 <- combn(cols,good[i,2])[,good[i,3]]
+  
+  
+  good.fit.1 <- auto.arima(y,xreg = as.matrix(arima_hypo_scale[,good.vars.cols.1]),max.p = 1, max.P = 1)
+  print(good.fit.1)
+  print(accuracy(good.fit.1))
+  
+  
+}
+
+###############################################################################
+## Hypo DOC processing
+colnames(arima_hypo_scale)
+
+cols <- c(5:12) # UPDATE THIS TO THE ENV. VARIABLES
+sub.final <- NULL
+final <- NULL
+
+y <- arima_hypo_scale[,4] # UPDATE THIS TO DOC PROCESSING
+
+for (i in 1:length(cols)){
+  my.combn <- combn(cols,i)
+  sub.sub.final <- matrix(NA, nrow = ncol(my.combn), ncol = 4)
+  
+  for (j in 1:ncol(my.combn)){
+    
+    skip_to_next <- FALSE
+    
+    tryCatch(fit <- auto.arima(y,xreg = as.matrix(arima_hypo_scale[,my.combn[,j]]),max.p = 1, max.P = 1), error = function(e) { skip_to_next <<- TRUE})
+    
+    if(skip_to_next) { 
+      sub.sub.final[j,4] <- NA
+      sub.sub.final[j,3] <- j
+      sub.sub.final[j,2] <- i
+      sub.sub.final[j,1] <- "hypo"
+      next }
+    
+    sub.sub.final[j,4] <- fit$aicc
+    sub.sub.final[j,3] <- j
+    sub.sub.final[j,2] <- i
+    sub.sub.final[j,1] <- "hypo"
+  }
+  
+  sub.final <- rbind(sub.final,sub.sub.final)
+  print(paste("I have finished with all combinations of length",i,"for hypo",sep = " "))
+}
+
+final <- rbind(final, sub.final)
+
+#run null models for comparison
+null <- matrix(NA, nrow = 1, ncol = 4)
+
+fit <- auto.arima(y, max.p = 1, max.P = 1)
+null[1,4] <- fit$aicc
+null[1,3] <- NA
+null[1,2] <- NA
+null[1,1] <- "hypo"
+
+
+final <- rbind(final, null)
+final <- data.frame(final)
+colnames(final) <- c("Response.variable","Num.covars","Covar.cols","AICc")
+final <- distinct(final)
+
+best <- final %>%
+  slice(which.min(AICc))
+
+best.vars <- colnames(arima_hypo_scale)[combn(cols,3)[,26]] # UPDATE THIS FOLLOWING 'BEST'
+best.vars.cols <- combn(cols,3)[,26] # UPDATE THIS FOLLOWING 'BEST'
 
 best.fit <- auto.arima(y,xreg = as.matrix(arima_hypo_scale[,best.vars.cols]),max.p = 1, max.P = 1)
 best.fit
