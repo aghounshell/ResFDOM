@@ -891,16 +891,15 @@ for (i in 3:12){
   var <- (arima_hypo[,i]^2)
   hist(as.matrix(var), main = c("sq",colnames(arima_hypo)[i]))
 }
-# Nothing: DOC, Temp, DO, Rain, SW Radiation, Thermo
-# Log: Chla, Inflow, Anoxia_Time
+# Nothing: DOC, Temp, DO, Rain, SW Radiation, Thermo, Anoxia_time
+# Log: Chla, Inflow
 # Cube root: DOC_processing
 
 # Transform and scale data
 arima_hypo_scale <- arima_hypo %>% 
   mutate(DOC_processing_mgL = Math.cbrt(DOC_processing_mgL),
          VW_Chla_ugL = log(VW_Chla_ugL),
-         Inflow_m3s = log(Inflow_m3s),
-         anoxia_time_d = log(anoxia_time_d))
+         Inflow_m3s = log(Inflow_m3s))
 
 arima_hypo_scale[,3:12] <- scale(arima_hypo_scale[,3:12])
 
@@ -1243,8 +1242,8 @@ final <- distinct(final)
 best <- final %>%
   slice(which.min(AICc))
 
-best.vars <- colnames(arima_hypo_scale)[combn(cols,3)[,13]] # UPDATE THIS FOLLOWING 'BEST'
-best.vars.cols <- combn(cols,3)[,13] # UPDATE THIS FOLLOWING 'BEST'
+best.vars <- colnames(arima_hypo_scale)[combn(cols,4)[,13]] # UPDATE THIS FOLLOWING 'BEST'
+best.vars.cols <- combn(cols,4)[,13] # UPDATE THIS FOLLOWING 'BEST'
 
 best.fit <- auto.arima(y,xreg = as.matrix(arima_hypo_scale[,best.vars.cols]),max.p = 1, max.P = 1)
 best.fit
