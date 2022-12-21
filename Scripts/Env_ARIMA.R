@@ -7,6 +7,7 @@
 ### 1 Sep 2022, A. Hounshell
 
 ### Updating following comments from CCC - DO mg/L -> DO%; remove GHG variables; ARIMA for DOC processing
+### Adding in some additional visualizations/analyses for the Environmental data
 
 ###############################################################################
 
@@ -133,6 +134,13 @@ final_doc_mgL <- doc_mgL %>%
   mutate(Depth = ifelse(Depth == "epi_DOC", "Epi",
                         ifelse(Depth == "hypo_DOC", "Hypo", NA)))
 
+## Calculate mean and SD for the hypo during the summer stratified period
+final_doc_mgL %>% 
+  mutate(month = month(DateTime)) %>% 
+  filter(Depth == "Hypo" & month %in% c(6,7,8,9,10) & DateTime >= as.POSIXct("2017-01-01")) %>% 
+  summarise(mean = mean(VW_DOC_mgL,na.rm=TRUE),
+            sd = sd(VW_DOC_mgL,na.rm=TRUE))
+
 ###############################################################################
 ## Add in DOC processing - calculated from Eco_DOC.R
 doc_processing <- read_csv("./Fig_Output/model_results.csv") %>% 
@@ -145,6 +153,23 @@ doc_proc_mgL <- doc_processing %>%
                         ifelse(Depth == "mean_doc_hypo_process_mgL", "Hypo", NA)))
 
 all_doc_mgL <- left_join(final_doc_mgL,doc_proc_mgL,by=c("DateTime","Depth"))
+
+## Plot figure of DOC processing by year for SI: similar to figure for [DOC] by year
+doc_proc_mgL <- doc_proc_mgL %>% 
+  mutate(year = year(DateTime),
+         month = month(DateTime))
+
+doc_proc_mgL %>% 
+  filter(month %in% c(6,7,8,9,10)) %>% 
+  ggplot(mapping=aes(x=as.factor(year),y=DOC_processing_mgL,fill=Depth))+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_boxplot(size=0.8,alpha=0.5)+
+  scale_fill_manual(breaks=c('Epi','Hypo'),values=c("#7EBDC2","#393E41"))+
+  xlab("")+
+  ylab(expression(paste("DOC Internal Loading (mg L"^-1*")")))+
+  theme_classic(base_size = 15)
+
+ggsave("./Fig_Output/SI_DOC_Proc_Year_Boxplot.png",dpi=800,width=7,height=4)
 
 ###############################################################################
 
@@ -310,6 +335,9 @@ do_plot <- do_pSat %>%
   ylab("V.W. DO %Sat")+
   theme_classic(base_size = 15)+
   theme(legend.title=element_blank())
+
+## Save %DO Plot for SI
+ggsave("./Fig_Output/SI_PercDO.png",dpi=800,width=9,height=4)
 
 # Format for ARIMA modeling
 final_do_pSat <- do_pSat %>% 
@@ -702,6 +730,34 @@ inflow_plot <- inflow_daily %>%
 final_inflow_m3s <- inflow_daily %>% 
   select(DateTime,mean) %>% 
   dplyr::rename(Inflow_m3s = mean)
+
+# Calculate residence time assuming full pond
+wtr_d <- final_inflow_m3s %>% 
+  mutate(wtr_d = (310000)/Inflow_m3s/60/60/24)
+
+wtr_d %>% 
+  na.omit(wtr_d) %>% 
+  summarise(med = median(wtr_d),
+            sd = sd(wtr_d)) %>% 
+  mutate(se = sd/length(wtr_d$wtr_d))
+
+## Plot and calculate mean and SD
+wtr_d %>% 
+  na.omit(wtr_d) %>% 
+  ggplot(mapping=aes(x=DateTime,y=wtr_d))+
+  geom_hline(yintercept = 139, linetype="dashed")+
+  geom_vline(xintercept = as.POSIXct("2017-10-25"),linetype="dashed",color="darkgrey")+
+  geom_vline(xintercept = as.POSIXct("2018-10-21"),linetype="dashed",color="darkgrey")+
+  geom_vline(xintercept = as.POSIXct("2019-10-23"),linetype="dashed",color="darkgrey")+
+  geom_vline(xintercept = as.POSIXct("2020-11-01"),linetype="dashed",color="darkgrey")+
+  geom_vline(xintercept = as.POSIXct("2021-11-03"),linetype="dashed",color="darkgrey")+
+  geom_line(size=1)+
+  geom_point(size=2)+
+  xlim(as.POSIXct("2017-01-01"),as.POSIXct("2021-12-31"))+
+  xlab("") + 
+  ylab(expression(Water~Residence~Time~(d)))+
+  theme_classic(base_size = 15)+
+  theme(legend.title=element_blank())
 
 ###############################################################################
 
