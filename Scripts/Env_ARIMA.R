@@ -848,8 +848,9 @@ arima_hypo <- plyr::join_all(list(arima_hypo,met_daily,final_inflow_m3s),by="Dat
 
 ## Add in days since anoxia for Hypo
 arima_hypo <- left_join(arima_hypo,hypo_do_mgL,by=c("DateTime","Depth")) %>% 
-  select(-anoxia,-VW_DO_mgL.y) %>% 
-  rename(VW_DO_pSat = VW_DO_mgL.x)
+  dplyr::select(DateTime,Depth,VW_DOC_mgL,DOC_processing_mgL,VW_Temp_C,VW_DO_mgL.x,VW_Chla_ugL,rain_tot_mm,
+                ShortwaveRadiationUp_Average_W_m2,Inflow_m3s,anoxia_time_d) %>% 
+  dplyr::rename(VW_DO_pSat = VW_DO_mgL.x)
 
 ## Add in thermocline depth information
 arima_epi <- left_join(arima_epi,final_thermo,by="DateTime")
@@ -866,7 +867,7 @@ epi_stats <- arima_epi %>%
 hypo_stats <- arima_hypo %>% 
   mutate(month = month(DateTime)) %>% 
   filter(DateTime >= as.POSIXct("2017-01-01") & month %in% c(5,6,7,8,9,10)) %>% 
-  select(VW_Temp_C,VW_DO_pSat,VW_Chla_ugL,rain_tot_mm,ShortwaveRadiationUp_Average_W_m2,Inflow_m3s) %>% 
+  select(VW_Temp_C,VW_DO_mgL,VW_Chla_ugL,rain_tot_mm,ShortwaveRadiationUp_Average_W_m2,Inflow_m3s) %>% 
   summarise_all(list(min,max,median,mean,sd),na.rm=TRUE)
 
 ###############################################################################
@@ -885,14 +886,14 @@ arima_hypo %>%
 ## Check correlations among environmental variables - what needs to be removed?
 # Epi
 epi_cor = as.data.frame(cor(arima_epi[,3:11],use = "complete.obs"),method=c("pearson"))
-write_csv(epi_cor, "./Fig_Output/epi_cor.csv")
+write_csv(epi_cor, "./Fig_Output/22Dec22_epi_cor.csv")
 
 chart.Correlation(arima_epi[,3:11],histogram = TRUE,method=c("pearson"))
 # No correlations!
 
 # Hypo
 hypo_cor = as.data.frame(cor(arima_hypo[,3:12],use = "complete.obs"),method=c("pearson"))
-write_csv(hypo_cor, "./Fig_Output/hypo_cor.csv")
+write_csv(hypo_cor, "./Fig_Output/22Dec22_hypo_cor.csv")
 
 chart.Correlation(arima_hypo[,3:12],histogram = TRUE,method=c("pearson"))
 # No correlations!
